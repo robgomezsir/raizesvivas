@@ -1,0 +1,107 @@
+# Sistema operacional
+.DS_Store
+Thumbs.db
+*.tmp
+*.temp
+
+# IDEs e editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Dependências
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+
+# Arquivos de ambiente
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Cache
+.cache/
+.parcel-cache/
+
+# Arquivos temporários
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory usado por ferramentas como istanbul
+coverage/
+
+# Arquivos do sistema Windows
+AppData/
+Application Data/
+Contacts/
+CrossDevice/
+Downloads/
+Favorites/
+Links/
+Music/
+NTUSER.DAT*
+ntuser.dat*
+ntuser.ini
+Saved Games/
+Searches/
+Videos/
+
+# Arquivos do sistema Linux/Mac
+.bash_history
+.config/
+.cursor/
+.dbus-keyrings/
+.dotnet/
+.emulator_console_auth_token
+.git-credentials
+.gitconfig
+.gradle/
+.lesshst
+.local/
+.n8n/
+.node_repl_history
+.ollama/
+.profile
+.qoder/
+.skiko/
+.ssh/
+.testsprite/
+.zshrc
+
+# Projetos Android
+.android/
+AndroidStudioProjects/
+StudioProjects/
+
+# Outros projetos
+ai-interview-platform/
+dyad-apps/
+repositoriodevagas/
+sispac-app/
+Civilium/
+EmailSender/
+OneDrive/
+
+# Arquivos específicos
+pnpm-lock.yaml
+next-env.d.ts
+hell -Command git status --porcelain
+tatus
+Rverse Ghidra.gpr
+Rverse Ghidra.rep/
