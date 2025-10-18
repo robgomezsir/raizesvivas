@@ -1,0 +1,296 @@
+---
+globs: *.kt,*.kts
+description: Padrões de código específicos para Kotlin e Android
+---
+
+# Padrões de Código - Raízes Vivas
+
+## Nomenclatura Obrigatória
+
+### Classes de Domínio
+- **SEMPRE** data class
+- **SEMPRE** nome no singular
+- **SEMPRE** propriedades imutáveis (val)
+
+```kotlin
+data class Member(
+    val id: String,
+    val fullName: String,
+    val birthDate: LocalDate?,
+    val generation: Int,
+    val treeElement: TreeElement
+)
+```
+
+### Entities (Room/Supabase)
+- **SEMPRE** data class
+- **SEMPRE** sufixo "Entity"
+- **SEMPRE** usar anotações corretas
+
+```kotlin
+@Entity(tableName = "members")
+data class MemberEntity(
+    @PrimaryKey val id: String,
+    @ColumnInfo(name = "full_name") val fullName: String,
+    @ColumnInfo(name = "birth_date") val birthDate: Long?,
+    // ...
+)
+```
+
+### Use Cases
+- **SEMPRE** classe com operator invoke
+- **SEMPRE** nome com verbo no infinitivo + substantivo
+- **SEMPRE** um único método público
+
+```kotlin
+class CalculateKinshipUseCase @Inject constructor(
+    private val repository: MemberRepository
+) {
+    suspend operator fun invoke(
+        memberId1: String,
+        memberId2: String
+    ): Result<Kinship> {
+        // Implementação
+    }
+}
+```
+
+### ViewModels
+- **SEMPRE** herdar de ViewModel
+- **SEMPRE** sufixo "ViewModel"
+- **SEMPRE** State como StateFlow
+
+```kotlin
+class AddMemberViewModel @Inject constructor(
+    private val addMemberUseCase: AddMemberUseCase
+) : ViewModel() {
+    
+    private val _state = MutableStateFlow(AddMemberState())
+    val state: StateFlow<AddMemberState> = _state.asStateFlow()
+    
+    fun onEvent(event: AddMemberEvent) { ... }
+}
+```
+
+### Composables
+- **SEMPRE** função com PascalCase
+- **SEMPRE** sufixo "Screen" para telas completas
+- **SEMPRE** sem sufixo para componentes
+
+```kotlin
+@Composable
+fun AddMemberScreen(
+    viewModel: AddMemberViewModel = hiltViewModel(),
+    onNavigateBack: () -> Unit
+) { ... }
+
+@Composable
+fun MemberCard(
+    member: Member,
+    onClick: () -> Unit
+) { ... }
+```
+
+## Tratamento de Erros
+
+### Result Sealed Class (OBRIGATÓRIO)
+```kotlin
+sealed class Result<out T> {
+    data class Success<T>(val data: T) : Result<T>()
+    data class Error(val exception: RaizesVivasException) : Result<Nothing>()
+    object Loading : Result<Nothing>()
+}
+```
+
+### Exceções Customizadas
+```kotlin
+sealed class RaizesVivasException(message: String) : Exception(message) {
+    // Erros de Validação
+    class InvalidDateException(message: String) : RaizesVivasException(message)
+    class InvalidRelationshipException(message: String) : RaizesVivasException(message)
+    class GenealogicalLoopException(message: String) : RaizesVivasException(message)
+    
+    // Erros de Negócio
+    class FamilyZeroNotFoundException : RaizesVivasException("Família-zero não encontrada")
+    class MemberNotFoundException(id: String) : RaizesVivasException("Membro $id não encontrado")
+    
+    // Erros de Sistema
+    class NetworkException(cause: Throwable) : RaizesVivasException("Erro de rede: ${cause.message}")
+    class DatabaseException(cause: Throwable) : RaizesVivasException("Erro no banco: ${cause.message}")
+}
+```
+
+### Exemplo de Uso Correto
+```kotlin
+class AddMemberUseCase @Inject constructor(
+    private val repository: MemberRepository,
+    private val validator: MemberValidator
+) {
+    suspend operator fun invoke(member: Member): Result<Member> {
+        return try {
+            // 1. Validar SEMPRE antes
+            validator.validate(member).getOrElse { error ->
+                return Result.Error(error)
+            }
+            
+            // 2. Verificar loops SEMPRE
+            if (repository.createsLoop(member)) {
+                return Result.Error(
+                    RaizesVivasException.GenealogicalLoopException(
+                        "Este membro criaria um loop na árvore"
+                    )
+                )
+            }
+            
+            // 3. Persistir
+            val saved = repository.addMember(member)
+            
+            // 4. Recalcular parentescos SEMPRE
+            repository.recalculateKinships(saved.id)
+            
+            Result.Success(saved)
+            
+        } catch (e: Exception) {
+            Result.Error(
+                RaizesVivasException.DatabaseException(e)
+            )
+        }
+    }
+}
+```
+
+## Estados de UI (Padrão Obrigatório)
+
+### Sealed Class para Estados Complexos
+```kotlin
+sealed class AddMemberState {
+    object Initial : AddMemberState()
+    object Loading : AddMemberState()
+    data class Success(val member: Member) : AddMemberState()
+    data class Error(val exception: RaizesVivasException) : AddMemberState()
+}
+```
+
+### Data Class para Formulários
+```kotlin
+data class AddMemberFormState(
+    val name: String = "",
+    val nameError: String? = null,
+    val birthDate: LocalDate? = null,
+    val birthDateError: String? = null,
+    val selectedFather: Member? = null,
+    val selectedMother: Member? = null,
+    val generation: Int = 0,
+    val isSubmitting: Boolean = false
+)
+```
+
+### ViewModel com Estados
+```kotlin
+class AddMemberViewModel @Inject constructor(
+    private val addMemberUseCase: AddMemberUseCase
+) : ViewModel() {
+    
+    private val _uiState = MutableStateFlow<AddMemberState>(AddMemberState.Initial)
+    val uiState: StateFlow<AddMemberState> = _uiState.asStateFlow()
+    
+    private val _formState = MutableStateFlow(AddMemberFormState())
+    val formState: StateFlow<AddMemberFormState> = _formState.asStateFlow()
+    
+    fun onEvent(event: AddMemberEvent) {
+        when (event) {
+            is AddMemberEvent.NameChanged -> {
+                _formState.update { it.copy(
+                    name = event.name,
+                    nameError = null
+                )}
+            }
+            is AddMemberEvent.Submit -> submitForm()
+        }
+    }
+    
+    private fun submitForm() {
+        viewModelScope.launch {
+            _formState.update { it.copy(isSubmitting = true) }
+            _uiState.value = AddMemberState.Loading
+            
+            when (val result = addMemberUseCase(/* ... */)) {
+                is Result.Success -> {
+                    _uiState.value = AddMemberState.Success(result.data)
+                }
+                is Result.Error -> {
+                    _uiState.value = AddMemberState.Error(result.exception)
+                    _formState.update { it.copy(isSubmitting = false) }
+                }
+            }
+        }
+    }
+}
+```
+
+## Padrões Proibidos
+
+### ❌ NUNCA FAZER
+```kotlin
+// 1. Expor MutableStateFlow
+class BadViewModel {
+    val state = MutableStateFlow(State()) // ERRADO!
+}
+
+// 2. Usar !! (force unwrap)
+fun badFunction(member: Member?) {
+    val name = member!!.name // ERRADO! Pode crashar
+}
+
+// 3. Try-catch genérico
+try {
+    doSomething()
+} catch (e: Exception) { 
+    // ERRADO! Não sabemos o que aconteceu
+}
+
+// 4. Hardcoded strings
+Text("Olá, mundo!") // ERRADO! Usar strings.xml
+
+// 5. Magic numbers
+delay(5000) // ERRADO! O que é 5000?
+```
+
+### ✅ SEMPRE FAZER
+```kotlin
+// 1. Expor como imutável
+class GoodViewModel {
+    private val _state = MutableStateFlow(State())
+    val state: StateFlow<State> = _state.asStateFlow()
+}
+
+// 2. Usar safe call ou elvis
+fun goodFunction(member: Member?) {
+    val name = member?.name ?: "Desconhecido"
+}
+
+// 3. Usar Result sealed class
+when (val result = doSomething()) {
+    is Result.Success -> handleSuccess(result.data)
+    is Result.Error -> handleError(result.exception)
+    is Result.Loading -> showLoading()
+}
+
+// 4. Usar string resources
+Text(stringResource(R.string.hello_world))
+
+// 5. Usar constantes
+companion object {
+    private const val DELAY_MILLIS = 5000L
+}
+delay(DELAY_MILLIS)
+```
+
+## Regras de Performance
+
+- **SEMPRE** usar `remember` para valores que não devem ser recalculados
+- **SEMPRE** usar `derivedStateOf` para estados derivados
+- **SEMPRE** usar `LaunchedEffect` para operações assíncronas
+- **NUNCA** fazer cálculos pesados em Composables
+- **SEMPRE** usar `LazyColumn` para listas grandes
+- **SEMPRE** paginar dados quando necessário

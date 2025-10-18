@@ -1,0 +1,313 @@
+---
+description: Regras específicas para o algoritmo de parentesco - coração crítico do app
+---
+
+# Algoritmo de Parentesco - Raízes Vivas
+
+## IMPORTANTE: Núcleo Crítico do App
+
+Este é o **coração do aplicativo**. Qualquer erro aqui compromete toda a funcionalidade. **TESTAR EXAUSTIVAMENTE** antes de integrar.
+
+## Estrutura do Algoritmo
+
+### Localização Obrigatória
+```
+core/utils/algorithms/KinshipCalculator.kt
+```
+
+### Componentes Principais
+
+#### 1. Encontrar Ancestral Comum
+```kotlin
+private suspend fun findCommonAncestor(
+    member1: Member,
+    member2: Member
+): Member? {
+    val ancestors1 = getAllAncestors(member1)
+    val ancestors2 = getAllAncestors(member2)
+    
+    // Retorna o ancestral comum mais próximo
+    return ancestors1.intersect(ancestors2.toSet()).firstOrNull()
+}
+```
+
+#### 2. Calcular Distância Geracional
+```kotlin
+private fun calculateGenerationalDistance(
+    member1: Member,
+    member2: Member,
+    commonAncestor: Member
+): Pair<Int, Int> {
+    val distance1 = countGenerations(commonAncestor, member1)
+    val distance2 = countGenerations(commonAncestor, member2)
+    return Pair(distance1, distance2)
+}
+```
+
+#### 3. Determinar Tipo de Parentesco
+```kotlin
+private fun determineKinshipType(
+    member1: Member,
+    member2: Member,
+    distance1: Int,
+    distance2: Int
+): KinshipType {
+    
+    // Linha direta ascendente
+    if (distance2 == 0 && distance1 > 0) {
+        return when (distance1) {
+            1 -> KinshipType.Parent
+            2 -> KinshipType.Grandparent
+            3 -> KinshipType.GreatGrandparent
+            else -> KinshipType.Ancestor(distance1)
+        }
+    }
+    
+    // Linha direta descendente
+    if (distance1 == 0 && distance2 > 0) {
+        return when (distance2) {
+            1 -> KinshipType.Child
+            2 -> KinshipType.Grandchild
+            3 -> KinshipType.GreatGrandchild
+            else -> KinshipType.Descendant(distance2)
+        }
+    }
+    
+    // Linha colateral (mesma geração)
+    if (distance1 == distance2) {
+        return when (distance1) {
+            1 -> KinshipType.Sibling
+            2 -> KinshipType.FirstCousin
+            3 -> KinshipType.SecondCousin
+            else -> KinshipType.Cousin(distance1 - 1)
+        }
+    }
+    
+    // Linha colateral (gerações diferentes)
+    val diff = abs(distance1 - distance2)
+    return when {
+        distance1 < distance2 -> {
+            // member1 é mais velho (tio)
+            when (diff) {
+                1 -> KinshipType.UncleAunt
+                2 -> KinshipType.GreatUncleAunt
+                else -> KinshipType.UncleAunt(diff)
+            }
+        }
+        else -> {
+            // member1 é mais novo (sobrinho)
+            when (diff) {
+                1 -> KinshipType.NephewNiece
+                2 -> KinshipType.GrandNephewNiece
+                else -> KinshipType.NephewNiece(diff)
+            }
+        }
+    }
+}
+```
+
+## Tipos de Parentesco (Sealed Class)
+
+```kotlin
+sealed class KinshipType {
+    // Linha direta
+    object Parent : KinshipType()
+    object Child : KinshipType()
+    object Grandparent : KinshipType()
+    object Grandchild : KinshipType()
+    object GreatGrandparent : KinshipType()
+    object GreatGrandchild : KinshipType()
+    data class Ancestor(val generations: Int) : KinshipType()
+    data class Descendant(val generations: Int) : KinshipType()
+    
+    // Linha colateral
+    object Sibling : KinshipType()
+    object HalfSibling : KinshipType()
+    object FirstCousin : KinshipType()
+    object SecondCousin : KinshipType()
+    data class Cousin(val degree: Int) : KinshipType()
+    
+    object UncleAunt : KinshipType()
+    object GreatUncleAunt : KinshipType()
+    data class UncleAunt(val generations: Int) : KinshipType()
+    
+    object NephewNiece : KinshipType()
+    object GrandNephewNiece : KinshipType()
+    data class NephewNiece(val generations: Int) : KinshipType()
+    
+    // Por afinidade
+    object Spouse : KinshipType()
+    object StepParent : KinshipType()
+    object StepChild : KinshipType()
+    object InLaw : KinshipType()
+    
+    // Outros
+    object Self : KinshipType()
+    object Unrelated : KinshipType()
+}
+```
+
+## Função Principal
+
+```kotlin
+suspend fun calculate(
+    member1Id: String,
+    member2Id: String,
+    familyZeroId: String
+): Result<Kinship> {
+    return try {
+        // 1. Buscar membros
+        val member1 = memberRepository.getMember(member1Id)
+            ?: return Result.Error(
+                RaizesVivasException.MemberNotFoundException(member1Id)
+            )
+        
+        val member2 = memberRepository.getMember(member2Id)
+            ?: return Result.Error(
+                RaizesVivasException.MemberNotFoundException(member2Id)
+            )
+        
+        // 2. Verificar se são a mesma pessoa
+        if (member1.id == member2.id) {
+            return Result.Success(Kinship.Self)
+        }
+        
+        // 3. Verificar relação de cônjuge
+        val isSpouse = memberRepository.areSpouses(member1.id, member2.id)
+        if (isSpouse) {
+            return Result.Success(Kinship.Spouse)
+        }
+        
+        // 4. Encontrar ancestral comum
+        val commonAncestor = findCommonAncestor(member1, member2)
+            ?: return Result.Success(Kinship.Unrelated)
+        
+        // 5. Calcular distâncias
+        val (distance1, distance2) = calculateGenerationalDistance(
+            member1, member2, commonAncestor
+        )
+        
+        // 6. Determinar tipo
+        val kinshipType = determineKinshipType(
+            member1, member2, distance1, distance2
+        )
+        
+        // 7. Criar objeto Kinship
+        val kinship = Kinship(
+            member1Id = member1.id,
+            member2Id = member2.id,
+            type = kinshipType,
+            degree = distance1 + distance2,
+            generation = member2.generation - member1.generation,
+            path = buildPath(member1, member2, commonAncestor),
+            familyZeroId = familyZeroId
+        )
+        
+        // 8. Salvar resultado
+        memberRepository.saveKinship(kinship)
+        
+        Result.Success(kinship)
+        
+    } catch (e: Exception) {
+        Result.Error(RaizesVivasException.DatabaseException(e))
+    }
+}
+```
+
+## Recálculo Automático
+
+```kotlin
+suspend fun recalculateAll(familyZeroId: String) {
+    val members = memberRepository.getAllMembers(familyZeroId)
+    
+    // Limpar cache antigo
+    memberRepository.clearKinships(familyZeroId)
+    
+    // Calcular para cada par
+    for (i in members.indices) {
+        for (j in i + 1 until members.size) {
+            calculate(
+                members[i].id,
+                members[j].id,
+                familyZeroId
+            )
+        }
+    }
+}
+```
+
+## Regras Críticas
+
+### 1. SEMPRE Chamar Após Modificações
+- Adicionar membro
+- Editar relacionamento pai/mãe
+- Criar subfamília
+- Deletar membro
+
+### 2. SEMPRE Salvar Resultado
+- Salvar em `parentescos_calculados`
+- Usar `familia_referencia_id` = família-zero
+- Invalidar cache antigo
+
+### 3. SEMPRE Validar Antes
+- Verificar se membros existem
+- Verificar se família-zero existe
+- Verificar se não são a mesma pessoa
+
+### 4. SEMPRE Tratar Erros
+- Usar Result sealed class
+- Logs detalhados para debugging
+- Rollback em caso de falha
+
+## Casos de Teste Obrigatórios
+
+### Testes Básicos (Mínimo 50 casos)
+```kotlin
+@Test
+fun `calculate - pai e filho - retorna Parent`()
+
+@Test
+fun `calculate - irmãos - retorna Sibling`()
+
+@Test
+fun `calculate - primos de primeiro grau - retorna FirstCousin`()
+
+@Test
+fun `calculate - loop genealógico - retorna erro`()
+
+@Test
+fun `calculate - sem ancestral comum - retorna Unrelated`()
+
+@Test
+fun `calculate - mesmo membro - retorna Self`()
+
+@Test
+fun `calculate - cônjuges - retorna Spouse`()
+```
+
+### Cobertura Obrigatória
+- **100%** para algoritmo de parentesco
+- **100%** para validações
+- **100%** para casos extremos
+- **Pelo menos 50 testes** cobrindo todos os tipos
+
+## Performance
+
+- **< 100ms** para árvore de 100 membros
+- **< 1s** para árvore de 1000 membros
+- **Background thread** para recálculos grandes
+- **Cache** para parentescos já calculados
+
+## Debugging
+
+```kotlin
+private val logger = Logger("KinshipCalculator")
+
+suspend fun calculate(...) {
+    logger.d("Calculando parentesco: $member1Id -> $member2Id")
+    
+    // ... implementação ...
+    
+    logger.d("Resultado: ${kinship.type} (grau ${kinship.degree})")
+}
+```

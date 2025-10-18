@@ -1,0 +1,513 @@
+---
+globs: *.kt
+description: Regras de UI/UX e Jetpack Compose para o projeto
+---
+
+# Regras de UI/UX - Raízes Vivas
+
+## Componentes Reutilizáveis (OBRIGATÓRIOS)
+
+### MemberCard
+```kotlin
+@Composable
+fun MemberCard(
+    member: Member,
+    kinship: String?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Foto
+            AsyncImage(
+                model = member.photoUrl,
+                contentDescription = "Foto de ${member.fullName}",
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape),
+                placeholder = painterResource(R.drawable.ic_person_placeholder),
+                error = painterResource(R.drawable.ic_person_placeholder)
+            )
+            
+            Spacer(modifier = Modifier.width(16.dp))
+            
+            // Informações
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = member.fullName,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                
+                if (kinship != null) {
+                    Text(
+                        text = kinship,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
+                
+                member.birthDate?.let { date ->
+                    Text(
+                        text = formatDate(date),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            
+            // Elemento da árvore
+            TreeElementIcon(
+                element = member.treeElement,
+                modifier = Modifier.size(32.dp)
+            )
+        }
+    }
+}
+```
+
+### TreeElementIcon
+```kotlin
+@Composable
+fun TreeElementIcon(
+    element: TreeElement,
+    modifier: Modifier = Modifier
+) {
+    val (icon, color) = when (element) {
+        TreeElement.ROOT -> Icons.Default.Nature to Color(0xFF5D4037)
+        TreeElement.BARK -> Icons.Default.AccountTree to Color(0xFF8D6E63)
+        TreeElement.TRUNK -> Icons.Default.Park to Color(0xFFA1887F)
+        TreeElement.BRANCH -> Icons.Default.CallSplit to Color(0xFF689F38)
+        TreeElement.LEAF -> Icons.Default.Grass to Color(0xFF8BC34A)
+        TreeElement.FLOWER -> Icons.Default.LocalFlorist to Color(0xFFE91E63)
+        TreeElement.POLLINATOR -> Icons.Default.BugReport to Color(0xFFFFA726)
+        TreeElement.BIRD -> Icons.Default.Flight to Color(0xFF42A5F5)
+    }
+    
+    Icon(
+        imageVector = icon,
+        contentDescription = element.name,
+        tint = color,
+        modifier = modifier
+    )
+}
+```
+
+### LoadingScreen
+```kotlin
+@Composable
+fun LoadingScreen(
+    message: String = "Carregando...",
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            CircularProgressIndicator()
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyLarge
+            )
+        }
+    }
+}
+```
+
+### ErrorScreen
+```kotlin
+@Composable
+fun ErrorScreen(
+    exception: RaizesVivasException,
+    onRetry: (() -> Unit)? = null,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.padding(32.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Error,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(64.dp)
+            )
+            
+            Text(
+                text = when (exception) {
+                    is RaizesVivasException.NetworkException -> "Erro de conexão"
+                    is RaizesVivasException.DatabaseException -> "Erro ao acessar dados"
+                    is RaizesVivasException.FamilyZeroNotFoundException -> "Família não encontrada"
+                    else -> "Erro inesperado"
+                },
+                style = MaterialTheme.typography.titleLarge,
+                textAlign = TextAlign.Center
+            )
+            
+            Text(
+                text = exception.message ?: "Ocorreu um erro",
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            
+            onRetry?.let {
+                Button(onClick = it) {
+                    Icon(Icons.Default.Refresh, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Tentar novamente")
+                }
+            }
+        }
+    }
+}
+```
+
+## Tema e Design System
+
+### Cores
+```kotlin
+val FamilyZeroGold = Color(0xFFFFD700)
+val SubfamilyGreen = Color(0xFF4CAF50)
+val RootBrown = Color(0xFF5D4037)
+val BarkBrown = Color(0xFF8D6E63)
+val TrunkBeige = Color(0xFFA1887F)
+val BranchGreen = Color(0xFF689F38)
+val LeafGreen = Color(0xFF8BC34A)
+val FlowerPink = Color(0xFFE91E63)
+val PollinatorOrange = Color(0xFFFFA726)
+val BirdBlue = Color(0xFF42A5F5)
+```
+
+### Theme
+```kotlin
+private val LightColorScheme = lightColorScheme(
+    primary = BranchGreen,
+    onPrimary = Color.White,
+    secondary = TrunkBeige,
+    onSecondary = Color.White,
+    tertiary = FlowerPink,
+    background = Color(0xFFFFFBFE),
+    surface = Color.White,
+    error = Color(0xFFB00020)
+)
+
+private val DarkColorScheme = darkColorScheme(
+    primary = LeafGreen,
+    onPrimary = Color.Black,
+    secondary = BarkBrown,
+    onSecondary = Color.White,
+    tertiary = PollinatorOrange,
+    background = Color(0xFF1C1B1F),
+    surface = Color(0xFF2D2C31),
+    error = Color(0xFFCF6679)
+)
+
+@Composable
+fun RaizesVivasTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    content: @Composable () -> Unit
+) {
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    
+    MaterialTheme(
+        colorScheme = colorScheme,
+        typography = Typography,
+        content = content
+    )
+}
+```
+
+## Composables e Recomposition
+
+### ✅ CORRETO: Minimizar recomposições
+```kotlin
+@Composable
+fun FamilyTreeScreen(
+    viewModel: FamilyTreeViewModel = hiltViewModel()
+) {
+    // ✅ CORRETO: Coletar state
+    val treeState by viewModel.treeState.collectAsStateWithLifecycle()
+    val selectedFamily by viewModel.selectedFamily.collectAsStateWithLifecycle()
+    
+    // ✅ CORRETO: Derivar estado complexo
+    val filteredMembers = remember(treeState, selectedFamily) {
+        derivedStateOf {
+            when (val state = treeState) {
+                is TreeState.Success -> {
+                    state.members.filter { it.familyId == selectedFamily?.id }
+                }
+                else -> emptyList()
+            }
+        }
+    }.value
+    
+    // ✅ CORRETO: Callbacks estáveis
+    val onMemberClick = remember<(String) -> Unit> {
+        { memberId -> viewModel.selectMember(memberId) }
+    }
+    
+    when (treeState) {
+        is TreeState.Loading -> LoadingScreen()
+        is TreeState.Success -> {
+            TreeContent(
+                members = filteredMembers,
+                onMemberClick = onMemberClick
+            )
+        }
+        is TreeState.Error -> ErrorScreen(
+            exception = (treeState as TreeState.Error).exception
+        )
+    }
+}
+```
+
+### ❌ ERRADO: Vai recompor toda vez
+```kotlin
+@Composable
+fun BadScreen(viewModel: ViewModel) {
+    val state = viewModel.state.value // Não reativo!
+    
+    members.filter { ... } // Recalculado em toda recomposição!
+    
+    TreeContent(
+        onClick = { viewModel.onClick(it) } // Lambda nova em toda recomposição!
+    )
+}
+```
+
+## Formulários e Validação
+
+### Formulário de Adicionar Membro
+```kotlin
+@Composable
+fun AddMemberForm(
+    formState: AddMemberFormState,
+    onEvent: (AddMemberEvent) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Nome
+        OutlinedTextField(
+            value = formState.name,
+            onValueChange = { onEvent(AddMemberEvent.NameChanged(it)) },
+            label = { Text("Nome completo") },
+            isError = formState.nameError != null,
+            supportingText = formState.nameError?.let { { Text(it) } },
+            modifier = Modifier.fillMaxWidth()
+        )
+        
+        // Data de nascimento
+        val datePickerState = rememberDatePickerState()
+        val showDatePicker = remember { mutableStateOf(false) }
+        
+        OutlinedTextField(
+            value = formState.birthDate?.toString() ?: "",
+            onValueChange = { },
+            label = { Text("Data de nascimento") },
+            readOnly = true,
+            trailingIcon = {
+                IconButton(onClick = { showDatePicker.value = true }) {
+                    Icon(Icons.Default.DateRange, contentDescription = "Selecionar data")
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
+        
+        // Botão de salvar
+        Button(
+            onClick = { onEvent(AddMemberEvent.Submit) },
+            enabled = !formState.isSubmitting && formState.name.isNotBlank(),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            if (formState.isSubmitting) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(16.dp),
+                    strokeWidth = 2.dp
+                )
+                Spacer(Modifier.width(8.dp))
+            }
+            Text("Adicionar Membro")
+        }
+    }
+}
+```
+
+## Navegação
+
+### Navigation Setup
+```kotlin
+@Composable
+fun RaizesVivasNavigation() {
+    val navController = rememberNavController()
+    
+    NavHost(
+        navController = navController,
+        startDestination = "home"
+    ) {
+        composable("home") {
+            HomeScreen(
+                onNavigateToAddMember = {
+                    navController.navigate("add_member")
+                }
+            )
+        }
+        
+        composable("add_member") {
+            AddMemberScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+    }
+}
+```
+
+## Regras de Performance
+
+### 1. Listas Grandes
+```kotlin
+// ✅ CORRETO: Usar LazyColumn
+@Composable
+fun MemberList(members: List<Member>) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(members) { member ->
+            MemberCard(
+                member = member,
+                onClick = { /* ... */ }
+            )
+        }
+    }
+}
+
+// ❌ ERRADO: Usar Column com scroll
+@Composable
+fun BadMemberList(members: List<Member>) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+    ) {
+        members.forEach { member ->
+            MemberCard(member = member)
+        }
+    }
+}
+```
+
+### 2. Imagens
+```kotlin
+// ✅ CORRETO: Usar AsyncImage com cache
+AsyncImage(
+    model = ImageRequest.Builder(LocalContext.current)
+        .data(member.photoUrl)
+        .memoryCachePolicy(CachePolicy.ENABLED)
+        .diskCachePolicy(CachePolicy.ENABLED)
+        .build(),
+    contentDescription = "Foto de ${member.fullName}",
+    modifier = Modifier.size(56.dp)
+)
+```
+
+### 3. Estados Derivados
+```kotlin
+// ✅ CORRETO: Usar derivedStateOf
+val filteredMembers = remember(members, searchQuery) {
+    derivedStateOf {
+        members.filter { it.name.contains(searchQuery, ignoreCase = true) }
+    }
+}.value
+```
+
+## Acessibilidade
+
+### Regras Obrigatórias
+- **SEMPRE** adicionar `contentDescription` em ícones
+- **SEMPRE** usar contraste adequado
+- **SEMPRE** suportar texto escalável
+- **SEMPRE** botões com tamanho mínimo (48dp)
+- **SEMPRE** suportar navegação por teclado
+
+### Exemplo
+```kotlin
+@Composable
+fun AccessibleButton(
+    onClick: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier
+            .height(48.dp) // Tamanho mínimo
+            .semantics {
+                role = Role.Button
+                contentDescription = "Botão de ação"
+            }
+    ) {
+        content()
+    }
+}
+```
+
+## Loading States
+
+### Regras Obrigatórias
+- **SEMPRE** mostrar loading em operações assíncronas
+- **SEMPRE** desabilitar botões durante loading
+- **SEMPRE** mostrar progresso quando possível
+- **SEMPRE** timeout para operações longas
+
+### Exemplo
+```kotlin
+@Composable
+fun LoadingButton(
+    text: String,
+    isLoading: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Button(
+        onClick = onClick,
+        enabled = !isLoading,
+        modifier = modifier
+    ) {
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(16.dp),
+                strokeWidth = 2.dp
+            )
+            Spacer(Modifier.width(8.dp))
+        }
+        Text(text)
+    }
+}
+```

@@ -1,0 +1,436 @@
+---
+description: Regras de banco de dados, Supabase e Room para o projeto
+---
+
+# Regras de Banco de Dados - Raízes Vivas
+
+## Schema Supabase (SQL Completo)
+
+### ⚠️ ATENÇÃO: Executar este script EXATAMENTE como está
+### ⚠️ NUNCA modificar sem atualizar documentação
+
+### Tabela: familias
+```sql
+CREATE TABLE IF NOT EXISTS familias (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    nome VARCHAR(255) NOT NULL,
+    tipo VARCHAR(20) NOT NULL CHECK (tipo IN ('zero', 'subfamilia')),
+    familia_pai_id UUID REFERENCES familias(id) ON DELETE CASCADE,
+    criada_por_casamento BOOLEAN DEFAULT FALSE,
+    membro_origem_1_id UUID,
+    membro_origem_2_id UUID,
+    data_criacao TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    icone_arvore TEXT,
+    nivel_hierarquico INTEGER DEFAULT 0,
+    ativa BOOLEAN DEFAULT TRUE,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    CONSTRAINT familia_pai_nao_pode_ser_ela_mesma CHECK (id != familia_pai_id),
+    CONSTRAINT familia_zero_sem_pai CHECK (
+        (tipo = 'zero' AND familia_pai_id IS NULL) OR tipo = 'subfamilia'
+    )
+);
+```
+
+### Tabela: membros
+```sql
+CREATE TABLE IF NOT EXISTS membros (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    familia_principal_id UUID NOT NULL REFERENCES familias(id) ON DELETE CASCADE,
+    nome_completo VARCHAR(500) NOT NULL,
+    data_nascimento DATE,
+    data_nascimento_aproximada BOOLEAN DEFAULT FALSE,
+    cidade_nascimento VARCHAR(255),
+    pais_nascimento VARCHAR(100),
+    estado_civil VARCHAR(20) CHECK (estado_civil IN ('solteiro', 'casado', 'divorciado', 'viuvo')),
+    pai_id UUID REFERENCES membros(id) ON DELETE SET NULL,
+    mae_id UUID REFERENCES membros(id) ON DELETE SET NULL,
+    tipo_filiacao VARCHAR(20) DEFAULT 'biologica' CHECK (tipo_filiacao IN ('biologica', 'adotiva')),
+    falecido BOOLEAN DEFAULT FALSE,
+    data_falecimento DATE,
+    endereco_atual TEXT,
+    foto_url TEXT,
+    elemento_arvore VARCHAR(20) NOT NULL CHECK (
+        elemento_arvore IN ('raiz', 'casca', 'caule', 'galho', 'folha', 'flor', 'fruto', 'polinizador', 'passaro')
+    ),
+    geracao_na_familia_zero INTEGER NOT NULL,
+    tipo_nascimento VARCHAR(20) DEFAULT 'unico' CHECK (tipo_nascimento IN ('unico', 'gemelar')),
+    grupo_gemelar_id UUID,
+    ordem_nascimento INTEGER,
+    privacidade VARCHAR(20) DEFAULT 'normal' CHECK (privacidade IN ('privado', 'normal', 'publico')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    CONSTRAINT nao_pode_ser_proprio_pai CHECK (id != pai_id),
+    CONSTRAINT nao_pode_ser_propria_mae CHECK (id != mae_id),
+    CONSTRAINT data_falecimento_valida CHECK (
+        falecido = FALSE OR (falecido = TRUE AND data_falecimento IS NOT NULL)
+    ),
+    CONSTRAINT data_nascimento_antes_falecimento CHECK (
+        data_nascimento IS NULL OR data_falecimento IS NULL OR data_nascimento < data_falecimento
+    )
+);
+```
+
+### Tabela: relacionamentos
+```sql
+CREATE TABLE IF NOT EXISTS relacionamentos (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    membro_1_id UUID NOT NULL REFERENCES membros(id) ON DELETE CASCADE,
+    membro_2_id UUID NOT NULL REFERENCES membros(id) ON DELETE CASCADE,
+    tipo_relacao VARCHAR(30) NOT NULL CHECK (
+        tipo_relacao IN ('casamento', 'uniao_estavel', 'pais_filho', 'irmaos', 'meio_irmaos')
+    ),
+    data_inicio DATE,
+    data_fim DATE,
+    familia_formada_id UUID REFERENCES familias(id) ON DELETE SET NULL,
+    ativo BOOLEAN DEFAULT TRUE,
+    confirmado_por_ambos BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    CONSTRAINT relacionamento_consigo_mesmo CHECK (membro_1_id != membro_2_id),
+    CONSTRAINT data_fim_depois_inicio CHECK (data_inicio IS NULL OR data_fim IS NULL OR data_inicio < data_fim),
+    CONSTRAINT membros_ordenados CHECK (membro_1_id < membro_2_id)
+);
+```
+
+### Tabela: membros_familias
+```sql
+CREATE TABLE IF NOT EXISTS membros_familias (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    membro_id UUID NOT NULL REFERENCES membros(id) ON DELETE CASCADE,
+    familia_id UUID NOT NULL REFERENCES familias(id) ON DELETE CASCADE,
+    papel_na_familia VARCHAR(20) NOT NULL CHECK (
+        papel_na_familia IN ('pai', 'mae', 'filho', 'filha', 'conjugue', 'avo', 'avó', 'neto', 'neta', 'agregado')
+    ),
+    elemento_nesta_familia VARCHAR(20) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    CONSTRAINT membro_familia_unico UNIQUE(membro_id, familia_id)
+);
+```
+
+### Tabela: parentescos_calculados
+```sql
+CREATE TABLE IF NOT EXISTS parentescos_calculados (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    membro_origem_id UUID NOT NULL REFERENCES membros(id) ON DELETE CASCADE,
+    membro_destino_id UUID NOT NULL REFERENCES membros(id) ON DELETE CASCADE,
+    grau_parentesco VARCHAR(100) NOT NULL,
+    distancia_geracional INTEGER NOT NULL,
+    tipo_parentesco VARCHAR(20) NOT NULL CHECK (
+        tipo_parentesco IN ('consanguineo', 'afim', 'civil')
+    ),
+    caminho_parentesco JSONB,
+    calculado_em TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    familia_referencia_id UUID NOT NULL REFERENCES familias(id) ON DELETE CASCADE,
+    
+    CONSTRAINT parentesco_origem_destino_unico UNIQUE(membro_origem_id, membro_destino_id, familia_referencia_id)
+);
+```
+
+## Índices Obrigatórios
+
+```sql
+-- Famílias
+CREATE INDEX idx_familias_user ON familias(user_id);
+CREATE INDEX idx_familias_tipo ON familias(tipo);
+CREATE INDEX idx_familias_pai ON familias(familia_pai_id);
+
+-- Membros
+CREATE INDEX idx_membros_familia ON membros(familia_principal_id);
+CREATE INDEX idx_membros_pai ON membros(pai_id);
+CREATE INDEX idx_membros_mae ON membros(mae_id);
+CREATE INDEX idx_membros_geracao ON membros(geracao_na_familia_zero);
+CREATE INDEX idx_membros_nome ON membros USING gin(to_tsvector('portuguese', nome_completo));
+
+-- Relacionamentos
+CREATE INDEX idx_relacionamentos_membro1 ON relacionamentos(membro_1_id);
+CREATE INDEX idx_relacionamentos_membro2 ON relacionamentos(membro_2_id);
+CREATE INDEX idx_relacionamentos_tipo ON relacionamentos(tipo_relacao);
+CREATE INDEX idx_relacionamentos_ativo ON relacionamentos(ativo);
+CREATE UNIQUE INDEX idx_relacionamento_unico ON relacionamentos(membro_1_id, membro_2_id, tipo_relacao) 
+    WHERE ativo = TRUE;
+
+-- Parentescos
+CREATE INDEX idx_parentescos_origem ON parentescos_calculados(membro_origem_id);
+CREATE INDEX idx_parentescos_destino ON parentescos_calculados(membro_destino_id);
+CREATE INDEX idx_parentescos_familia ON parentescos_calculados(familia_referencia_id);
+```
+
+## Row Level Security (RLS)
+
+```sql
+-- Habilitar RLS em todas as tabelas
+ALTER TABLE familias ENABLE ROW LEVEL SECURITY;
+ALTER TABLE membros ENABLE ROW LEVEL SECURITY;
+ALTER TABLE relacionamentos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE membros_familias ENABLE ROW LEVEL SECURITY;
+ALTER TABLE parentescos_calculados ENABLE ROW LEVEL SECURITY;
+
+-- Políticas para familias
+CREATE POLICY "Usuários veem apenas suas famílias"
+    ON familias FOR SELECT
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "Usuários podem criar suas famílias"
+    ON familias FOR INSERT
+    WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Usuários podem atualizar suas famílias"
+    ON familias FOR UPDATE
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "Usuários podem deletar subfamílias"
+    ON familias FOR DELETE
+    USING (auth.uid() = user_id AND tipo = 'subfamilia');
+```
+
+## Triggers
+
+### Trigger para atualizar updated_at
+```sql
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_familias_updated_at
+    BEFORE UPDATE ON familias
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+```
+
+### Trigger para prevenir loops genealógicos
+```sql
+CREATE OR REPLACE FUNCTION prevent_genealogical_loop()
+RETURNS TRIGGER AS $
+BEGIN
+    -- Verificar se o novo pai/mãe é descendente do membro
+    IF NEW.pai_id IS NOT NULL THEN
+        IF is_descendant(NEW.id, NEW.pai_id) THEN
+            RAISE EXCEPTION 'Loop genealógico detectado: membro não pode ter descendente como pai';
+        END IF;
+    END IF;
+    
+    IF NEW.mae_id IS NOT NULL THEN
+        IF is_descendant(NEW.id, NEW.mae_id) THEN
+            RAISE EXCEPTION 'Loop genealógico detectado: membro não pode ter descendente como mãe';
+        END IF;
+    END IF;
+    
+    RETURN NEW;
+END;
+$ LANGUAGE plpgsql;
+
+CREATE TRIGGER check_genealogical_loop
+    BEFORE INSERT OR UPDATE ON membros
+    FOR EACH ROW
+    EXECUTE FUNCTION prevent_genealogical_loop();
+```
+
+## Room Database (Local)
+
+### Database Class
+```kotlin
+@Database(
+    entities = [
+        FamilyEntity::class,
+        MemberEntity::class,
+        RelationshipEntity::class,
+        MemberFamilyEntity::class,
+        KinshipEntity::class
+    ],
+    version = 1,
+    exportSchema = true
+)
+@TypeConverters(Converters::class)
+abstract class RaizesVivasDatabase : RoomDatabase() {
+    abstract fun familyDao(): FamilyDao
+    abstract fun memberDao(): MemberDao
+    abstract fun relationshipDao(): RelationshipDao
+    abstract fun kinshipDao(): KinshipDao
+}
+```
+
+### Entity Example
+```kotlin
+@Entity(
+    tableName = "members",
+    foreignKeys = [
+        ForeignKey(
+            entity = FamilyEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["familia_principal_id"],
+            onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = MemberEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["pai_id"],
+            onDelete = ForeignKey.SET_NULL
+        ),
+        ForeignKey(
+            entity = MemberEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["mae_id"],
+            onDelete = ForeignKey.SET_NULL
+        )
+    ],
+    indices = [
+        Index("familia_principal_id"),
+        Index("pai_id"),
+        Index("mae_id")
+    ]
+)
+data class MemberEntity(
+    @PrimaryKey val id: String,
+    @ColumnInfo(name = "familia_principal_id") val familiaPrincipalId: String,
+    @ColumnInfo(name = "nome_completo") val nomeCompleto: String,
+    @ColumnInfo(name = "data_nascimento") val dataNascimento: Long?,
+    @ColumnInfo(name = "cidade_nascimento") val cidadeNascimento: String?,
+    @ColumnInfo(name = "estado_civil") val estadoCivil: String?,
+    @ColumnInfo(name = "pai_id") val paiId: String?,
+    @ColumnInfo(name = "mae_id") val maeId: String?,
+    @ColumnInfo(name = "falecido") val falecido: Boolean,
+    @ColumnInfo(name = "data_falecimento") val dataFalecimento: Long?,
+    @ColumnInfo(name = "endereco_atual") val enderecoAtual: String?,
+    @ColumnInfo(name = "foto_url") val fotoUrl: String?,
+    @ColumnInfo(name = "elemento_arvore") val elementoArvore: String,
+    @ColumnInfo(name = "geracao_na_familia_zero") val geracaoNaFamiliaZero: Int,
+    @ColumnInfo(name = "created_at") val createdAt: Long,
+    @ColumnInfo(name = "updated_at") val updatedAt: Long
+)
+```
+
+### DAO Example
+```kotlin
+@Dao
+interface MemberDao {
+    
+    @Query("SELECT * FROM members WHERE familia_principal_id = :familyId")
+    fun getMembersByFamily(familyId: String): Flow<List<MemberEntity>>
+    
+    @Query("SELECT * FROM members WHERE id = :memberId")
+    suspend fun getMember(memberId: String): MemberEntity?
+    
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertMember(member: MemberEntity)
+    
+    @Update
+    suspend fun updateMember(member: MemberEntity)
+    
+    @Delete
+    suspend fun deleteMember(member: MemberEntity)
+    
+    @Query("DELETE FROM members WHERE familia_principal_id = :familyId")
+    suspend fun deleteMembersByFamily(familyId: String)
+    
+    /**
+     * QUERY COMPLEXA: Buscar todos os ancestrais
+     */
+    @Query("""
+        WITH RECURSIVE ancestors AS (
+            SELECT * FROM members WHERE id = :memberId
+            UNION ALL
+            SELECT m.* FROM members m
+            INNER JOIN ancestors a ON m.id = a.pai_id OR m.id = a.mae_id
+        )
+        SELECT * FROM ancestors WHERE id != :memberId
+    """)
+    suspend fun getAncestors(memberId: String): List<MemberEntity>
+    
+    /**
+     * QUERY COMPLEXA: Buscar todos os descendentes
+     */
+    @Query("""
+        WITH RECURSIVE descendants AS (
+            SELECT * FROM members WHERE id = :memberId
+            UNION ALL
+            SELECT m.* FROM members m
+            INNER JOIN descendants d ON m.pai_id = d.id OR m.mae_id = d.id
+        )
+        SELECT * FROM descendants WHERE id != :memberId
+    """)
+    suspend fun getDescendants(memberId: String): List<MemberEntity>
+}
+```
+
+## Regras de Sincronização
+
+### 1. Room deve espelhar Supabase
+- **SEMPRE** manter estruturas sincronizadas
+- **SEMPRE** usar mesmos nomes de campos
+- **SEMPRE** manter constraints iguais
+
+### 2. Mappers Obrigatórios
+```kotlin
+fun MemberEntity.toDomain(): Member {
+    return Member(
+        id = id,
+        fullName = nomeCompleto,
+        birthDate = dataNascimento?.let { LocalDate.ofEpochDay(it) },
+        generation = geracaoNaFamiliaZero,
+        treeElement = TreeElement.valueOf(elementoArvore)
+    )
+}
+
+fun Member.toEntity(): MemberEntity {
+    return MemberEntity(
+        id = id,
+        familiaPrincipalId = familyId,
+        nomeCompleto = fullName,
+        dataNascimento = birthDate?.toEpochDay(),
+        geracaoNaFamiliaZero = generation,
+        elementoArvore = treeElement.name
+    )
+}
+```
+
+### 3. Repository Pattern
+```kotlin
+class MemberRepositoryImpl @Inject constructor(
+    private val localSource: MemberDao,
+    private val remoteSource: SupabaseClient
+) : MemberRepository {
+    
+    override suspend fun addMember(member: Member): Result<Member> {
+        return try {
+            // 1. Salvar localmente
+            localSource.insertMember(member.toEntity())
+            
+            // 2. Sincronizar com Supabase
+            val response = remoteSource.from("membros")
+                .insert(member.toEntity())
+                .execute()
+            
+            Result.Success(member)
+        } catch (e: Exception) {
+            Result.Error(RaizesVivasException.DatabaseException(e))
+        }
+    }
+}
+```
+
+## Regras de Performance
+
+### 1. Índices Obrigatórios
+- **SEMPRE** criar índices em foreign keys
+- **SEMPRE** criar índices em campos de busca
+- **SEMPRE** usar índices compostos para queries complexas
+
+### 2. Queries Otimizadas
+- **NUNCA** fazer queries N+1
+- **SEMPRE** usar LIMIT para listas grandes
+- **SEMPRE** usar JOIN em vez de múltiplas queries
+
+### 3. Cache Strategy
+- **SEMPRE** cachear parentescos calculados
+- **SEMPRE** invalidar cache ao modificar dados
+- **SEMPRE** usar cache local para dados estáticos

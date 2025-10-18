@@ -1,0 +1,77 @@
+---
+alwaysApply: true
+description: Regras fundamentais inegociáveis do projeto Raízes Vivas
+---
+
+# Regras Fundamentais - Raízes Vivas
+
+## Princípios Inegociáveis
+
+### 1. CLEAN ARCHITECTURE OBRIGATÓRIA
+- **NUNCA** misturar camadas
+- Estrutura obrigatória: Presentation (UI) → Domain (Lógica) → Data (Fonte)
+- Dependências só fluem PARA DENTRO
+- Use Cases na camada Domain são imutáveis
+
+### 2. FAMÍLIA-ZERO É IMUTÁVEL
+- **NUNCA** permitir deletar família-zero
+- Família-zero sempre tem `tipo='zero'`
+- `user_id` obrigatório em família-zero
+- Todos os cálculos de parentesco referenciam família-zero
+
+### 3. PARENTESCO SEMPRE EM RELAÇÃO À FAMÍLIA-ZERO
+- Todos os cálculos referenciam família-zero
+- **NUNCA** calcular parentesco sem família-zero definida
+- `parentescos_calculados.familia_referencia_id` SEMPRE aponta para família-zero
+
+### 4. MÚLTIPLOS PAPÉIS POR CONTEXTO
+- Um membro pode estar em várias famílias
+- Papel muda conforme família visualizada
+- Usar tabela `membros_familias` para mapear contextos
+
+### 5. VALIDAR SEMPRE ANTES DE PERSISTIR
+- Loops genealógicos: FATAL ERROR
+- Datas impossíveis: BLOQUEAR
+- Relacionamentos incestuosos próximos: ALERTAR
+
+## Ordem de Implementação Obrigatória
+
+**NUNCA pular etapas ou implementar funcionalidades fora de ordem**
+
+### FASE 1 (Semanas 1-2): Fundação
+1. Setup Kotlin + Compose
+2. Configurar Supabase
+3. Implementar Auth
+4. Criar estrutura de módulos
+
+### FASE 2 (Semanas 3-4): Database
+1. Criar schema Supabase COMPLETO
+2. Implementar Room Database
+3. Criar Models e Entities
+4. Setup Repositories
+
+### FASE 3 (Semanas 5-6): Parentesco
+1. Implementar algoritmo de parentesco COMPLETO
+2. Testes unitários do algoritmo (100% cobertura)
+3. Criar Use Cases de membro
+4. Formulário de adicionar membro
+
+### FASE 4 (Semanas 7-8): Visualização
+1. Renderização de árvore SVG
+2. Sistema de elementos visuais
+3. Navegação entre visualizações
+4. Testes de integração
+
+## Regras de Linguagem
+
+- **SEMPRE** responder em português brasileiro
+- **SEMPRE** usar comentários em português
+- **SEMPRE** usar nomes de variáveis em inglês
+- **SEMPRE** usar strings de UI em português
+
+## Prevenção de Problemas
+
+- **NUNCA** implementar 2 funcionalidades ao mesmo tempo
+- **SEMPRE** testar antes de integrar
+- **SEMPRE** fazer commit após cada checkpoint
+- **NUNCA** avançar sem checkpoint verde
