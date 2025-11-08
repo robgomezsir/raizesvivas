@@ -103,3 +103,4 @@ lint/outputs/
 lint/tmp/
 # lint/reports/
 
+"orientacoes/token.txt" 
