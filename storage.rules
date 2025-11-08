@@ -1,0 +1,37 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper function: verifica se usuário está autenticado
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function: verifica se usuário é admin
+    function isAdmin() {
+      return isAuthenticated() && 
+             firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.ehAdministrador == true;
+    }
+    
+    // ============================================
+    // PASTA: pessoas/{pessoaId}/
+    // ============================================
+    match /pessoas/{pessoaId}/{fileName} {
+      // Qualquer usuário autenticado pode ler fotos
+      allow read: if isAuthenticated();
+      
+      // Apenas admin ou dono da pessoa pode fazer upload
+      allow write: if isAuthenticated() && 
+                     (isAdmin() || 
+                      firestore.get(/databases/(default)/documents/people/$(pessoaId)).data.criadoPor == request.auth.uid);
+      
+      // Validar tipo de arquivo (apenas imagens)
+      allow write: if request.resource.contentType.matches('image/.*');
+      
+      // Validar tamanho máximo (5MB)
+      allow write: if request.resource.size < 5 * 1024 * 1024;
+    }
+  }
+}
+

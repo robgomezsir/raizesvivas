@@ -1,0 +1,300 @@
+# 📚 Índice Completo - Prompts Raízes Vivas
+
+## 🎯 Visão Geral do Projeto
+
+O **Raízes Vivas** é um aplicativo Android colaborativo para construção e visualização de árvore genealógica familiar, desenvolvido com:
+
+- **Linguagem**: Kotlin
+- **UI**: Jetpack Compose
+- **Arquitetura**: MVVM + Clean Architecture
+- **Backend**: Firebase (Auth, Firestore, Storage)
+- **Banco Local**: Room Database
+- **DI**: Hilt
+- **Autenticação**: Email/Senha
+
+---
+
+## 📋 Lista de Prompts Disponíveis
+
+### ✅ **Prompts Criados (Núcleo do Sistema)**
+
+| # | Prompt | Descrição | Dependências |
+|---|--------|-----------|--------------|
+| **01** | Setup Inicial do Projeto | Configuração do Android Studio, dependências Gradle, estrutura de pastas, tema visual | Nenhuma |
+| **02** | Configuração Firebase | Firebase Console, Firestore collections, Security Rules, Storage Rules, Indexes | Prompt 01 |
+| **03** | Models de Domínio e Entities | Classes de modelo (Pessoa, Usuario, FamiliaZero), Entities Room, Converters | Prompt 01 |
+| **04** | DAOs e Room Database | Data Access Objects, configuração Room, testes unitários | Prompt 03 |
+| **05** | Repositories e Services | FirestoreService, Repositories, sincronização local↔remoto | Prompt 02, 03, 04 |
+| **06** | Telas de Autenticação | Login, Cadastro, Recuperar Senha, ViewModels, validações | Prompt 01, 02, 05 |
+
+---
+
+### 🔜 **Próximos Prompts (A Serem Criados)**
+
+| # | Prompt | Descrição | Prioridade |
+|---|--------|-----------|------------|
+| **07** | Tela Família Zero | Onboarding do primeiro usuário, criação da raiz da árvore | 🔴 Alta |
+| **08** | Navegação Principal | NavGraph completo, bottom navigation, deep links | 🔴 Alta |
+| **09** | Tela Cadastro Pessoa | Formulário completo, validação de conectividade, upload de foto | 🔴 Alta |
+| **10** | Algoritmo Parentesco | Cálculo de relacionamentos, UseCase, testes | 🟡 Média |
+| **11** | Tela Árvore Visual | Visualização hierárquica, zoom/pan, componentes personalizados | 🟡 Média |
+| **12** | Sistema Convites | Envio de convites, aceitação, vinculação à árvore | 🟡 Média |
+| **13** | Edições Pendentes | Sistema de aprovação para não-admins, notificações | 🟢 Baixa |
+| **14** | Detecção Duplicatas | Algoritmo de similaridade, interface de resolução | 🟢 Baixa |
+| **15** | Compressão Imagens | Upload otimizado, compressão para 10KB | 🟡 Média |
+| **16** | Testes E2E | Testes de integração completos, UI tests | 🟢 Baixa |
+
+---
+
+## 🗂️ Estrutura de Arquivos do Projeto
+
+```
+raizes-vivas/
+├── app/
+│   ├── src/
+│   │   ├── main/
+│   │   │   ├── java/com/raizesvivas/app/
+│   │   │   │   ├── data/
+│   │   │   │   │   ├── local/
+│   │   │   │   │   │   ├── dao/ (Prompt 04)
+│   │   │   │   │   │   ├── entities/ (Prompt 03)
+│   │   │   │   │   │   ├── Converters.kt (Prompt 03)
+│   │   │   │   │   │   └── RaizesVivasDatabase.kt (Prompt 04)
+│   │   │   │   │   ├── remote/
+│   │   │   │   │   │   └── firebase/
+│   │   │   │   │   │       ├── AuthService.kt (Prompt 02)
+│   │   │   │   │   │       ├── FirestoreService.kt (Prompt 05)
+│   │   │   │   │   │       └── StorageService.kt (Futuro)
+│   │   │   │   │   └── repository/ (Prompt 05)
+│   │   │   │   ├── domain/
+│   │   │   │   │   ├── model/ (Prompt 03)
+│   │   │   │   │   └── usecase/ (Futuro)
+│   │   │   │   ├── presentation/
+│   │   │   │   │   ├── navigation/ (Prompt 06)
+│   │   │   │   │   ├── screens/
+│   │   │   │   │   │   ├── auth/ (Prompt 06)
+│   │   │   │   │   │   ├── onboarding/ (Prompt 07)
+│   │   │   │   │   │   ├── home/ (Futuro)
+│   │   │   │   │   │   ├── cadastro/ (Prompt 09)
+│   │   │   │   │   │   └── arvore/ (Prompt 11)
+│   │   │   │   │   ├── components/ (Futuro)
+│   │   │   │   │   └── theme/ (Prompt 01)
+│   │   │   │   ├── utils/ (Prompt 06)
+│   │   │   │   └── di/ (Prompt 01, 02, 04)
+│   │   │   └── res/
+│   │   └── test/ (Prompt 04 e futuros)
+│   ├── build.gradle.kts (Prompt 01)
+│   └── google-services.json (Prompt 02)
+├── firestore.indexes.json (Prompt 02)
+└── build.gradle.kts (Prompt 01)
+```
+
+---
+
+## 🚀 Ordem de Execução Recomendada
+
+### **FASE 1: Fundação (Semana 1)**
+```
+1. Execute Prompt 01 - Setup Inicial
+2. Execute Prompt 02 - Firebase
+3. Execute Prompt 03 - Models
+4. Execute Prompt 04 - DAOs
+5. Execute Prompt 05 - Repositories
+6. Execute Prompt 06 - Autenticação
+
+✅ CHECKPOINT: App deve compilar, login deve funcionar
+```
+
+### **FASE 2: Núcleo (Semana 2)**
+```
+7. Execute Prompt 07 - Família Zero
+8. Execute Prompt 08 - Navegação Principal
+9. Execute Prompt 09 - Cadastro Pessoa
+10. Execute Prompt 10 - Algoritmo Parentesco
+
+✅ CHECKPOINT: Deve ser possível criar Família Zero e cadastrar pessoas
+```
+
+### **FASE 3: Visualização (Semana 3)**
+```
+11. Execute Prompt 11 - Árvore Visual
+12. Execute Prompt 15 - Compressão Imagens
+
+✅ CHECKPOINT: Árvore deve ser visualizável e fotos devem funcionar
+```
+
+### **FASE 4: Colaboração (Semana 4)**
+```
+13. Execute Prompt 12 - Sistema Convites
+14. Execute Prompt 13 - Edições Pendentes
+15. Execute Prompt 14 - Detecção Duplicatas
+
+✅ CHECKPOINT: Múltiplos usuários podem colaborar
+```
+
+### **FASE 5: Testes e Refinamento (Semana 5)**
+```
+16. Execute Prompt 16 - Testes E2E
+17. Testes manuais com familiares
+18. Correções de bugs
+19. Otimizações de performance
+
+✅ CHECKPOINT: MVP pronto para uso
+```
+
+---
+
+## 📊 Estatísticas do Projeto
+
+### **Estimativa de Código**
+- **Total de arquivos Kotlin**: ~50 arquivos
+- **Total de linhas de código**: ~8.000 linhas
+- **Testes unitários**: ~20 arquivos
+- **Testes de integração**: ~10 arquivos
+
+### **Collections Firebase**
+- `users` - Usuários do app
+- `people` - Pessoas da árvore
+- `familia_zero` - Raiz da árvore (singleton)
+- `invites` - Convites pendentes
+- `pending_edits` - Edições aguardando aprovação
+- `duplicates` - Duplicatas detectadas
+
+### **Telas Principais**
+1. Login
+2. Cadastro
+3. Recuperar Senha
+4. Fundação Família Zero (onboarding)
+5. Home
+6. Árvore Genealógica
+7. Cadastro/Edição Pessoa
+8. Detalhes Pessoa
+9. Perfil Usuário
+10. Gerenciar Convites (admin)
+
+---
+
+## 🎨 Design System
+
+### **Paleta de Cores**
+```kotlin
+VerdeMuscoPrimary = Color(0xFF2D5016)
+VerdeMuscoSecondary = Color(0xFF4A7C2C)
+VerdeMuscoLight = Color(0xFF6B9B47)
+MarromTerra = Color(0xFF5D4E37)
+Creme = Color(0xFFF5E6D3)
+```
+
+### **Tipografia**
+- Fonte padrão: System Default (Roboto)
+- Futuramente: Poppins ou Nunito
+
+### **Ícones Temáticos**
+- 🌱 Raiz (início)
+- 🌿 Galho (crescimento)
+- 🌳 Tronco (consolidação)
+- 🌲 Floresta (completo)
+
+---
+
+## ✅ Checklist Geral de Implementação
+
+### **Setup Inicial**
+- [ ] Projeto Android criado
+- [ ] Firebase configurado
+- [ ] Dependências instaladas
+- [ ] Tema visual aplicado
+- [ ] Estrutura de pastas criada
+
+### **Autenticação**
+- [ ] Login funciona
+- [ ] Cadastro funciona
+- [ ] Recuperação de senha funciona
+- [ ] Sessão persiste após fechar app
+
+### **Banco de Dados**
+- [ ] Room configurado
+- [ ] Firestore configurado
+- [ ] Sincronização offline funciona
+- [ ] Security Rules aplicadas
+
+### **Família Zero**
+- [ ] Primeiro usuário cria Família Zero
+- [ ] Casal raiz não pode ser deletado
+- [ ] Validação de conectividade funciona
+
+### **Cadastro de Pessoas**
+- [ ] Formulário completo
+- [ ] Validação de campos obrigatórios
+- [ ] Upload de foto funciona
+- [ ] Relacionamentos bidirecionais funcionam
+
+### **Visualização**
+- [ ] Árvore renderiza corretamente
+- [ ] Zoom e pan funcionam
+- [ ] Filtros funcionam
+- [ ] Performance adequada
+
+### **Colaboração**
+- [ ] Convites funcionam
+- [ ] Sistema de aprovação funciona
+- [ ] Detecção de duplicatas funciona
+- [ ] Notificações funcionam
+
+---
+
+## 🐛 Troubleshooting Comum
+
+### **Problema: Firebase não conecta**
+```
+Solução:
+1. Verificar se google-services.json está em app/
+2. Verificar se package name está correto
+3. Limpar e rebuildar projeto
+4. Verificar internet do dispositivo
+```
+
+### **Problema: Room dá erro de schema**
+```
+Solução:
+1. Deletar app do dispositivo
+2. Rebuild projeto
+3. Instalar novamente
+(fallbackToDestructiveMigration ajuda durante desenvolvimento)
+```
+
+### **Problema: Hilt não injeta dependências**
+```
+Solução:
+1. Verificar se classe tem @HiltAndroidApp
+2. Verificar se ViewModel tem @HiltViewModel
+3. Rebuild projeto
+4. Verificar anotações @Inject nos construtores
+```
+
+---
+
+## 📞 Contato e Suporte
+
+Se precisar de ajuda durante a implementação:
+
+1. **Logs**: Sempre verifique o Logcat (filtrar por "Timber")
+2. **Firebase Console**: Verificar Firestore e Auth
+3. **Documentação**: Consultar docs oficiais do Firebase e Jetpack Compose
+
+---
+
+## 🎉 Conclusão
+
+Com estes 6 prompts iniciais, você tem:
+
+✅ Projeto configurado e compilando
+✅ Firebase integrado e funcionando
+✅ Autenticação completa
+✅ Banco de dados local e remoto
+✅ Arquitetura limpa e escalável
+✅ Base sólida para implementar o restante do app
+
+**Próximo passo**: Execute os prompts na ordem e vá testando incrementalmente!
+
+Boa sorte com o desenvolvimento do Raízes Vivas! 🌳

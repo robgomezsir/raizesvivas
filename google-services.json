@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "12055538255",
+    "project_id": "suasraizesvivas",
+    "storage_bucket": "suasraizesvivas.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:12055538255:android:1dbee863de649a14a9983a",
+        "android_client_info": {
+          "package_name": "com.raizesvivas.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC23BnaXY_ZgnEQF9mBtAQV0ny-QdZw8CY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,731 @@
+# 📋 Prompt 05 - Repositories e Firestore Services
+
+## 🎯 Objetivo
+Criar camada de Repository que integra Room (local) com Firestore (remoto) e implementar serviços Firebase.
+
+---
+
+## 🔥 PARTE 1: Firestore Service
+
+### Arquivo: data/remote/firebase/FirestoreService.kt
+
+```kotlin
+package com.raizesvivas.app.data.remote.firebase
+
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
+import com.raizesvivas.app.domain.model.*
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.tasks.await
+import timber.log.Timber
+import java.util.Date
+import javax.inject.Inject
+import javax.inject.Singleton
+
+/**
+ * Serviço para operações no Cloud Firestore
+ * 
+ * Responsabilidades:
+ * - CRUD de pessoas, usuários, convites
+ * - Queries específicas
+ * - Listeners em tempo real
+ */
+@Singleton
+class FirestoreService @Inject constructor(
+    private val firestore: FirebaseFirestore
+) {
+    
+    // Referências de collections
+    private val usersCollection = firestore.collection("users")
+    private val peopleCollection = firestore.collection("people")
+    private val familiaZeroCollection = firestore.collection("familia_zero")
+    private val invitesCollection = firestore.collection("invites")
+    private val pendingEditsCollection = firestore.collection("pending_edits")
+    private val duplicatesCollection = firestore.collection("duplicates")
+    
+    // ============================================
+    // USUÁRIOS
+    // ============================================
+    
+    /**
+     * Cria ou atualiza usuário no Firestore
+     */
+    suspend fun salvarUsuario(usuario: Usuario): Result<Unit> {
+        return try {
+            val data = hashMapOf(
+                "nome" to usuario.nome,
+                "email" to usuario.email,
+                "fotoUrl" to usuario.fotoUrl,
+                "pessoaVinculada" to usuario.pessoaVinculada,
+                "ehAdministrador" to usuario.ehAdministrador,
+                "familiaZeroPai" to usuario.familiaZeroPai,
+                "familiaZeroMae" to usuario.familiaZeroMae,
+                "primeiroAcesso" to usuario.primeiroAcesso,
+                "criadoEm" to usuario.criadoEm
+            )
+            
+            usersCollection.document(usuario.id)
+                .set(data)
+                .await()
+            
+            Timber.d("✅ Usuário salvo: ${usuario.id}")
+            Result.success(Unit)
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao salvar usuário")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Busca usuário por ID
+     */
+    suspend fun buscarUsuario(userId: String): Result<Usuario?> {
+        return try {
+            val snapshot = usersCollection.document(userId).get().await()
+            
+            if (!snapshot.exists()) {
+                return Result.success(null)
+            }
+            
+            val usuario = snapshot.toObject(Usuario::class.java)
+            Result.success(usuario)
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao buscar usuário")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Observa usuário em tempo real
+     */
+    fun observarUsuario(userId: String): Flow<Usuario?> = callbackFlow {
+        val registration = usersCollection.document(userId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Timber.e(error, "Erro ao observar usuário")
+                    close(error)
+                    return@addSnapshotListener
+                }
+                
+                val usuario = snapshot?.toObject(Usuario::class.java)
+                trySend(usuario)
+            }
+        
+        awaitClose { registration.remove() }
+    }
+    
+    /**
+     * Busca todos os administradores
+     */
+    suspend fun buscarAdministradores(): Result<List<Usuario>> {
+        return try {
+            val snapshot = usersCollection
+                .whereEqualTo("ehAdministrador", true)
+                .get()
+                .await()
+            
+            val admins = snapshot.toObjects(Usuario::class.java)
+            Result.success(admins)
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao buscar administradores")
+            Result.failure(e)
+        }
+    }
+    
+    // ============================================
+    // FAMÍLIA ZERO
+    // ============================================
+    
+    /**
+     * Verifica se a Família Zero já foi criada
+     */
+    suspend fun familiaZeroExiste(): Boolean {
+        return try {
+            val snapshot = familiaZeroCollection.document("raiz").get().await()
+            snapshot.exists()
+        } catch (e: Exception) {
+            Timber.e(e, "Erro ao verificar Família Zero")
+            false
+        }
+    }
+    
+    /**
+     * Cria a Família Zero (apenas no primeiro acesso)
+     */
+    suspend fun criarFamiliaZero(familiaZero: FamiliaZero): Result<Unit> {
+        return try {
+            // Verificar se já existe
+            if (familiaZeroExiste()) {
+                return Result.failure(Exception("Família Zero já existe!"))
+            }
+            
+            val data = hashMapOf(
+                "pai" to familiaZero.pai,
+                "mae" to familiaZero.mae,
+                "fundadoPor" to familiaZero.fundadoPor,
+                "fundadoEm" to familiaZero.fundadoEm,
+                "locked" to true,
+                "arvoreNome" to familiaZero.arvoreNome
+            )
+            
+            familiaZeroCollection.document("raiz")
+                .set(data)
+                .await()
+            
+            Timber.d("🌳 Família Zero criada!")
+            Result.success(Unit)
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao criar Família Zero")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Busca a Família Zero
+     */
+    suspend fun buscarFamiliaZero(): Result<FamiliaZero?> {
+        return try {
+            val snapshot = familiaZeroCollection.document("raiz").get().await()
+            
+            if (!snapshot.exists()) {
+                return Result.success(null)
+            }
+            
+            val familiaZero = snapshot.toObject(FamiliaZero::class.java)
+            Result.success(familiaZero)
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao buscar Família Zero")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Observa a Família Zero em tempo real
+     */
+    fun observarFamiliaZero(): Flow<FamiliaZero?> = callbackFlow {
+        val registration = familiaZeroCollection.document("raiz")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Timber.e(error, "Erro ao observar Família Zero")
+                    close(error)
+                    return@addSnapshotListener
+                }
+                
+                val familiaZero = snapshot?.toObject(FamiliaZero::class.java)
+                trySend(familiaZero)
+            }
+        
+        awaitClose { registration.remove() }
+    }
+    
+    // ============================================
+    // PESSOAS
+    // ============================================
+    
+    /**
+     * Salva pessoa no Firestore
+     */
+    suspend fun salvarPessoa(pessoa: Pessoa): Result<Unit> {
+        return try {
+            val data = hashMapOf(
+                "nome" to pessoa.nome,
+                "dataNascimento" to pessoa.dataNascimento,
+                "dataFalecimento" to pessoa.dataFalecimento,
+                "localNascimento" to pessoa.localNascimento,
+                "localResidencia" to pessoa.localResidencia,
+                "profissao" to pessoa.profissao,
+                "biografia" to pessoa.biografia,
+                "pai" to pessoa.pai,
+                "mae" to pessoa.mae,
+                "conjugeAtual" to pessoa.conjugeAtual,
+                "exConjuges" to pessoa.exConjuges,
+                "filhos" to pessoa.filhos,
+                "fotoUrl" to pessoa.fotoUrl,
+                "criadoPor" to pessoa.criadoPor,
+                "criadoEm" to pessoa.criadoEm,
+                "modificadoPor" to pessoa.modificadoPor,
+                "modificadoEm" to pessoa.modificadoEm,
+                "aprovado" to pessoa.aprovado,
+                "versao" to pessoa.versao,
+                "ehFamiliaZero" to pessoa.ehFamiliaZero,
+                "distanciaFamiliaZero" to pessoa.distanciaFamiliaZero,
+                "nomeNormalizado" to pessoa.nomeNormalizado
+            )
+            
+            peopleCollection.document(pessoa.id)
+                .set(data)
+                .await()
+            
+            Timber.d("✅ Pessoa salva: ${pessoa.nome}")
+            Result.success(Unit)
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao salvar pessoa")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Busca pessoa por ID
+     */
+    suspend fun buscarPessoa(pessoaId: String): Result<Pessoa?> {
+        return try {
+            val snapshot = peopleCollection.document(pessoaId).get().await()
+            
+            if (!snapshot.exists()) {
+                return Result.success(null)
+            }
+            
+            val pessoa = snapshot.toObject(Pessoa::class.java)
+            Result.success(pessoa)
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao buscar pessoa")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Busca todas as pessoas
+     */
+    suspend fun buscarTodasPessoas(): Result<List<Pessoa>> {
+        return try {
+            val snapshot = peopleCollection
+                .orderBy("nome", Query.Direction.ASCENDING)
+                .get()
+                .await()
+            
+            val pessoas = snapshot.toObjects(Pessoa::class.java)
+            Timber.d("✅ ${pessoas.size} pessoas carregadas")
+            Result.success(pessoas)
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao buscar pessoas")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Observa todas as pessoas em tempo real
+     */
+    fun observarTodasPessoas(): Flow<List<Pessoa>> = callbackFlow {
+        val registration = peopleCollection
+            .orderBy("nome", Query.Direction.ASCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Timber.e(error, "Erro ao observar pessoas")
+                    close(error)
+                    return@addSnapshotListener
+                }
+                
+                val pessoas = snapshot?.toObjects(Pessoa::class.java) ?: emptyList()
+                trySend(pessoas)
+            }
+        
+        awaitClose { registration.remove() }
+    }
+    
+    /**
+     * Busca pessoas aprovadas
+     */
+    suspend fun buscarPessoasAprovadas(): Result<List<Pessoa>> {
+        return try {
+            val snapshot = peopleCollection
+                .whereEqualTo("aprovado", true)
+                .orderBy("nome", Query.Direction.ASCENDING)
+                .get()
+                .await()
+            
+            val pessoas = snapshot.toObjects(Pessoa::class.java)
+            Result.success(pessoas)
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao buscar pessoas aprovadas")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Busca o casal da Família Zero
+     */
+    suspend fun buscarCasalFamiliaZero(): Result<List<Pessoa>> {
+        return try {
+            val snapshot = peopleCollection
+                .whereEqualTo("ehFamiliaZero", true)
+                .get()
+                .await()
+            
+            val casal = snapshot.toObjects(Pessoa::class.java)
+            Result.success(casal)
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao buscar casal Família Zero")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Deleta pessoa (apenas se NÃO for Família Zero)
+     */
+    suspend fun deletarPessoa(pessoaId: String): Result<Unit> {
+        return try {
+            // Verificar se não é Família Zero
+            val pessoa = buscarPessoa(pessoaId).getOrNull()
+            
+            if (pessoa?.ehFamiliaZero == true) {
+                return Result.failure(Exception("Não é possível deletar a Família Zero!"))
+            }
+            
+            peopleCollection.document(pessoaId).delete().await()
+            Timber.d("✅ Pessoa deletada: $pessoaId")
+            Result.success(Unit)
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao deletar pessoa")
+            Result.failure(e)
+        }
+    }
+    
+    // ============================================
+    // BUSCA E QUERIES ESPECIAIS
+    // ============================================
+    
+    /**
+     * Busca pessoas por nome (pesquisa parcial)
+     */
+    suspend fun buscarPessoasPorNome(termo: String): Result<List<Pessoa>> {
+        return try {
+            val termoNormalizado = termo.lowercase()
+            
+            val snapshot = peopleCollection
+                .orderBy("nomeNormalizado")
+                .startAt(termoNormalizado)
+                .endAt(termoNormalizado + "\uf8ff")
+                .get()
+                .await()
+            
+            val pessoas = snapshot.toObjects(Pessoa::class.java)
+            Result.success(pessoas)
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao buscar por nome")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Detecta possíveis duplicatas
+     * (mesmo nome, data de nascimento e pais)
+     */
+    suspend fun detectarDuplicatas(
+        nome: String,
+        dataNascimento: Date?,
+        pai: String?,
+        mae: String?
+    ): Result<List<Pessoa>> {
+        return try {
+            var query = peopleCollection.whereEqualTo("nome", nome)
+            
+            if (dataNascimento != null) {
+                query = query.whereEqualTo("dataNascimento", dataNascimento)
+            }
+            
+            val snapshot = query.get().await()
+            val possiveis = snapshot.toObjects(Pessoa::class.java)
+            
+            // Filtrar por pais
+            val duplicatas = possiveis.filter { 
+                it.pai == pai && it.mae == mae 
+            }
+            
+            Result.success(duplicatas)
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao detectar duplicatas")
+            Result.failure(e)
+        }
+    }
+}
+```
+
+---
+
+## 🗂️ PARTE 2: Repositories
+
+### Arquivo: data/repository/PessoaRepository.kt
+
+```kotlin
+package com.raizesvivas.app.data.repository
+
+import com.raizesvivas.app.data.local.dao.PessoaDao
+import com.raizesvivas.app.data.local.entities.toDomain
+import com.raizesvivas.app.data.local.entities.toEntity
+import com.raizesvivas.app.data.remote.firebase.FirestoreService
+import com.raizesvivas.app.domain.model.Pessoa
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import timber.log.Timber
+import javax.inject.Inject
+import javax.inject.Singleton
+
+/**
+ * Repository para gerenciar pessoas
+ * 
+ * Este repository implementa o padrão Repository, coordenando:
+ * - Dados locais (Room) para cache e modo offline
+ * - Dados remotos (Firestore) como fonte da verdade
+ * 
+ * Estratégia: Cache-First com sincronização bidirecional
+ */
+@Singleton
+class PessoaRepository @Inject constructor(
+    private val pessoaDao: PessoaDao,
+    private val firestoreService: FirestoreService
+) {
+    
+    /**
+     * Observa todas as pessoas (do cache local)
+     * Atualiza automaticamente quando o cache muda
+     */
+    fun observarTodasPessoas(): Flow<List<Pessoa>> {
+        return pessoaDao.observarTodasPessoas()
+            .map { entities -> entities.map { it.toDomain() } }
+    }
+    
+    /**
+     * Busca pessoa por ID (cache local primeiro)
+     */
+    suspend fun buscarPorId(pessoaId: String): Pessoa? {
+        // Buscar no cache local
+        val local = pessoaDao.buscarPorId(pessoaId)?.toDomain()
+        
+        // Se não estiver no cache, buscar no Firestore
+        if (local == null) {
+            val remoto = firestoreService.buscarPessoa(pessoaId).getOrNull()
+            
+            // Salvar no cache se encontrou
+            remoto?.let {
+                pessoaDao.inserir(it.toEntity())
+            }
+            
+            return remoto
+        }
+        
+        return local
+    }
+    
+    /**
+     * Sincroniza pessoas do Firestore para o cache local
+     */
+    suspend fun sincronizarDoFirestore(): Result<Unit> {
+        return try {
+            Timber.d("🔄 Sincronizando pessoas do Firestore...")
+            
+            // Buscar todas as pessoas do Firestore
+            val resultado = firestoreService.buscarTodasPessoas()
+            
+            resultado.onSuccess { pessoas ->
+                // Salvar no cache local
+                val entities = pessoas.map { it.toEntity() }
+                pessoaDao.inserirTodas(entities)
+                
+                Timber.d("✅ ${pessoas.size} pessoas sincronizadas")
+            }
+            
+            resultado.onFailure { error ->
+                Timber.e(error, "❌ Erro na sincronização")
+            }
+            
+            resultado.map { }
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro fatal na sincronização")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Salva pessoa (local + remoto)
+     */
+    suspend fun salvar(pessoa: Pessoa, ehAdmin: Boolean): Result<Unit> {
+        return try {
+            // Se não for admin, marca como não aprovado
+            val pessoaFinal = if (!ehAdmin) {
+                pessoa.copy(aprovado = false)
+            } else {
+                pessoa.copy(aprovado = true)
+            }
+            
+            // Salvar no Firestore
+            val resultado = firestoreService.salvarPessoa(pessoaFinal)
+            
+            resultado.onSuccess {
+                // Salvar no cache local
+                pessoaDao.inserir(pessoaFinal.toEntity())
+                Timber.d("✅ Pessoa salva: ${pessoaFinal.nome}")
+            }
+            
+            resultado
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao salvar pessoa")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Atualiza pessoa existente
+     */
+    suspend fun atualizar(pessoa: Pessoa, ehAdmin: Boolean): Result<Unit> {
+        return try {
+            // Incrementar versão
+            val pessoaAtualizada = pessoa.copy(
+                versao = pessoa.versao + 1,
+                aprovado = ehAdmin // Admin aprova automaticamente
+            )
+            
+            // Atualizar no Firestore
+            val resultado = firestoreService.salvarPessoa(pessoaAtualizada)
+            
+            resultado.onSuccess {
+                // Atualizar cache local
+                pessoaDao.atualizar(pessoaAtualizada.toEntity())
+            }
+            
+            resultado
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao atualizar pessoa")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Deleta pessoa
+     */
+    suspend fun deletar(pessoaId: String): Result<Unit> {
+        return try {
+            // Deletar do Firestore
+            val resultado = firestoreService.deletarPessoa(pessoaId)
+            
+            resultado.onSuccess {
+                // Deletar do cache local
+                pessoaDao.deletarPorId(pessoaId)
+            }
+            
+            resultado
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao deletar pessoa")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Busca pessoas por nome
+     */
+    suspend fun buscarPorNome(termo: String): List<Pessoa> {
+        // Buscar no cache local primeiro
+        return pessoaDao.buscarPorNome(termo).map { it.toDomain() }
+    }
+    
+    /**
+     * Busca filhos de uma pessoa
+     */
+    suspend fun buscarFilhos(pessoaId: String): List<Pessoa> {
+        return pessoaDao.buscarFilhos(pessoaId).map { it.toDomain() }
+    }
+    
+    /**
+     * Busca irmãos
+     */
+    suspend fun buscarIrmaos(paiId: String?, maeId: String?, excluirId: String): List<Pessoa> {
+        return pessoaDao.buscarIrmaos(paiId, maeId, excluirId).map { it.toDomain() }
+    }
+    
+    /**
+     * Conta total de pessoas
+     */
+    suspend fun contarPessoas(): Int {
+        return pessoaDao.contarPessoas()
+    }
+}
+```
+
+---
+
+### Arquivo: data/repository/FamiliaZeroRepository.kt
+
+```kotlin
+package com.raizesvivas.app.data.repository
+
+import com.raizesvivas.app.data.remote.firebase.FirestoreService
+import com.raizesvivas.app.domain.model.FamiliaZero
+import kotlinx.coroutines.flow.Flow
+import timber.log.Timber
+import javax.inject.Inject
+import javax.inject.Singleton
+
+/**
+ * Repository para gerenciar a Família Zero
+ */
+@Singleton
+class FamiliaZeroRepository @Inject constructor(
+    private val firestoreService: FirestoreService
+) {
+    
+    /**
+     * Verifica se a Família Zero já foi criada
+     */
+    suspend fun existe(): Boolean {
+        return firestoreService.familiaZeroExiste()
+    }
+    
+    /**
+     * Cria a Família Zero (apenas no primeiro acesso)
+     */
+    suspend fun criar(familiaZero: FamiliaZero): Result<Unit> {
+        Timber.d("🌳 Criando Família Zero...")
+        return firestoreService.criarFamiliaZero(familiaZero)
+    }
+    
+    /**
+     * Busca a Família Zero
+     */
+    suspend fun buscar(): FamiliaZero? {
+        return firestoreService.buscarFamiliaZero().getOrNull()
+    }
+    
+    /**
+     * Observa a Família Zero em tempo real
+     */
+    fun observar(): Flow<FamiliaZero?> {
+        return firestoreService.observarFamiliaZero()
+    }
+}
+```
+
+---
+
+## ✅ Checklist de Verificação
+
+Após executar este prompt, verifique:
+
+- [ ] Repositories compilam sem erros
+- [ ] FirestoreService está funcional
+- [ ] Hilt consegue injetar repositories
+- [ ] Sincronização local ↔ remoto funciona
+- [ ] Logs do Timber aparecem corretamente
+
+---
+
+## 🔜 Próximo Passo
+
+**Prompt 06**: Criar telas de autenticação (Login, Cadastro, Recuperar Senha)

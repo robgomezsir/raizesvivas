@@ -1,0 +1,788 @@
+# 📋 Prompt 06 - Telas de Autenticação (Login, Cadastro, Recuperar Senha)
+
+## 🎯 Objetivo
+Criar as telas de autenticação completas com ViewModels, validações e integração com Firebase Auth.
+
+---
+
+## 🎨 PARTE 1: Screens e Rotas de Navegação
+
+### Arquivo: presentation/navigation/Screen.kt
+
+```kotlin
+package com.raizesvivas.app.presentation.navigation
+
+/**
+ * Sealed class definindo todas as rotas de navegação do app
+ */
+sealed class Screen(val route: String) {
+    // Autenticação
+    object Login : Screen("login")
+    object Cadastro : Screen("cadastro")
+    object RecuperarSenha : Screen("recuperar_senha")
+    
+    // Onboarding
+    object FamiliaZero : Screen("familia_zero")
+    
+    // Principal
+    object Home : Screen("home")
+    object Arvore : Screen("arvore")
+    object CadastroPessoa : Screen("cadastro_pessoa")
+    object Perfil : Screen("perfil")
+    object DetalhesPessoa : Screen("detalhes_pessoa/{pessoaId}") {
+        fun createRoute(pessoaId: String) = "detalhes_pessoa/$pessoaId"
+    }
+}
+```
+
+---
+
+## 📱 PARTE 2: Tela de Login
+
+### Arquivo: presentation/screens/auth/LoginScreen.kt
+
+```kotlin
+package com.raizesvivas.app.presentation.screens.auth
+
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+
+/**
+ * Tela de Login
+ * 
+ * Permite que usuários façam login com email e senha.
+ * Oferece navegação para cadastro e recuperação de senha.
+ */
+@Composable
+fun LoginScreen(
+    viewModel: LoginViewModel = hiltViewModel(),
+    onLoginSuccess: () -> Unit,
+    onNavigateToCadastro: () -> Unit,
+    onNavigateToRecuperarSenha: () -> Unit
+) {
+    val state by viewModel.state.collectAsState()
+    val focusManager = LocalFocusManager.current
+    
+    // Navegar quando login for bem-sucedido
+    LaunchedEffect(state.loginSuccess) {
+        if (state.loginSuccess) {
+            onLoginSuccess()
+        }
+    }
+    
+    // Mostrar erro se houver
+    state.error?.let { error ->
+        LaunchedEffect(error) {
+            // Snackbar ou Toast seria mostrado aqui
+        }
+    }
+    
+    Scaffold { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            // Logo/Ilustração
+            Image(
+                painter = painterResource(R.drawable.ic_arvore), // Você precisará adicionar este recurso
+                contentDescription = "Logo Raízes Vivas",
+                modifier = Modifier
+                    .size(120.dp)
+                    .padding(bottom = 32.dp)
+            )
+            
+            // Título
+            Text(
+                text = "Raízes Vivas",
+                style = MaterialTheme.typography.displaySmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            
+            Text(
+                text = "Conecte-se à sua história familiar",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 8.dp, bottom = 48.dp)
+            )
+            
+            // Campo Email
+            OutlinedTextField(
+                value = state.email,
+                onValueChange = { viewModel.onEmailChanged(it) },
+                label = { Text("Email") },
+                leadingIcon = {
+                    Icon(Icons.Default.Email, contentDescription = null)
+                },
+                singleLine = true,
+                isError = state.emailError != null,
+                supportingText = state.emailError?.let { { Text(it) } },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Campo Senha
+            var senhaVisivel by remember { mutableStateOf(false) }
+            
+            OutlinedTextField(
+                value = state.senha,
+                onValueChange = { viewModel.onSenhaChanged(it) },
+                label = { Text("Senha") },
+                leadingIcon = {
+                    Icon(Icons.Default.Lock, contentDescription = null)
+                },
+                trailingIcon = {
+                    IconButton(onClick = { senhaVisivel = !senhaVisivel }) {
+                        Icon(
+                            imageVector = if (senhaVisivel) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                            contentDescription = if (senhaVisivel) "Ocultar senha" else "Mostrar senha"
+                        )
+                    }
+                },
+                visualTransformation = if (senhaVisivel) VisualTransformation.None else PasswordVisualTransformation(),
+                singleLine = true,
+                isError = state.senhaError != null,
+                supportingText = state.senhaError?.let { { Text(it) } },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        focusManager.clearFocus()
+                        viewModel.login()
+                    }
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+            
+            // Link Esqueci a Senha
+            TextButton(
+                onClick = onNavigateToRecuperarSenha,
+                modifier = Modifier.align(Alignment.End)
+            ) {
+                Text("Esqueci minha senha")
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            // Botão Entrar
+            Button(
+                onClick = { viewModel.login() },
+                enabled = !state.isLoading,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+            ) {
+                if (state.isLoading) {
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                } else {
+                    Text("Entrar", style = MaterialTheme.typography.titleMedium)
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Link para Cadastro
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Não tem uma conta?",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                TextButton(onClick = onNavigateToCadastro) {
+                    Text("Cadastre-se")
+                }
+            }
+        }
+    }
+}
+```
+
+---
+
+### Arquivo: presentation/screens/auth/LoginViewModel.kt
+
+```kotlin
+package com.raizesvivas.app.presentation.screens.auth
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.raizesvivas.app.data.remote.firebase.AuthService
+import com.raizesvivas.app.utils.ValidationUtils
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import timber.log.Timber
+import javax.inject.Inject
+
+/**
+ * ViewModel para a tela de Login
+ */
+@HiltViewModel
+class LoginViewModel @Inject constructor(
+    private val authService: AuthService
+) : ViewModel() {
+    
+    private val _state = MutableStateFlow(LoginState())
+    val state = _state.asStateFlow()
+    
+    /**
+     * Atualiza o email digitado
+     */
+    fun onEmailChanged(email: String) {
+        _state.update { it.copy(email = email, emailError = null) }
+    }
+    
+    /**
+     * Atualiza a senha digitada
+     */
+    fun onSenhaChanged(senha: String) {
+        _state.update { it.copy(senha = senha, senhaError = null) }
+    }
+    
+    /**
+     * Valida campos e faz login
+     */
+    fun login() {
+        // Limpar erros anteriores
+        _state.update { it.copy(emailError = null, senhaError = null, error = null) }
+        
+        // Validar email
+        val emailValidation = ValidationUtils.validarEmail(_state.value.email)
+        if (!emailValidation.isValid) {
+            _state.update { it.copy(emailError = emailValidation.errorMessage) }
+            return
+        }
+        
+        // Validar senha
+        if (_state.value.senha.isBlank()) {
+            _state.update { it.copy(senhaError = "Senha é obrigatória") }
+            return
+        }
+        
+        // Fazer login
+        _state.update { it.copy(isLoading = true) }
+        
+        viewModelScope.launch {
+            val result = authService.login(
+                email = _state.value.email.trim(),
+                senha = _state.value.senha
+            )
+            
+            result.onSuccess { user ->
+                Timber.d("✅ Login bem-sucedido: ${user.uid}")
+                _state.update { it.copy(isLoading = false, loginSuccess = true) }
+            }
+            
+            result.onFailure { error ->
+                Timber.e(error, "❌ Erro no login")
+                val errorMessage = when {
+                    error.message?.contains("password") == true -> "Senha incorreta"
+                    error.message?.contains("user-not-found") == true -> "Usuário não encontrado"
+                    error.message?.contains("network") == true -> "Erro de conexão. Verifique sua internet"
+                    else -> "Erro ao fazer login. Tente novamente"
+                }
+                _state.update { it.copy(isLoading = false, error = errorMessage) }
+            }
+        }
+    }
+}
+
+/**
+ * Estado da tela de Login
+ */
+data class LoginState(
+    val email: String = "",
+    val senha: String = "",
+    val emailError: String? = null,
+    val senhaError: String? = null,
+    val isLoading: Boolean = false,
+    val loginSuccess: Boolean = false,
+    val error: String? = null
+)
+```
+
+---
+
+## 📱 PARTE 3: Tela de Cadastro
+
+### Arquivo: presentation/screens/auth/CadastroScreen.kt
+
+```kotlin
+package com.raizesvivas.app.presentation.screens.auth
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+
+/**
+ * Tela de Cadastro de nova conta
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CadastroScreen(
+    viewModel: CadastroViewModel = hiltViewModel(),
+    onCadastroSuccess: () -> Unit,
+    onNavigateBack: () -> Unit
+) {
+    val state by viewModel.state.collectAsState()
+    val focusManager = LocalFocusManager.current
+    
+    LaunchedEffect(state.cadastroSuccess) {
+        if (state.cadastroSuccess) {
+            onCadastroSuccess()
+        }
+    }
+    
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Criar Conta") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Voltar")
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(24.dp)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Bem-vindo!",
+                style = MaterialTheme.typography.headlineMedium
+            )
+            
+            Text(
+                text = "Crie sua conta para começar",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 32.dp)
+            )
+            
+            // Campo Nome Completo
+            OutlinedTextField(
+                value = state.nomeCompleto,
+                onValueChange = { viewModel.onNomeCompletoChanged(it) },
+                label = { Text("Nome Completo") },
+                leadingIcon = {
+                    Icon(Icons.Default.Person, contentDescription = null)
+                },
+                singleLine = true,
+                isError = state.nomeCompletoError != null,
+                supportingText = state.nomeCompletoError?.let { { Text(it) } },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Campo Email
+            OutlinedTextField(
+                value = state.email,
+                onValueChange = { viewModel.onEmailChanged(it) },
+                label = { Text("Email") },
+                leadingIcon = {
+                    Icon(Icons.Default.Email, contentDescription = null)
+                },
+                singleLine = true,
+                isError = state.emailError != null,
+                supportingText = state.emailError?.let { { Text(it) } },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Campo Senha
+            var senhaVisivel by remember { mutableStateOf(false) }
+            
+            OutlinedTextField(
+                value = state.senha,
+                onValueChange = { viewModel.onSenhaChanged(it) },
+                label = { Text("Senha (mínimo 8 caracteres)") },
+                leadingIcon = {
+                    Icon(Icons.Default.Lock, contentDescription = null)
+                },
+                trailingIcon = {
+                    IconButton(onClick = { senhaVisivel = !senhaVisivel }) {
+                        Icon(
+                            imageVector = if (senhaVisivel) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                            contentDescription = if (senhaVisivel) "Ocultar senha" else "Mostrar senha"
+                        )
+                    }
+                },
+                visualTransformation = if (senhaVisivel) VisualTransformation.None else PasswordVisualTransformation(),
+                singleLine = true,
+                isError = state.senhaError != null,
+                supportingText = state.senhaError?.let { { Text(it) } },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Campo Confirmar Senha
+            var confirmarSenhaVisivel by remember { mutableStateOf(false) }
+            
+            OutlinedTextField(
+                value = state.confirmarSenha,
+                onValueChange = { viewModel.onConfirmarSenhaChanged(it) },
+                label = { Text("Confirmar Senha") },
+                leadingIcon = {
+                    Icon(Icons.Default.Lock, contentDescription = null)
+                },
+                trailingIcon = {
+                    IconButton(onClick = { confirmarSenhaVisivel = !confirmarSenhaVisivel }) {
+                        Icon(
+                            imageVector = if (confirmarSenhaVisivel) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                            contentDescription = if (confirmarSenhaVisivel) "Ocultar senha" else "Mostrar senha"
+                        )
+                    }
+                },
+                visualTransformation = if (confirmarSenhaVisivel) VisualTransformation.None else PasswordVisualTransformation(),
+                singleLine = true,
+                isError = state.confirmarSenhaError != null,
+                supportingText = state.confirmarSenhaError?.let { { Text(it) } },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        focusManager.clearFocus()
+                        viewModel.cadastrar()
+                    }
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+            
+            Spacer(modifier = Modifier.height(32.dp))
+            
+            // Botão Cadastrar
+            Button(
+                onClick = { viewModel.cadastrar() },
+                enabled = !state.isLoading,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+            ) {
+                if (state.isLoading) {
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                } else {
+                    Text("Criar Conta", style = MaterialTheme.typography.titleMedium)
+                }
+            }
+            
+            // Mensagem de erro
+            state.error?.let { error ->
+                Text(
+                    text = error,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(top = 16.dp)
+                )
+            }
+        }
+    }
+}
+```
+
+---
+
+### Arquivo: presentation/screens/auth/CadastroViewModel.kt
+
+```kotlin
+package com.raizesvivas.app.presentation.screens.auth
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.raizesvivas.app.data.remote.firebase.AuthService
+import com.raizesvivas.app.utils.ValidationUtils
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import timber.log.Timber
+import javax.inject.Inject
+
+@HiltViewModel
+class CadastroViewModel @Inject constructor(
+    private val authService: AuthService
+) : ViewModel() {
+    
+    private val _state = MutableStateFlow(CadastroState())
+    val state = _state.asStateFlow()
+    
+    fun onNomeCompletoChanged(nome: String) {
+        _state.update { it.copy(nomeCompleto = nome, nomeCompletoError = null) }
+    }
+    
+    fun onEmailChanged(email: String) {
+        _state.update { it.copy(email = email, emailError = null) }
+    }
+    
+    fun onSenhaChanged(senha: String) {
+        _state.update { it.copy(senha = senha, senhaError = null) }
+    }
+    
+    fun onConfirmarSenhaChanged(confirmarSenha: String) {
+        _state.update { it.copy(confirmarSenha = confirmarSenha, confirmarSenhaError = null) }
+    }
+    
+    fun cadastrar() {
+        _state.update { it.copy(
+            nomeCompletoError = null,
+            emailError = null,
+            senhaError = null,
+            confirmarSenhaError = null,
+            error = null
+        ) }
+        
+        // Validar nome completo
+        if (_state.value.nomeCompleto.isBlank()) {
+            _state.update { it.copy(nomeCompletoError = "Nome completo é obrigatório") }
+            return
+        }
+        
+        // Validar email
+        val emailValidation = ValidationUtils.validarEmail(_state.value.email)
+        if (!emailValidation.isValid) {
+            _state.update { it.copy(emailError = emailValidation.errorMessage) }
+            return
+        }
+        
+        // Validar senha
+        val senhaValidation = ValidationUtils.validarSenha(_state.value.senha)
+        if (!senhaValidation.isValid) {
+            _state.update { it.copy(senhaError = senhaValidation.errorMessage) }
+            return
+        }
+        
+        // Validar confirmação de senha
+        if (_state.value.senha != _state.value.confirmarSenha) {
+            _state.update { it.copy(confirmarSenhaError = "As senhas não coincidem") }
+            return
+        }
+        
+        // Cadastrar
+        _state.update { it.copy(isLoading = true) }
+        
+        viewModelScope.launch {
+            val result = authService.cadastrar(
+                email = _state.value.email.trim(),
+                senha = _state.value.senha,
+                nomeCompleto = _state.value.nomeCompleto.trim()
+            )
+            
+            result.onSuccess { user ->
+                Timber.d("✅ Cadastro bem-sucedido: ${user.uid}")
+                _state.update { it.copy(isLoading = false, cadastroSuccess = true) }
+            }
+            
+            result.onFailure { error ->
+                Timber.e(error, "❌ Erro no cadastro")
+                val errorMessage = when {
+                    error.message?.contains("email-already-in-use") == true -> "Este email já está em uso"
+                    error.message?.contains("weak-password") == true -> "Senha muito fraca"
+                    error.message?.contains("network") == true -> "Erro de conexão. Verifique sua internet"
+                    else -> "Erro ao criar conta. Tente novamente"
+                }
+                _state.update { it.copy(isLoading = false, error = errorMessage) }
+            }
+        }
+    }
+}
+
+data class CadastroState(
+    val nomeCompleto: String = "",
+    val email: String = "",
+    val senha: String = "",
+    val confirmarSenha: String = "",
+    val nomeCompletoError: String? = null,
+    val emailError: String? = null,
+    val senhaError: String? = null,
+    val confirmarSenhaError: String? = null,
+    val isLoading: Boolean = false,
+    val cadastroSuccess: Boolean = false,
+    val error: String? = null
+)
+```
+
+---
+
+## 🛠️ PARTE 4: Utilities de Validação
+
+### Arquivo: utils/ValidationUtils.kt
+
+```kotlin
+package com.raizesvivas.app.utils
+
+/**
+ * Utilitários para validação de dados
+ */
+object ValidationUtils {
+    
+    /**
+     * Valida formato de email
+     */
+    fun validarEmail(email: String): ValidationResult {
+        if (email.isBlank()) {
+            return ValidationResult(false, "Email é obrigatório")
+        }
+        
+        val emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$".toRegex()
+        
+        return if (email.matches(emailRegex)) {
+            ValidationResult(true)
+        } else {
+            ValidationResult(false, "Email inválido")
+        }
+    }
+    
+    /**
+     * Valida senha (mínimo 8 caracteres)
+     */
+    fun validarSenha(senha: String): ValidationResult {
+        return when {
+            senha.isBlank() -> ValidationResult(false, "Senha é obrigatória")
+            senha.length < 8 -> ValidationResult(false, "Senha deve ter no mínimo 8 caracteres")
+            else -> ValidationResult(true)
+        }
+    }
+    
+    /**
+     * Valida nome (não vazio)
+     */
+    fun validarNome(nome: String): ValidationResult {
+        return when {
+            nome.isBlank() -> ValidationResult(false, "Nome é obrigatório")
+            nome.length < 3 -> ValidationResult(false, "Nome deve ter no mínimo 3 caracteres")
+            else -> ValidationResult(true)
+        }
+    }
+}
+
+/**
+ * Resultado de uma validação
+ */
+data class ValidationResult(
+    val isValid: Boolean,
+    val errorMessage: String? = null
+)
+```
+
+---
+
+## ✅ Checklist de Verificação
+
+Após executar este prompt, verifique:
+
+- [ ] Telas compilam sem erros
+- [ ] Navegação entre Login e Cadastro funciona
+- [ ] Validações de email e senha funcionam
+- [ ] Loading states aparecem corretamente
+- [ ] Mensagens de erro são exibidas
+- [ ] Firebase Auth está funcionando
+
+---
+
+## 🔜 Próximos Passos
+
+Agora você tem o núcleo do app funcionando! Os próximos prompts serão:
+
+- **Prompt 07**: Tela de Fundação da Família Zero (primeiro acesso)
+- **Prompt 08**: Tela de Cadastro de Pessoa
+- **Prompt 09**: Algoritmo de Cálculo de Parentesco
+- **Prompt 10**: Visualização da Árvore Genealógica
+
+---
+
+Estes 6 primeiros prompts já fornecem a base sólida do aplicativo! 🎉

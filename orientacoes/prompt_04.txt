@@ -1,0 +1,652 @@
+# 📋 Prompt 04 - DAOs e Room Database
+
+## 🎯 Objetivo
+Criar os DAOs (Data Access Objects) e a configuração do Room Database para cache local.
+
+---
+
+## 📊 PARTE 1: DAOs (Data Access Objects)
+
+### Arquivo: data/local/dao/PessoaDao.kt
+
+```kotlin
+package com.raizesvivas.app.data.local.dao
+
+import androidx.room.*
+import com.raizesvivas.app.data.local.entities.PessoaEntity
+import kotlinx.coroutines.flow.Flow
+
+/**
+ * DAO para operações com pessoas no banco local
+ * 
+ * Este DAO fornece métodos para:
+ * - Buscar pessoas (todas, por ID, por relacionamentos)
+ * - Inserir/atualizar/deletar pessoas
+ * - Buscar pessoas que precisam sincronizar
+ */
+@Dao
+interface PessoaDao {
+    
+    // ============================================
+    // CONSULTAS (SELECT)
+    // ============================================
+    
+    /**
+     * Busca todas as pessoas ordenadas por nome
+     * Retorna Flow para observar mudanças em tempo real
+     */
+    @Query("SELECT * FROM pessoas ORDER BY nome ASC")
+    fun observarTodasPessoas(): Flow<List<PessoaEntity>>
+    
+    /**
+     * Busca todas as pessoas (uma vez)
+     */
+    @Query("SELECT * FROM pessoas ORDER BY nome ASC")
+    suspend fun buscarTodasPessoas(): List<PessoaEntity>
+    
+    /**
+     * Busca pessoa por ID
+     */
+    @Query("SELECT * FROM pessoas WHERE id = :pessoaId")
+    suspend fun buscarPorId(pessoaId: String): PessoaEntity?
+    
+    /**
+     * Observa pessoa por ID (atualiza automaticamente)
+     */
+    @Query("SELECT * FROM pessoas WHERE id = :pessoaId")
+    fun observarPorId(pessoaId: String): Flow<PessoaEntity?>
+    
+    /**
+     * Busca o casal da Família Zero
+     */
+    @Query("SELECT * FROM pessoas WHERE ehFamiliaZero = 1")
+    suspend fun buscarFamiliaZero(): List<PessoaEntity>
+    
+    /**
+     * Observa o casal da Família Zero
+     */
+    @Query("SELECT * FROM pessoas WHERE ehFamiliaZero = 1")
+    fun observarFamiliaZero(): Flow<List<PessoaEntity>>
+    
+    /**
+     * Busca filhos de uma pessoa
+     */
+    @Query("SELECT * FROM pessoas WHERE pai = :pessoaId OR mae = :pessoaId")
+    suspend fun buscarFilhos(pessoaId: String): List<PessoaEntity>
+    
+    /**
+     * Busca irmãos (mesmo pai E mesma mãe)
+     */
+    @Query("""
+        SELECT * FROM pessoas 
+        WHERE pai = :paiId 
+        AND mae = :maeId 
+        AND id != :excluirId
+    """)
+    suspend fun buscarIrmaos(
+        paiId: String?,
+        maeId: String?,
+        excluirId: String
+    ): List<PessoaEntity>
+    
+    /**
+     * Busca pessoas por nome (pesquisa parcial, case-insensitive)
+     */
+    @Query("""
+        SELECT * FROM pessoas 
+        WHERE nome LIKE '%' || :termo || '%' 
+        ORDER BY nome ASC
+    """)
+    suspend fun buscarPorNome(termo: String): List<PessoaEntity>
+    
+    /**
+     * Busca pessoas aprovadas (visíveis na árvore)
+     */
+    @Query("SELECT * FROM pessoas WHERE aprovado = 1 ORDER BY nome ASC")
+    suspend fun buscarPessoasAprovadas(): List<PessoaEntity>
+    
+    /**
+     * Busca pessoas aguardando aprovação
+     */
+    @Query("SELECT * FROM pessoas WHERE aprovado = 0 ORDER BY criadoEm DESC")
+    suspend fun buscarPessoasPendentes(): List<PessoaEntity>
+    
+    /**
+     * Busca pessoas que precisam sincronizar com Firestore
+     */
+    @Query("SELECT * FROM pessoas WHERE precisaSincronizar = 1")
+    suspend fun buscarPessoasParaSincronizar(): List<PessoaEntity>
+    
+    /**
+     * Busca pessoas vivas
+     */
+    @Query("SELECT * FROM pessoas WHERE dataFalecimento IS NULL ORDER BY nome ASC")
+    suspend fun buscarPessoasVivas(): List<PessoaEntity>
+    
+    /**
+     * Busca pessoas falecidas
+     */
+    @Query("SELECT * FROM pessoas WHERE dataFalecimento IS NOT NULL ORDER BY dataFalecimento DESC")
+    suspend fun buscarPessoasFalecidas(): List<PessoaEntity>
+    
+    /**
+     * Conta total de pessoas
+     */
+    @Query("SELECT COUNT(*) FROM pessoas")
+    suspend fun contarPessoas(): Int
+    
+    /**
+     * Conta total de pessoas aprovadas
+     */
+    @Query("SELECT COUNT(*) FROM pessoas WHERE aprovado = 1")
+    suspend fun contarPessoasAprovadas(): Int
+    
+    // ============================================
+    // INSERÇÃO E ATUALIZAÇÃO
+    // ============================================
+    
+    /**
+     * Insere uma pessoa (substitui se já existir)
+     */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun inserir(pessoa: PessoaEntity)
+    
+    /**
+     * Insere múltiplas pessoas de uma vez
+     */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun inserirTodas(pessoas: List<PessoaEntity>)
+    
+    /**
+     * Atualiza uma pessoa existente
+     */
+    @Update
+    suspend fun atualizar(pessoa: PessoaEntity)
+    
+    /**
+     * Atualiza múltiplas pessoas
+     */
+    @Update
+    suspend fun atualizarTodas(pessoas: List<PessoaEntity>)
+    
+    /**
+     * Marca pessoa como precisando sincronizar
+     */
+    @Query("UPDATE pessoas SET precisaSincronizar = 1 WHERE id = :pessoaId")
+    suspend fun marcarParaSincronizar(pessoaId: String)
+    
+    /**
+     * Marca pessoa como sincronizada
+     */
+    @Query("UPDATE pessoas SET precisaSincronizar = 0, sincronizadoEm = :timestamp WHERE id = :pessoaId")
+    suspend fun marcarComoSincronizada(pessoaId: String, timestamp: Long = System.currentTimeMillis())
+    
+    // ============================================
+    // DELEÇÃO
+    // ============================================
+    
+    /**
+     * Deleta uma pessoa
+     */
+    @Delete
+    suspend fun deletar(pessoa: PessoaEntity)
+    
+    /**
+     * Deleta pessoa por ID
+     */
+    @Query("DELETE FROM pessoas WHERE id = :pessoaId")
+    suspend fun deletarPorId(pessoaId: String)
+    
+    /**
+     * Deleta todas as pessoas (use com cuidado!)
+     */
+    @Query("DELETE FROM pessoas")
+    suspend fun deletarTodas()
+    
+    /**
+     * Deleta pessoas não sincronizadas (limpeza de cache)
+     */
+    @Query("DELETE FROM pessoas WHERE precisaSincronizar = 0 AND sincronizadoEm < :timestamp")
+    suspend fun limparCacheAntigo(timestamp: Long)
+}
+```
+
+---
+
+### Arquivo: data/local/dao/UsuarioDao.kt
+
+```kotlin
+package com.raizesvivas.app.data.local.dao
+
+import androidx.room.*
+import com.raizesvivas.app.data.local.entities.UsuarioEntity
+import kotlinx.coroutines.flow.Flow
+
+/**
+ * DAO para operações com usuários no banco local
+ */
+@Dao
+interface UsuarioDao {
+    
+    /**
+     * Busca usuário por ID
+     */
+    @Query("SELECT * FROM usuarios WHERE id = :userId")
+    suspend fun buscarPorId(userId: String): UsuarioEntity?
+    
+    /**
+     * Observa usuário por ID (atualiza automaticamente)
+     */
+    @Query("SELECT * FROM usuarios WHERE id = :userId")
+    fun observarPorId(userId: String): Flow<UsuarioEntity?>
+    
+    /**
+     * Busca todos os usuários
+     */
+    @Query("SELECT * FROM usuarios ORDER BY nome ASC")
+    suspend fun buscarTodos(): List<UsuarioEntity>
+    
+    /**
+     * Busca administradores
+     */
+    @Query("SELECT * FROM usuarios WHERE ehAdministrador = 1")
+    suspend fun buscarAdministradores(): List<UsuarioEntity>
+    
+    /**
+     * Insere ou atualiza usuário
+     */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun inserir(usuario: UsuarioEntity)
+    
+    /**
+     * Atualiza usuário
+     */
+    @Update
+    suspend fun atualizar(usuario: UsuarioEntity)
+    
+    /**
+     * Atualiza flag de primeiro acesso
+     */
+    @Query("UPDATE usuarios SET primeiroAcesso = :valor WHERE id = :userId")
+    suspend fun atualizarPrimeiroAcesso(userId: String, valor: Boolean)
+    
+    /**
+     * Atualiza pessoa vinculada
+     */
+    @Query("UPDATE usuarios SET pessoaVinculada = :pessoaId WHERE id = :userId")
+    suspend fun vincularPessoa(userId: String, pessoaId: String)
+    
+    /**
+     * Atualiza Família Zero
+     */
+    @Query("UPDATE usuarios SET familiaZeroPai = :paiId, familiaZeroMae = :maeId WHERE id = :userId")
+    suspend fun atualizarFamiliaZero(userId: String, paiId: String, maeId: String)
+    
+    /**
+     * Deleta usuário
+     */
+    @Delete
+    suspend fun deletar(usuario: UsuarioEntity)
+    
+    /**
+     * Deleta todos os usuários (logout completo)
+     */
+    @Query("DELETE FROM usuarios")
+    suspend fun deletarTodos()
+}
+```
+
+---
+
+## 🗄️ PARTE 2: Configuração do Room Database
+
+### Arquivo: data/local/RaizesVivasDatabase.kt
+
+```kotlin
+package com.raizesvivas.app.data.local
+
+import androidx.room.Database
+import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
+import com.raizesvivas.app.data.local.dao.PessoaDao
+import com.raizesvivas.app.data.local.dao.UsuarioDao
+import com.raizesvivas.app.data.local.entities.PessoaEntity
+import com.raizesvivas.app.data.local.entities.UsuarioEntity
+
+/**
+ * Banco de dados local do app Raízes Vivas
+ * 
+ * Este banco usa Room para armazenar dados localmente,
+ * permitindo funcionamento offline e melhor performance.
+ * 
+ * Versão 1: Schema inicial com pessoas e usuários
+ */
+@Database(
+    entities = [
+        PessoaEntity::class,
+        UsuarioEntity::class
+    ],
+    version = 1,
+    exportSchema = true
+)
+@TypeConverters(Converters::class)
+abstract class RaizesVivasDatabase : RoomDatabase() {
+    
+    /**
+     * DAO para operações com pessoas
+     */
+    abstract fun pessoaDao(): PessoaDao
+    
+    /**
+     * DAO para operações com usuários
+     */
+    abstract fun usuarioDao(): UsuarioDao
+    
+    companion object {
+        /**
+         * Nome do arquivo do banco de dados
+         */
+        const val DATABASE_NAME = "raizes_vivas.db"
+    }
+}
+```
+
+---
+
+## ⚙️ PARTE 3: Módulo Hilt para Database
+
+### Arquivo: di/DatabaseModule.kt
+
+```kotlin
+package com.raizesvivas.app.di
+
+import android.content.Context
+import androidx.room.Room
+import com.raizesvivas.app.data.local.RaizesVivasDatabase
+import com.raizesvivas.app.data.local.dao.PessoaDao
+import com.raizesvivas.app.data.local.dao.UsuarioDao
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
+
+/**
+ * Módulo Hilt para prover instâncias do Room Database
+ * 
+ * Este módulo cria e configura o banco de dados local.
+ */
+@Module
+@InstallIn(SingletonComponent::class)
+object DatabaseModule {
+    
+    /**
+     * Provê instância do Room Database
+     */
+    @Provides
+    @Singleton
+    fun provideDatabase(
+        @ApplicationContext context: Context
+    ): RaizesVivasDatabase {
+        return Room.databaseBuilder(
+            context,
+            RaizesVivasDatabase::class.java,
+            RaizesVivasDatabase.DATABASE_NAME
+        )
+            // Permite queries na main thread (apenas para debug)
+            // REMOVER EM PRODUÇÃO
+            .fallbackToDestructiveMigration() // Recria DB se versão mudar
+            .build()
+    }
+    
+    /**
+     * Provê DAO de Pessoa
+     */
+    @Provides
+    @Singleton
+    fun providePessoaDao(
+        database: RaizesVivasDatabase
+    ): PessoaDao {
+        return database.pessoaDao()
+    }
+    
+    /**
+     * Provê DAO de Usuário
+     */
+    @Provides
+    @Singleton
+    fun provideUsuarioDao(
+        database: RaizesVivasDatabase
+    ): UsuarioDao {
+        return database.usuarioDao()
+    }
+}
+```
+
+---
+
+## 🧪 PARTE 4: Testes Unitários para DAOs
+
+### Arquivo: test/data/local/dao/PessoaDaoTest.kt
+
+```kotlin
+package com.raizesvivas.app.data.local.dao
+
+import android.content.Context
+import androidx.room.Room
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.raizesvivas.app.data.local.RaizesVivasDatabase
+import com.raizesvivas.app.data.local.entities.PessoaEntity
+import kotlinx.coroutines.runBlocking
+import org.junit.After
+import org.junit.Assert.*
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import java.util.Date
+
+/**
+ * Testes para o PessoaDao
+ * 
+ * Estes testes verificam se as operações do banco de dados
+ * estão funcionando corretamente.
+ */
+@RunWith(AndroidJUnit4::class)
+class PessoaDaoTest {
+    
+    private lateinit var database: RaizesVivasDatabase
+    private lateinit var pessoaDao: PessoaDao
+    
+    /**
+     * Configura banco de dados em memória antes de cada teste
+     */
+    @Before
+    fun setup() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        database = Room.inMemoryDatabaseBuilder(
+            context,
+            RaizesVivasDatabase::class.java
+        ).build()
+        pessoaDao = database.pessoaDao()
+    }
+    
+    /**
+     * Fecha banco de dados após cada teste
+     */
+    @After
+    fun tearDown() {
+        database.close()
+    }
+    
+    /**
+     * Testa inserção e busca de pessoa
+     */
+    @Test
+    fun inserirEBuscarPessoa() = runBlocking {
+        // Arrange
+        val pessoa = criarPessoaTeste(
+            id = "pessoa1",
+            nome = "João Silva"
+        )
+        
+        // Act
+        pessoaDao.inserir(pessoa)
+        val resultado = pessoaDao.buscarPorId("pessoa1")
+        
+        // Assert
+        assertNotNull(resultado)
+        assertEquals("João Silva", resultado?.nome)
+    }
+    
+    /**
+     * Testa busca de filhos
+     */
+    @Test
+    fun buscarFilhos() = runBlocking {
+        // Arrange
+        val pai = criarPessoaTeste("pai1", "Pai")
+        val mae = criarPessoaTeste("mae1", "Mãe")
+        val filho1 = criarPessoaTeste("filho1", "Filho 1", pai = "pai1", mae = "mae1")
+        val filho2 = criarPessoaTeste("filho2", "Filho 2", pai = "pai1", mae = "mae1")
+        
+        pessoaDao.inserir(pai)
+        pessoaDao.inserir(mae)
+        pessoaDao.inserir(filho1)
+        pessoaDao.inserir(filho2)
+        
+        // Act
+        val filhos = pessoaDao.buscarFilhos("pai1")
+        
+        // Assert
+        assertEquals(2, filhos.size)
+        assertTrue(filhos.any { it.nome == "Filho 1" })
+        assertTrue(filhos.any { it.nome == "Filho 2" })
+    }
+    
+    /**
+     * Testa busca de irmãos
+     */
+    @Test
+    fun buscarIrmaos() = runBlocking {
+        // Arrange
+        val irmao1 = criarPessoaTeste("i1", "Irmão 1", pai = "pai", mae = "mae")
+        val irmao2 = criarPessoaTeste("i2", "Irmão 2", pai = "pai", mae = "mae")
+        val irmao3 = criarPessoaTeste("i3", "Irmão 3", pai = "pai", mae = "mae")
+        
+        pessoaDao.inserir(irmao1)
+        pessoaDao.inserir(irmao2)
+        pessoaDao.inserir(irmao3)
+        
+        // Act
+        val irmaos = pessoaDao.buscarIrmaos("pai", "mae", "i1")
+        
+        // Assert
+        assertEquals(2, irmaos.size)
+        assertFalse(irmaos.any { it.id == "i1" }) // Não inclui a própria pessoa
+    }
+    
+    /**
+     * Testa busca por nome
+     */
+    @Test
+    fun buscarPorNome() = runBlocking {
+        // Arrange
+        pessoaDao.inserir(criarPessoaTeste("1", "João Silva"))
+        pessoaDao.inserir(criarPessoaTeste("2", "Maria Silva"))
+        pessoaDao.inserir(criarPessoaTeste("3", "Pedro Santos"))
+        
+        // Act
+        val resultado = pessoaDao.buscarPorNome("Silva")
+        
+        // Assert
+        assertEquals(2, resultado.size)
+    }
+    
+    /**
+     * Testa contagem de pessoas
+     */
+    @Test
+    fun contarPessoas() = runBlocking {
+        // Arrange
+        pessoaDao.inserir(criarPessoaTeste("1", "Pessoa 1"))
+        pessoaDao.inserir(criarPessoaTeste("2", "Pessoa 2"))
+        pessoaDao.inserir(criarPessoaTeste("3", "Pessoa 3"))
+        
+        // Act
+        val total = pessoaDao.contarPessoas()
+        
+        // Assert
+        assertEquals(3, total)
+    }
+    
+    /**
+     * Função auxiliar para criar pessoa de teste
+     */
+    private fun criarPessoaTeste(
+        id: String,
+        nome: String,
+        pai: String? = null,
+        mae: String? = null
+    ) = PessoaEntity(
+        id = id,
+        nome = nome,
+        dataNascimento = Date(),
+        dataFalecimento = null,
+        localNascimento = null,
+        localResidencia = null,
+        profissao = null,
+        biografia = null,
+        pai = pai,
+        mae = mae,
+        conjugeAtual = null,
+        exConjuges = emptyList(),
+        filhos = emptyList(),
+        fotoUrl = null,
+        criadoPor = "teste",
+        criadoEm = Date(),
+        modificadoPor = "teste",
+        modificadoEm = Date(),
+        aprovado = true,
+        versao = 1,
+        ehFamiliaZero = false,
+        distanciaFamiliaZero = 0,
+        precisaSincronizar = false
+    )
+}
+```
+
+---
+
+## ✅ Checklist de Verificação
+
+Após executar este prompt, verifique:
+
+- [ ] DAOs compilam sem erros
+- [ ] Database está configurado corretamente
+- [ ] Hilt consegue injetar DAOs
+- [ ] Testes unitários passam
+- [ ] Queries SQL estão corretas
+- [ ] TypeConverters funcionam
+
+---
+
+## 🔍 Como Testar Manualmente
+
+Adicione em algum ViewModel ou Activity temporariamente:
+
+```kotlin
+@Inject lateinit var pessoaDao: PessoaDao
+
+viewModelScope.launch {
+    val count = pessoaDao.contarPessoas()
+    Timber.d("Total de pessoas no banco: $count")
+}
+```
+
+---
+
+## 🔜 Próximo Passo
+
+**Prompt 05**: Criar FirestoreService e Repositories

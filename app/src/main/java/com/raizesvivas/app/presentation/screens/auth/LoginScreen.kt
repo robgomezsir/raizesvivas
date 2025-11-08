@@ -1,0 +1,343 @@
+package com.raizesvivas.app.presentation.screens.auth
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.raizesvivas.app.MainActivity
+import com.raizesvivas.app.presentation.ui.theme.RaizesVivasButtonDefaults
+import com.raizesvivas.app.presentation.ui.theme.InputShapeSuave
+import com.raizesvivas.app.presentation.ui.theme.inputColorsSuaves
+import kotlinx.coroutines.delay
+import timber.log.Timber
+
+/**
+ * Tela de Login
+ * 
+ * Permite que usuários façam login com email e senha.
+ * Oferece navegação para cadastro e recuperação de senha.
+ */
+@Composable
+fun LoginScreen(
+    viewModel: LoginViewModel = hiltViewModel(),
+    onLoginSuccess: () -> Unit,
+    onNavigateToCadastro: () -> Unit,
+    onNavigateToRecuperarSenha: () -> Unit
+) {
+    val state by viewModel.state.collectAsState()
+    val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
+    val activity = context as? MainActivity
+
+    var biometricPromptShown by remember { mutableStateOf(false) }
+
+    LaunchedEffect(state.loginSuccess) {
+        if (state.loginSuccess) {
+            biometricPromptShown = false
+            onLoginSuccess()
+        }
+    }
+
+    LaunchedEffect(state.lastEmail) {
+        if (state.lastEmail != null && state.email.isEmpty()) {
+            viewModel.onEmailChanged(state.lastEmail!!)
+        }
+    }
+
+    LaunchedEffect(state.biometricAvailable, state.biometricEnabled, state.lastEmail, activity) {
+        Timber.d(
+            "🔐 LaunchedEffect biometria - available: ${state.biometricAvailable}, enabled: ${state.biometricEnabled}, " +
+                "lastEmail: ${state.lastEmail}, activity: ${activity != null}, alreadyShown: $biometricPromptShown"
+        )
+
+        if (
+            state.biometricAvailable &&
+            state.biometricEnabled &&
+            state.lastEmail != null &&
+            activity != null &&
+            !biometricPromptShown
+        ) {
+            biometricPromptShown = true
+            delay(500)
+            viewModel.loginWithBiometric(activity) {
+                // Login automático após biometria
+            }
+        }
+    }
+
+    val colorScheme = MaterialTheme.colorScheme
+    val backgroundBrush = remember(colorScheme) {
+        Brush.verticalGradient(
+            colors = listOf(
+                colorScheme.primary.copy(alpha = 0.22f),
+                colorScheme.secondary.copy(alpha = 0.18f),
+                colorScheme.background
+            )
+        )
+    }
+
+    Scaffold(containerColor = Color.Transparent) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(backgroundBrush)
+                .padding(paddingValues)
+                .padding(horizontal = 20.dp, vertical = 32.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Surface(
+                shape = MaterialTheme.shapes.extraLarge,
+                color = colorScheme.surface.copy(alpha = 0.96f),
+                tonalElevation = 4.dp,
+                shadowElevation = 6.dp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 28.dp, vertical = 32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    Surface(
+                        modifier = Modifier.size(96.dp),
+                        shape = MaterialTheme.shapes.large,
+                        tonalElevation = 2.dp,
+                        color = colorScheme.secondaryContainer.copy(alpha = 0.8f)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.Email,
+                                contentDescription = "Logo Raízes Vivas",
+                                tint = colorScheme.onSecondaryContainer,
+                                modifier = Modifier.size(44.dp)
+                            )
+                        }
+                    }
+
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Raízes Vivas",
+                            style = MaterialTheme.typography.headlineLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colorScheme.primary
+                        )
+                        Text(
+                            text = "Conecte-se à sua história familiar",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+
+                    state.error?.let { error ->
+                        Surface(
+                            color = colorScheme.errorContainer.copy(alpha = 0.85f),
+                            shape = MaterialTheme.shapes.medium,
+                            tonalElevation = 1.dp,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = error,
+                                color = colorScheme.onErrorContainer,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                            )
+                        }
+                    }
+
+                    OutlinedTextField(
+                        value = state.email,
+                        onValueChange = { viewModel.onEmailChanged(it) },
+                        label = { Text("Email") },
+                        leadingIcon = {
+                            Icon(imageVector = Icons.Default.Email, contentDescription = null)
+                        },
+                        singleLine = true,
+                        isError = state.emailError != null,
+                        supportingText = state.emailError?.let { { Text(it) } },
+                        shape = InputShapeSuave,
+                        colors = inputColorsSuaves(),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Email,
+                            imeAction = ImeAction.Next
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    var senhaVisivel by remember { mutableStateOf(false) }
+
+                    OutlinedTextField(
+                        value = state.senha,
+                        onValueChange = { viewModel.onSenhaChanged(it) },
+                        label = { Text("Senha") },
+                        leadingIcon = {
+                            Icon(imageVector = Icons.Default.Lock, contentDescription = null)
+                        },
+                        trailingIcon = {
+                            IconButton(onClick = { senhaVisivel = !senhaVisivel }) {
+                                Icon(
+                                    imageVector = if (senhaVisivel) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                    contentDescription = if (senhaVisivel) "Ocultar senha" else "Mostrar senha"
+                                )
+                            }
+                        },
+                        visualTransformation = if (senhaVisivel) VisualTransformation.None else PasswordVisualTransformation(),
+                        singleLine = true,
+                        isError = state.senhaError != null,
+                        supportingText = state.senhaError?.let { { Text(it) } },
+                        shape = InputShapeSuave,
+                        colors = inputColorsSuaves(),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                            imeAction = ImeAction.Done
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onDone = {
+                                focusManager.clearFocus()
+                                viewModel.login()
+                            }
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    TextButton(
+                        onClick = onNavigateToRecuperarSenha,
+                        modifier = Modifier.align(Alignment.End)
+                    ) {
+                        Text("Esqueci minha senha")
+                    }
+
+                    if (state.biometricAvailable && state.biometricEnabled && state.lastEmail != null && activity != null) {
+                        OutlinedButton(
+                            onClick = {
+                                viewModel.loginWithBiometric(activity) {
+                                    // Login automático após biometria
+                                }
+                            },
+                            enabled = !state.isLoading,
+                            shape = RaizesVivasButtonDefaults.Shape,
+                            border = RaizesVivasButtonDefaults.outlineStroke(),
+                            contentPadding = RaizesVivasButtonDefaults.ContentPadding,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Fingerprint,
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp),
+                                tint = colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text("Entrar com Biometria", style = MaterialTheme.typography.titleMedium)
+                        }
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            HorizontalDivider(modifier = Modifier.weight(1f))
+                            Text(
+                                text = "ou",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = colorScheme.onSurfaceVariant
+                            )
+                            HorizontalDivider(modifier = Modifier.weight(1f))
+                        }
+                    }
+
+                    Button(
+                        onClick = { viewModel.login() },
+                        enabled = !state.isLoading,
+                        shape = RaizesVivasButtonDefaults.Shape,
+                        colors = RaizesVivasButtonDefaults.primaryColors(),
+                        contentPadding = RaizesVivasButtonDefaults.ContentPadding,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                    ) {
+                        if (state.isLoading) {
+                            CircularProgressIndicator(
+                                color = colorScheme.onPrimary,
+                                modifier = Modifier.size(22.dp),
+                                strokeWidth = 2.5.dp
+                            )
+                        } else {
+                            Text("Entrar", style = MaterialTheme.typography.titleMedium)
+                        }
+                    }
+
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Não tem uma conta?",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        TextButton(onClick = onNavigateToCadastro) {
+                            Text("Cadastre-se")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+

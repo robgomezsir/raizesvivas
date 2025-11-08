@@ -1,0 +1,677 @@
+# 📋 Prompt 02 - Configuração do Firebase
+
+## 🎯 Objetivo
+Configurar Firebase Console, criar collections no Firestore, definir Security Rules e Indexes, e integrar com o app Android.
+
+---
+
+## 🔥 PARTE 1: Configurar Firebase Console
+
+### Passo 1: Criar Projeto no Firebase
+
+```
+1. Acesse https://console.firebase.google.com/
+2. Clique em "Adicionar projeto"
+3. Nome do projeto: "Raízes Vivas"
+4. Desabilite Google Analytics (não necessário no MVP)
+5. Clique em "Criar projeto"
+```
+
+### Passo 2: Adicionar App Android
+
+```
+1. No console do Firebase, clique no ícone Android
+2. Package name: com.raizesvivas.app
+3. Nome do app: Raízes Vivas
+4. SHA-1: (deixe em branco por enquanto)
+5. Clique em "Registrar app"
+6. BAIXE o arquivo google-services.json
+7. Coloque o arquivo em: app/google-services.json (raiz do módulo app)
+```
+
+### Passo 3: Ativar Firebase Authentication
+
+```
+1. No console, vá em "Authentication"
+2. Clique em "Começar"
+3. Vá na aba "Sign-in method"
+4. Ative "Email/Password"
+5. NÃO ative "Link de email (login sem senha)" por enquanto
+6. Salve
+```
+
+### Passo 4: Ativar Cloud Firestore
+
+```
+1. No console, vá em "Firestore Database"
+2. Clique em "Criar banco de dados"
+3. Modo: "Iniciar em modo de produção"
+4. Local: us-central1 (ou southamerica-east1 se disponível)
+5. Clique em "Ativar"
+```
+
+### Passo 5: Ativar Cloud Storage
+
+```
+1. No console, vá em "Storage"
+2. Clique em "Começar"
+3. Modo: "Iniciar em modo de produção"
+4. Local: mesmo do Firestore
+5. Clique em "Concluído"
+```
+
+---
+
+## 🗄️ PARTE 2: Estrutura do Firestore
+
+### Criar Collections Manualmente (via Console)
+
+```
+No Firebase Console > Firestore Database > Iniciar coleção:
+
+1. Collection: users
+   - Deixe vazia (será populada no primeiro login)
+
+2. Collection: people
+   - Deixe vazia (será populada quando criar Família Zero)
+
+3. Collection: familia_zero
+   - Criar documento com ID: "raiz"
+   - Deixe vazio por enquanto (será populado no primeiro acesso)
+
+4. Collection: invites
+   - Deixe vazia
+
+5. Collection: pending_edits
+   - Deixe vazia
+
+6. Collection: duplicates
+   - Deixe vazia
+```
+
+---
+
+## 🔒 PARTE 3: Security Rules do Firestore
+
+### Copie e cole estas regras no Console Firebase:
+
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ============================================
+    // FUNÇÕES AUXILIARES
+    // ============================================
+    
+    // Verifica se o usuário está autenticado
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Verifica se o usuário é administrador
+    function isAdmin() {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.ehAdministrador == true;
+    }
+    
+    // Verifica se é o próprio usuário
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Verifica se a Família Zero já foi criada
+    function familiaZeroExists() {
+      return exists(/databases/$(database)/documents/familia_zero/raiz);
+    }
+    
+    // ============================================
+    // REGRAS POR COLLECTION
+    // ============================================
+    
+    // Collection: users
+    match /users/{userId} {
+      // Qualquer usuário autenticado pode ler perfis
+      allow read: if isAuthenticated();
+      
+      // Apenas o próprio usuário pode criar seu perfil
+      allow create: if isOwner(userId);
+      
+      // Apenas o próprio usuário OU admin pode atualizar
+      allow update: if isOwner(userId) || isAdmin();
+      
+      // Apenas admin pode deletar
+      allow delete: if isAdmin();
+    }
+    
+    // Collection: familia_zero
+    match /familia_zero/{docId} {
+      // Qualquer usuário autenticado pode ler
+      allow read: if isAuthenticated();
+      
+      // Apenas se NÃO existir ainda (primeiro usuário)
+      allow create: if isAuthenticated() && !familiaZeroExists();
+      
+      // NUNCA permitir atualização ou deleção
+      allow update, delete: if false;
+    }
+    
+    // Collection: people
+    match /people/{pessoaId} {
+      // Qualquer usuário autenticado pode ler
+      allow read: if isAuthenticated();
+      
+      // Qualquer usuário autenticado pode criar
+      allow create: if isAuthenticated();
+      
+      // Qualquer usuário autenticado pode atualizar
+      // (edições vão para pending_edits se não for admin)
+      allow update: if isAuthenticated();
+      
+      // Apenas admin pode deletar
+      // E NUNCA pode deletar se ehFamiliaZero == true
+      allow delete: if isAdmin() && 
+                       resource.data.get('ehFamiliaZero', false) == false;
+    }
+    
+    // Collection: invites
+    match /invites/{conviteId} {
+      // Qualquer usuário autenticado pode ler convites
+      allow read: if isAuthenticated();
+      
+      // Apenas admin pode criar convites
+      allow create: if isAdmin();
+      
+      // Admin pode atualizar OU o próprio convidado pode aceitar/rejeitar
+      allow update: if isAdmin() || 
+                       (isAuthenticated() && 
+                        request.auth.token.email == resource.data.emailConvidado);
+      
+      // Apenas admin pode deletar
+      allow delete: if isAdmin();
+    }
+    
+    // Collection: pending_edits
+    match /pending_edits/{edicaoId} {
+      // Qualquer usuário autenticado pode ler
+      allow read: if isAuthenticated();
+      
+      // Qualquer usuário autenticado pode criar
+      allow create: if isAuthenticated();
+      
+      // Apenas admin pode atualizar (aprovar/rejeitar)
+      allow update: if isAdmin();
+      
+      // Apenas admin pode deletar
+      allow delete: if isAdmin();
+    }
+    
+    // Collection: duplicates
+    match /duplicates/{duplicataId} {
+      // Qualquer usuário autenticado pode ler
+      allow read: if isAuthenticated();
+      
+      // Apenas admin pode escrever
+      allow write: if isAdmin();
+    }
+  }
+}
+```
+
+### Como aplicar as regras:
+```
+1. No Firebase Console > Firestore Database
+2. Aba "Regras"
+3. Cole o código acima
+4. Clique em "Publicar"
+```
+
+---
+
+## 📊 PARTE 4: Indexes do Firestore
+
+### Copie e cole estes indexes:
+
+```javascript
+// No Firebase Console > Firestore Database > Indexes
+
+// Index 1: people - Para buscar pessoas aprovadas ordenadas por data
+Collection: people
+Fields:
+  - aprovado (Ascending)
+  - criadoEm (Descending)
+Query scope: Collection
+
+// Index 2: people - Para detectar duplicatas
+Collection: people
+Fields:
+  - pai (Ascending)
+  - mae (Ascending)
+  - dataNascimento (Ascending)
+Query scope: Collection
+
+// Index 3: invites - Para buscar convites pendentes de um email
+Collection: invites
+Fields:
+  - emailConvidado (Ascending)
+  - status (Ascending)
+Query scope: Collection
+
+// Index 4: pending_edits - Para listar edições pendentes
+Collection: pending_edits
+Fields:
+  - status (Ascending)
+  - criadoEm (Descending)
+Query scope: Collection
+
+// Index 5: duplicates - Para buscar duplicatas não resolvidas
+Collection: duplicates
+Fields:
+  - resolvidoEm (Ascending)
+Query scope: Collection
+
+// Index 6: people - Para buscar por nome (case-insensitive)
+Collection: people
+Fields:
+  - nomeNormalizado (Ascending)
+  - aprovado (Ascending)
+Query scope: Collection
+```
+
+### Como criar os indexes:
+
+**OPÇÃO 1: Via Console (Manual)**
+```
+1. Firestore Database > Indexes
+2. Clique em "Adicionar índice"
+3. Preencha os campos conforme especificado acima
+4. Repita para cada index
+```
+
+**OPÇÃO 2: Via CLI (Automático - RECOMENDADO)**
+```
+Crie um arquivo firestore.indexes.json na raiz do projeto:
+```
+
+```json
+{
+  "indexes": [
+    {
+      "collectionGroup": "people",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "aprovado", "order": "ASCENDING" },
+        { "fieldPath": "criadoEm", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "people",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "pai", "order": "ASCENDING" },
+        { "fieldPath": "mae", "order": "ASCENDING" },
+        { "fieldPath": "dataNascimento", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "invites",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "emailConvidado", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "pending_edits",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "criadoEm", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "duplicates",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "resolvidoEm", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "people",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "nomeNormalizado", "order": "ASCENDING" },
+        { "fieldPath": "aprovado", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
+```
+
+---
+
+## 🛡️ PARTE 5: Storage Rules
+
+### Configurar regras de Storage:
+
+```javascript
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Função auxiliar
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Validar tamanho e tipo de arquivo
+    function isValidImage() {
+      return request.resource.size < 10 * 1024 && // Máximo 10KB
+             request.resource.contentType.matches('image/.*');
+    }
+    
+    // Fotos de perfil das pessoas
+    match /fotos_perfil/{userId}/{fileName} {
+      // Qualquer usuário autenticado pode ler
+      allow read: if isAuthenticated();
+      
+      // Apenas o próprio usuário pode fazer upload
+      // E deve ser uma imagem válida
+      allow write: if isAuthenticated() && 
+                      request.auth.uid == userId &&
+                      isValidImage();
+    }
+    
+    // Fotos temporárias (antes de compressão)
+    match /temp/{userId}/{fileName} {
+      allow read, write: if isAuthenticated() && 
+                           request.auth.uid == userId;
+      
+      // Auto-deleção após 24 horas (configurar Cloud Function futuramente)
+    }
+  }
+}
+```
+
+### Como aplicar:
+```
+1. Firebase Console > Storage
+2. Aba "Rules"
+3. Cole o código acima
+4. Clique em "Publicar"
+```
+
+---
+
+## 🔌 PARTE 6: Integrar Firebase no Código Android
+
+### Arquivo: di/FirebaseModule.kt
+
+```kotlin
+package com.raizesvivas.app.di
+
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreSettings
+import com.google.firebase.storage.FirebaseStorage
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
+
+/**
+ * Módulo Hilt para prover instâncias do Firebase
+ * 
+ * Este módulo centraliza a configuração de todas as
+ * instâncias do Firebase usadas no app.
+ */
+@Module
+@InstallIn(SingletonComponent::class)
+object FirebaseModule {
+    
+    /**
+     * Provê instância do Firebase Authentication
+     */
+    @Provides
+    @Singleton
+    fun provideFirebaseAuth(): FirebaseAuth {
+        return FirebaseAuth.getInstance().apply {
+            // Configurar idioma para PT-BR
+            setLanguageCode("pt-BR")
+        }
+    }
+    
+    /**
+     * Provê instância do Cloud Firestore
+     */
+    @Provides
+    @Singleton
+    fun provideFirebaseFirestore(): FirebaseFirestore {
+        return FirebaseFirestore.getInstance().apply {
+            // Configurações de performance
+            firestoreSettings = FirebaseFirestoreSettings.Builder()
+                .setPersistenceEnabled(true) // Cache local
+                .setCacheSizeBytes(FirebaseFirestoreSettings.CACHE_SIZE_UNLIMITED)
+                .build()
+        }
+    }
+    
+    /**
+     * Provê instância do Firebase Storage
+     */
+    @Provides
+    @Singleton
+    fun provideFirebaseStorage(): FirebaseStorage {
+        return FirebaseStorage.getInstance().apply {
+            maxUploadRetryTimeMillis = 60000 // 60 segundos
+        }
+    }
+}
+```
+
+---
+
+### Arquivo: data/remote/firebase/AuthService.kt
+
+```kotlin
+package com.raizesvivas.app.data.remote.firebase
+
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.UserProfileChangeRequest
+import kotlinx.coroutines.tasks.await
+import timber.log.Timber
+import javax.inject.Inject
+import javax.inject.Singleton
+
+/**
+ * Serviço para gerenciar autenticação Firebase
+ * 
+ * Responsabilidades:
+ * - Login com email/senha
+ * - Cadastro de novos usuários
+ * - Recuperação de senha
+ * - Logout
+ * - Obter usuário atual
+ */
+@Singleton
+class AuthService @Inject constructor(
+    private val firebaseAuth: FirebaseAuth
+) {
+    
+    /**
+     * Usuário atualmente logado (null se não estiver logado)
+     */
+    val currentUser: FirebaseUser?
+        get() = firebaseAuth.currentUser
+    
+    /**
+     * Verifica se há usuário logado
+     */
+    val isLoggedIn: Boolean
+        get() = currentUser != null
+    
+    /**
+     * Realiza login com email e senha
+     * 
+     * @param email Email do usuário
+     * @param senha Senha do usuário
+     * @return Result com FirebaseUser ou erro
+     */
+    suspend fun login(email: String, senha: String): Result<FirebaseUser> {
+        return try {
+            Timber.d("🔐 Tentando login: $email")
+            
+            val result = firebaseAuth
+                .signInWithEmailAndPassword(email, senha)
+                .await()
+            
+            val user = result.user
+            
+            if (user != null) {
+                Timber.d("✅ Login bem-sucedido: ${user.uid}")
+                Result.success(user)
+            } else {
+                Timber.e("❌ Login falhou: usuário nulo")
+                Result.failure(Exception("Erro ao fazer login"))
+            }
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro no login")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Cria nova conta com email e senha
+     * 
+     * @param email Email do novo usuário
+     * @param senha Senha (mínimo 8 caracteres)
+     * @param nomeCompleto Nome completo para o perfil
+     * @return Result com FirebaseUser ou erro
+     */
+    suspend fun cadastrar(
+        email: String,
+        senha: String,
+        nomeCompleto: String
+    ): Result<FirebaseUser> {
+        return try {
+            Timber.d("📝 Criando conta: $email")
+            
+            // Criar conta
+            val result = firebaseAuth
+                .createUserWithEmailAndPassword(email, senha)
+                .await()
+            
+            val user = result.user
+            
+            if (user != null) {
+                // Atualizar nome do perfil
+                val profileUpdates = UserProfileChangeRequest.Builder()
+                    .setDisplayName(nomeCompleto)
+                    .build()
+                
+                user.updateProfile(profileUpdates).await()
+                
+                Timber.d("✅ Conta criada: ${user.uid}")
+                Result.success(user)
+            } else {
+                Timber.e("❌ Falha ao criar conta: usuário nulo")
+                Result.failure(Exception("Erro ao criar conta"))
+            }
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao criar conta")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Envia email de recuperação de senha
+     * 
+     * @param email Email cadastrado
+     * @return Result indicando sucesso ou erro
+     */
+    suspend fun recuperarSenha(email: String): Result<Unit> {
+        return try {
+            Timber.d("📧 Enviando email de recuperação para: $email")
+            
+            firebaseAuth.sendPasswordResetEmail(email).await()
+            
+            Timber.d("✅ Email de recuperação enviado")
+            Result.success(Unit)
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao enviar email de recuperação")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Faz logout do usuário atual
+     */
+    fun logout() {
+        Timber.d("👋 Fazendo logout")
+        firebaseAuth.signOut()
+    }
+    
+    /**
+     * Reautentica o usuário (necessário para operações sensíveis)
+     */
+    suspend fun reautenticar(senha: String): Result<Unit> {
+        return try {
+            val user = currentUser ?: return Result.failure(
+                Exception("Nenhum usuário logado")
+            )
+            
+            val credential = com.google.firebase.auth.EmailAuthProvider
+                .getCredential(user.email!!, senha)
+            
+            user.reauthenticate(credential).await()
+            
+            Result.success(Unit)
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao reautenticar")
+            Result.failure(e)
+        }
+    }
+}
+```
+
+---
+
+## ✅ Checklist de Verificação
+
+Após executar este prompt, verifique:
+
+- [ ] Arquivo google-services.json está em app/
+- [ ] Authentication está ativo no Firebase Console
+- [ ] Firestore Database está criado
+- [ ] Storage está ativo
+- [ ] Security Rules foram publicadas (Firestore e Storage)
+- [ ] Indexes foram criados
+- [ ] Código compila sem erros
+- [ ] AuthService pode ser injetado via Hilt
+
+---
+
+## 🧪 Teste Rápido
+
+Para testar se o Firebase está configurado corretamente:
+
+```kotlin
+// Em algum ViewModel ou Activity, injete:
+@Inject lateinit var authService: AuthService
+
+// No onCreate ou init, adicione:
+Timber.d("Firebase Auth está configurado: ${authService.isLoggedIn}")
+```
+
+---
+
+## 🔜 Próximo Passo
+
+**Prompt 03**: Criar Models de Domínio e Entities do Room

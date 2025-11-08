@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tema base para Raizes Vivas - tema mínimo para Compose -->
+    <!-- O tema real é definido no código Kotlin via Material3 -->
+    <style name="Theme.RaizesVivas" parent="android:Theme.Material.Light">
+        <!-- Configurações básicas de janela -->
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>
+

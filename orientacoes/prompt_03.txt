@@ -1,0 +1,636 @@
+# 📋 Prompt 03 - Models de Domínio e Entities do Room
+
+## 🎯 Objetivo
+Criar todas as classes de modelo de domínio e entities do Room Database para cache local.
+
+---
+
+## 📦 PARTE 1: Models de Domínio
+
+### Arquivo: domain/model/Pessoa.kt
+
+```kotlin
+package com.raizesvivas.app.domain.model
+
+import java.util.Date
+
+/**
+ * Modelo de domínio representando uma pessoa na árvore genealógica
+ * 
+ * Esta classe representa uma pessoa com todos os seus dados e relacionamentos.
+ * É a entidade central do sistema.
+ */
+data class Pessoa(
+    val id: String = "",
+    val nome: String = "",
+    val dataNascimento: Date? = null,
+    val dataFalecimento: Date? = null,
+    val localNascimento: String? = null,
+    val localResidencia: String? = null,
+    val profissao: String? = null,
+    val biografia: String? = null,
+    
+    // Relacionamentos
+    val pai: String? = null,              // ID do pai
+    val mae: String? = null,              // ID da mãe
+    val conjugeAtual: String? = null,     // ID do cônjuge atual
+    val exConjuges: List<String> = emptyList(), // IDs de ex-cônjuges
+    val filhos: List<String> = emptyList(),     // IDs dos filhos
+    
+    // Metadados
+    val fotoUrl: String? = null,
+    val criadoPor: String = "",           // UserID de quem criou
+    val criadoEm: Date = Date(),
+    val modificadoPor: String = "",       // UserID de quem modificou por último
+    val modificadoEm: Date = Date(),
+    val aprovado: Boolean = false,        // Se foi aprovado por admin
+    val versao: Int = 1,                  // Controle de versão para conflitos
+    
+    // Flags especiais
+    val ehFamiliaZero: Boolean = false,   // True apenas para o casal raiz
+    val distanciaFamiliaZero: Int = 0     // Número de graus até a Família Zero
+) {
+    /**
+     * Nome normalizado para busca (sem acentos, minúsculas)
+     */
+    val nomeNormalizado: String
+        get() = nome.lowercase()
+            .replace("á", "a")
+            .replace("é", "e")
+            .replace("í", "i")
+            .replace("ó", "o")
+            .replace("ú", "u")
+            .replace("ã", "a")
+            .replace("õ", "o")
+            .replace("ç", "c")
+    
+    /**
+     * Verifica se a pessoa está viva
+     */
+    val estaVivo: Boolean
+        get() = dataFalecimento == null
+    
+    /**
+     * Calcula idade atual ou idade ao falecer
+     */
+    fun calcularIdade(): Int? {
+        val dataNasc = dataNascimento ?: return null
+        val dataReferencia = dataFalecimento ?: Date()
+        
+        val diff = dataReferencia.time - dataNasc.time
+        val anos = diff / (1000L * 60 * 60 * 24 * 365)
+        
+        return anos.toInt()
+    }
+    
+    /**
+     * Retorna nome formatado para exibição
+     */
+    fun getNomeExibicao(): String {
+        return if (nome.isNotBlank()) nome else "Sem nome"
+    }
+}
+```
+
+---
+
+### Arquivo: domain/model/Usuario.kt
+
+```kotlin
+package com.raizesvivas.app.domain.model
+
+import java.util.Date
+
+/**
+ * Modelo de domínio representando um usuário do app
+ * 
+ * Um usuário é alguém que tem login no app e pode estar
+ * vinculado a uma pessoa específica na árvore genealógica.
+ */
+data class Usuario(
+    val id: String = "",                  // Firebase Auth UID
+    val nome: String = "",
+    val email: String = "",
+    val fotoUrl: String? = null,
+    
+    // Vínculo com a árvore genealógica
+    val pessoaVinculada: String? = null,  // ID da pessoa que representa este usuário
+    
+    // Permissões
+    val ehAdministrador: Boolean = false,
+    
+    // Referência rápida à Família Zero
+    val familiaZeroPai: String? = null,   // ID do patriarca
+    val familiaZeroMae: String? = null,   // ID da matriarca
+    
+    // Flags de controle
+    val primeiroAcesso: Boolean = true,   // True se ainda não completou onboarding
+    
+    // Metadados
+    val criadoEm: Date = Date()
+) {
+    /**
+     * Verifica se o usuário está vinculado a alguém na árvore
+     */
+    val estaVinculado: Boolean
+        get() = pessoaVinculada != null
+    
+    /**
+     * Verifica se a Família Zero já foi definida
+     */
+    val familiaZeroDefinida: Boolean
+        get() = familiaZeroPai != null && familiaZeroMae != null
+}
+```
+
+---
+
+### Arquivo: domain/model/FamiliaZero.kt
+
+```kotlin
+package com.raizesvivas.app.domain.model
+
+import java.util.Date
+
+/**
+ * Modelo representando a Família Zero (raiz da árvore)
+ * 
+ * A Família Zero é o casal patriarca/matriarca que serve
+ * como raiz de toda a árvore genealógica. Só pode existir
+ * UMA Família Zero por árvore.
+ */
+data class FamiliaZero(
+    val id: String = "raiz",              // Sempre "raiz" (singleton)
+    val pai: String = "",                 // ID do patriarca
+    val mae: String = "",                 // ID da matriarca
+    val fundadoPor: String = "",          // UserID de quem fundou
+    val fundadoEm: Date = Date(),
+    val locked: Boolean = true,           // Sempre true - impede deleção
+    val arvoreNome: String = ""           // Ex: "Família Silva"
+) {
+    /**
+     * Verifica se a Família Zero está válida
+     */
+    val estaValida: Boolean
+        get() = pai.isNotBlank() && mae.isNotBlank()
+    
+    /**
+     * Retorna nome da árvore para exibição
+     */
+    fun getNomeArvore(): String {
+        return if (arvoreNome.isNotBlank()) arvoreNome else "Árvore Genealógica"
+    }
+}
+```
+
+---
+
+### Arquivo: domain/model/Convite.kt
+
+```kotlin
+package com.raizesvivas.app.domain.model
+
+import java.util.Date
+
+/**
+ * Status possíveis de um convite
+ */
+enum class StatusConvite {
+    PENDENTE,
+    ACEITO,
+    REJEITADO,
+    EXPIRADO
+}
+
+/**
+ * Modelo representando um convite para entrar na árvore
+ * 
+ * Apenas administradores podem criar convites.
+ * Convites expiram em 7 dias.
+ */
+data class Convite(
+    val id: String = "",
+    val emailConvidado: String = "",
+    val convidadoPor: String = "",        // UserID de quem convidou
+    val pessoaVinculada: String? = null,  // ID da pessoa que o convidado representa (opcional)
+    val status: StatusConvite = StatusConvite.PENDENTE,
+    val criadoEm: Date = Date(),
+    val expiraEm: Date = Date(System.currentTimeMillis() + (7 * 24 * 60 * 60 * 1000)) // 7 dias
+) {
+    /**
+     * Verifica se o convite ainda está válido
+     */
+    val estaValido: Boolean
+        get() = status == StatusConvite.PENDENTE && Date().before(expiraEm)
+    
+    /**
+     * Verifica se o convite expirou
+     */
+    val expirou: Boolean
+        get() = Date().after(expiraEm)
+}
+```
+
+---
+
+### Arquivo: domain/model/EdicaoPendente.kt
+
+```kotlin
+package com.raizesvivas.app.domain.model
+
+import java.util.Date
+
+/**
+ * Status de uma edição pendente
+ */
+enum class StatusEdicao {
+    PENDENTE,
+    APROVADA,
+    REJEITADA
+}
+
+/**
+ * Modelo representando uma edição aguardando aprovação
+ * 
+ * Quando um usuário não-admin edita uma pessoa, a edição
+ * fica pendente até ser aprovada por um administrador.
+ */
+data class EdicaoPendente(
+    val id: String = "",
+    val pessoaId: String = "",            // ID da pessoa sendo editada
+    val camposAlterados: Map<String, Any> = emptyMap(), // Campos que foram modificados
+    val editadoPor: String = "",          // UserID de quem editou
+    val status: StatusEdicao = StatusEdicao.PENDENTE,
+    val criadoEm: Date = Date(),
+    val revisadoEm: Date? = null,
+    val revisadoPor: String? = null       // UserID do admin que revisou
+) {
+    /**
+     * Verifica se ainda está aguardando aprovação
+     */
+    val estaPendente: Boolean
+        get() = status == StatusEdicao.PENDENTE
+}
+```
+
+---
+
+### Arquivo: domain/model/ParentescoTipo.kt
+
+```kotlin
+package com.raizesvivas.app.domain.model
+
+/**
+ * Enum representando todos os tipos possíveis de parentesco
+ * 
+ * Este enum é usado pelo algoritmo de cálculo de parentesco
+ * para determinar a relação entre duas pessoas.
+ */
+enum class ParentescoTipo(val descricao: String, val grau: Int) {
+    // Grau 0 - Mesma pessoa
+    EU("Você mesmo", 0),
+    
+    // Grau 1 - Relações diretas
+    PAI("Pai", 1),
+    MAE("Mãe", 1),
+    FILHO("Filho", 1),
+    FILHA("Filha", 1),
+    CONJUGE("Cônjuge", 1),
+    EX_CONJUGE("Ex-cônjuge", 1),
+    
+    // Grau 2 - Irmãos e avós
+    IRMAO("Irmão", 2),
+    IRMA("Irmã", 2),
+    MEIO_IRMAO("Meio-irmão", 2),
+    MEIA_IRMA("Meia-irmã", 2),
+    AVO_PATERNO("Avô paterno", 2),
+    AVO_PATERNA("Avó paterna", 2),
+    AVO_MATERNO("Avô materno", 2),
+    AVO_MATERNA("Avó materna", 2),
+    NETO("Neto", 2),
+    NETA("Neta", 2),
+    
+    // Grau 3 - Tios e sobrinhos
+    TIO_PATERNO("Tio paterno", 3),
+    TIA_PATERNA("Tia paterna", 3),
+    TIO_MATERNO("Tio materno", 3),
+    TIA_MATERNA("Tia materna", 3),
+    SOBRINHO("Sobrinho", 3),
+    SOBRINHA("Sobrinha", 3),
+    BISNETO("Bisneto", 3),
+    BISNETA("Bisneta", 3),
+    BISAVO("Bisavô", 3),
+    BISAVO_F("Bisavó", 3),
+    
+    // Grau 4 - Primos
+    PRIMO("Primo", 4),
+    PRIMA("Prima", 4),
+    
+    // Por afinidade (casamento)
+    SOGRO("Sogro", 2),
+    SOGRA("Sogra", 2),
+    GENRO("Genro", 2),
+    NORA("Nora", 2),
+    CUNHADO("Cunhado", 2),
+    CUNHADA("Cunhada", 2),
+    PADRASTO("Padrasto", 2),
+    MADRASTA("Madrasta", 2),
+    ENTEADO("Enteado", 2),
+    ENTEADA("Enteada", 2),
+    
+    // Não identificado
+    PARENTE_DISTANTE("Parente distante", 99),
+    DESCONHECIDO("Relação desconhecida", 999);
+    
+    /**
+     * Retorna descrição formatada para exibição
+     */
+    fun getDescricaoFormatada(nomePessoa: String): String {
+        return "$nomePessoa é seu(sua) $descricao"
+    }
+}
+```
+
+---
+
+## 🗄️ PARTE 2: Entities do Room Database
+
+### Arquivo: data/local/entities/PessoaEntity.kt
+
+```kotlin
+package com.raizesvivas.app.data.local.entities
+
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+import androidx.room.TypeConverters
+import com.raizesvivas.app.data.local.Converters
+import com.raizesvivas.app.domain.model.Pessoa
+import java.util.Date
+
+/**
+ * Entity Room para armazenar pessoas localmente (cache)
+ * 
+ * Esta entity espelha os dados do Firestore para permitir
+ * funcionamento offline do app.
+ */
+@Entity(tableName = "pessoas")
+@TypeConverters(Converters::class)
+data class PessoaEntity(
+    @PrimaryKey
+    val id: String,
+    val nome: String,
+    val dataNascimento: Date?,
+    val dataFalecimento: Date?,
+    val localNascimento: String?,
+    val localResidencia: String?,
+    val profissao: String?,
+    val biografia: String?,
+    
+    // Relacionamentos
+    val pai: String?,
+    val mae: String?,
+    val conjugeAtual: String?,
+    val exConjuges: List<String>,
+    val filhos: List<String>,
+    
+    // Metadados
+    val fotoUrl: String?,
+    val criadoPor: String,
+    val criadoEm: Date,
+    val modificadoPor: String,
+    val modificadoEm: Date,
+    val aprovado: Boolean,
+    val versao: Int,
+    
+    // Flags especiais
+    val ehFamiliaZero: Boolean,
+    val distanciaFamiliaZero: Int,
+    
+    // Controle de sincronização
+    val sincronizadoEm: Date = Date(),
+    val precisaSincronizar: Boolean = false
+)
+
+/**
+ * Converte de Entity para Model de Domínio
+ */
+fun PessoaEntity.toDomain(): Pessoa {
+    return Pessoa(
+        id = id,
+        nome = nome,
+        dataNascimento = dataNascimento,
+        dataFalecimento = dataFalecimento,
+        localNascimento = localNascimento,
+        localResidencia = localResidencia,
+        profissao = profissao,
+        biografia = biografia,
+        pai = pai,
+        mae = mae,
+        conjugeAtual = conjugeAtual,
+        exConjuges = exConjuges,
+        filhos = filhos,
+        fotoUrl = fotoUrl,
+        criadoPor = criadoPor,
+        criadoEm = criadoEm,
+        modificadoPor = modificadoPor,
+        modificadoEm = modificadoEm,
+        aprovado = aprovado,
+        versao = versao,
+        ehFamiliaZero = ehFamiliaZero,
+        distanciaFamiliaZero = distanciaFamiliaZero
+    )
+}
+
+/**
+ * Converte de Model de Domínio para Entity
+ */
+fun Pessoa.toEntity(
+    precisaSincronizar: Boolean = false
+): PessoaEntity {
+    return PessoaEntity(
+        id = id,
+        nome = nome,
+        dataNascimento = dataNascimento,
+        dataFalecimento = dataFalecimento,
+        localNascimento = localNascimento,
+        localResidencia = localResidencia,
+        profissao = profissao,
+        biografia = biografia,
+        pai = pai,
+        mae = mae,
+        conjugeAtual = conjugeAtual,
+        exConjuges = exConjuges,
+        filhos = filhos,
+        fotoUrl = fotoUrl,
+        criadoPor = criadoPor,
+        criadoEm = criadoEm,
+        modificadoPor = modificadoPor,
+        modificadoEm = modificadoEm,
+        aprovado = aprovado,
+        versao = versao,
+        ehFamiliaZero = ehFamiliaZero,
+        distanciaFamiliaZero = distanciaFamiliaZero,
+        sincronizadoEm = Date(),
+        precisaSincronizar = precisaSincronizar
+    )
+}
+```
+
+---
+
+### Arquivo: data/local/entities/UsuarioEntity.kt
+
+```kotlin
+package com.raizesvivas.app.data.local.entities
+
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+import androidx.room.TypeConverters
+import com.raizesvivas.app.data.local.Converters
+import com.raizesvivas.app.domain.model.Usuario
+import java.util.Date
+
+/**
+ * Entity Room para armazenar dados do usuário localmente
+ */
+@Entity(tableName = "usuarios")
+@TypeConverters(Converters::class)
+data class UsuarioEntity(
+    @PrimaryKey
+    val id: String,
+    val nome: String,
+    val email: String,
+    val fotoUrl: String?,
+    val pessoaVinculada: String?,
+    val ehAdministrador: Boolean,
+    val familiaZeroPai: String?,
+    val familiaZeroMae: String?,
+    val primeiroAcesso: Boolean,
+    val criadoEm: Date
+)
+
+fun UsuarioEntity.toDomain(): Usuario {
+    return Usuario(
+        id = id,
+        nome = nome,
+        email = email,
+        fotoUrl = fotoUrl,
+        pessoaVinculada = pessoaVinculada,
+        ehAdministrador = ehAdministrador,
+        familiaZeroPai = familiaZeroPai,
+        familiaZeroMae = familiaZeroMae,
+        primeiroAcesso = primeiroAcesso,
+        criadoEm = criadoEm
+    )
+}
+
+fun Usuario.toEntity(): UsuarioEntity {
+    return UsuarioEntity(
+        id = id,
+        nome = nome,
+        email = email,
+        fotoUrl = fotoUrl,
+        pessoaVinculada = pessoaVinculada,
+        ehAdministrador = ehAdministrador,
+        familiaZeroPai = familiaZeroPai,
+        familiaZeroMae = familiaZeroMae,
+        primeiroAcesso = primeiroAcesso,
+        criadoEm = criadoEm
+    )
+}
+```
+
+---
+
+### Arquivo: data/local/Converters.kt
+
+```kotlin
+package com.raizesvivas.app.data.local
+
+import androidx.room.TypeConverter
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import java.util.Date
+
+/**
+ * Converters do Room para tipos complexos
+ * 
+ * Room não suporta nativamente alguns tipos como Date e List<String>.
+ * Estes converters transformam esses tipos em tipos primitivos
+ * que o Room consegue armazenar.
+ */
+class Converters {
+    
+    private val gson = Gson()
+    
+    /**
+     * Converte Date para Long (timestamp)
+     */
+    @TypeConverter
+    fun fromDate(date: Date?): Long? {
+        return date?.time
+    }
+    
+    /**
+     * Converte Long (timestamp) para Date
+     */
+    @TypeConverter
+    fun toDate(timestamp: Long?): Date? {
+        return timestamp?.let { Date(it) }
+    }
+    
+    /**
+     * Converte List<String> para String JSON
+     */
+    @TypeConverter
+    fun fromStringList(list: List<String>?): String? {
+        return gson.toJson(list)
+    }
+    
+    /**
+     * Converte String JSON para List<String>
+     */
+    @TypeConverter
+    fun toStringList(json: String?): List<String>? {
+        if (json == null) return emptyList()
+        val type = object : TypeToken<List<String>>() {}.type
+        return gson.fromJson(json, type)
+    }
+    
+    /**
+     * Converte Map<String, Any> para String JSON
+     */
+    @TypeConverter
+    fun fromMap(map: Map<String, Any>?): String? {
+        return gson.toJson(map)
+    }
+    
+    /**
+     * Converte String JSON para Map<String, Any>
+     */
+    @TypeConverter
+    fun toMap(json: String?): Map<String, Any>? {
+        if (json == null) return emptyMap()
+        val type = object : TypeToken<Map<String, Any>>() {}.type
+        return gson.fromJson(json, type)
+    }
+}
+```
+
+---
+
+## ✅ Checklist de Verificação
+
+Após executar este prompt, verifique:
+
+- [ ] Todos os models compilam sem erros
+- [ ] Entities estão anotadas corretamente com Room
+- [ ] Converters estão configurados
+- [ ] Funções de conversão (toDomain/toEntity) funcionam
+- [ ] Não há imports faltando
+
+---
+
+## 🔜 Próximo Passo
+
+**Prompt 04**: Criar DAOs e Database do Room
