@@ -12,12 +12,15 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.raizesvivas.app.presentation.navigation.Screen
-import com.raizesvivas.app.presentation.screens.arvore.ArvoreScreenNew
 import com.raizesvivas.app.presentation.screens.home.HomeScreen
+import com.raizesvivas.app.presentation.screens.familia.FamiliaScreen
 import com.raizesvivas.app.presentation.screens.perfil.PerfilScreen
 import com.raizesvivas.app.presentation.screens.conquistas.ConquistasScreen
 import com.raizesvivas.app.presentation.screens.mural.MuralScreen
+import com.raizesvivas.app.presentation.screens.chat.ChatContactsScreen
+import com.raizesvivas.app.presentation.screens.chat.ChatConversationScreen
 
 /**
  * Navegação principal do app com Bottom Navigation persistente
@@ -45,7 +48,9 @@ fun MainNavigation(
         !route.contains("gerenciar_convites") &&
         !route.contains("gerenciar_edicoes") &&
         !route.contains("resolver_duplicatas") &&
-        !route.contains("familia_zero")
+        !route.contains("familia_zero") &&
+        !route.contains("chat_contacts") &&
+        !route.contains("chat_conversation")
     } ?: true
     
     Scaffold(
@@ -66,13 +71,27 @@ fun MainNavigation(
                         }
                     )
                     
-                    // Árvore
+                    // Mural
                     NavigationBarItem(
-                        icon = { Icon(Icons.Default.People, contentDescription = "Árvore") },
+                        icon = { Icon(Icons.Default.Forum, contentDescription = "Mural") },
                         label = {},
-                        selected = currentDestination?.hierarchy?.any { it.route == Screen.Arvore.route } == true,
+                        selected = currentDestination?.hierarchy?.any { it.route == Screen.Mural.route } == true,
                         onClick = {
-                            navController.navigate(Screen.Arvore.route) {
+                            navController.navigate(Screen.Mural.route) {
+                                popUpTo(Screen.Home.route) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
+                    )
+                    
+                    // Família
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Default.People, contentDescription = "Família") },
+                        label = {},
+                        selected = currentDestination?.hierarchy?.any { it.route == Screen.Familia.route } == true,
+                        onClick = {
+                            navController.navigate(Screen.Familia.route) {
                                 popUpTo(Screen.Home.route) { saveState = true }
                                 launchSingleTop = true
                                 restoreState = true
@@ -87,20 +106,6 @@ fun MainNavigation(
                         selected = currentDestination?.hierarchy?.any { it.route == Screen.Conquistas.route } == true,
                         onClick = {
                             navController.navigate(Screen.Conquistas.route) {
-                                popUpTo(Screen.Home.route) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }
-                    )
-                    
-                    // Mural
-                    NavigationBarItem(
-                        icon = { Icon(Icons.Default.Forum, contentDescription = "Mural") },
-                        label = {},
-                        selected = currentDestination?.hierarchy?.any { it.route == Screen.Mural.route } == true,
-                        onClick = {
-                            navController.navigate(Screen.Mural.route) {
                                 popUpTo(Screen.Home.route) { saveState = true }
                                 launchSingleTop = true
                                 restoreState = true
@@ -138,9 +143,6 @@ fun MainNavigation(
                     onNavigateToEditarPessoa = { pessoaId ->
                         navControllerPrincipal.navigate(Screen.EditarPessoa.createRoute(pessoaId))
                     },
-                    onNavigateToArvore = {
-                        navController.navigate(Screen.Arvore.route)
-                    },
                     onNavigateToPerfil = {
                         navController.navigate(Screen.Perfil.route)
                     },
@@ -149,40 +151,6 @@ fun MainNavigation(
                     },
                     onNavigateToDetalhesPessoa = { pessoaId ->
                         navControllerPrincipal.navigate(Screen.DetalhesPessoa.createRoute(pessoaId))
-                    }
-                )
-            }
-            
-            composable(Screen.Arvore.route) {
-                ArvoreScreenNew(
-                    onNavigateToDetalhesPessoa = { pessoaId: String ->
-                        navControllerPrincipal.navigate(Screen.DetalhesPessoa.createRoute(pessoaId))
-                    },
-                    onNavigateToCadastroPessoa = {
-                        navControllerPrincipal.navigate(Screen.CadastroPessoa.route)
-                    }
-                )
-            }
-            
-            composable(Screen.Conquistas.route) {
-                ConquistasScreen()
-            }
-            
-            composable(Screen.Mural.route) {
-                MuralScreen(
-                    onNavigateToDetalhesPessoa = { pessoaId ->
-                        navControllerPrincipal.navigate(Screen.DetalhesPessoa.createRoute(pessoaId))
-                    }
-                )
-            }
-            
-            composable(Screen.Perfil.route) {
-                PerfilScreen(
-                    onNavigateToCadastroPessoa = {
-                        navControllerPrincipal.navigate(Screen.CadastroPessoa.route)
-                    },
-                    onNavigateToFamiliaZero = {
-                        navControllerPrincipal.navigate(Screen.FamiliaZero.route)
                     },
                     onNavigateToAceitarConvites = {
                         navControllerPrincipal.navigate(Screen.AceitarConvites.route)
@@ -195,7 +163,72 @@ fun MainNavigation(
                     },
                     onNavigateToResolverDuplicatas = {
                         navControllerPrincipal.navigate(Screen.ResolverDuplicatas.route)
+                    }
+                )
+            }
+            
+            composable(Screen.Conquistas.route) {
+                ConquistasScreen()
+            }
+            
+            composable(Screen.Familia.route) {
+                FamiliaScreen(
+                    onNavigateToDetalhesPessoa = { pessoaId ->
+                        navControllerPrincipal.navigate(Screen.DetalhesPessoa.createRoute(pessoaId))
                     },
+                    onNavigateToCadastroPessoa = {
+                        navControllerPrincipal.navigate(Screen.CadastroPessoa.route)
+                    }
+                )
+            }
+            
+            composable(Screen.Mural.route) {
+                MuralScreen(
+                    onNavigateToDetalhesPessoa = { pessoaId ->
+                        navControllerPrincipal.navigate(Screen.DetalhesPessoa.createRoute(pessoaId))
+                    },
+                    onNavigateToChat = {
+                        navController.navigate(Screen.ChatContacts.route)
+                    }
+                )
+            }
+            
+            composable(Screen.ChatContacts.route) {
+                ChatContactsScreen(
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    },
+                    onOpenConversation = { destinatarioId, destinatarioNome ->
+                        navController.navigate(Screen.ChatConversation.createRoute(destinatarioId, destinatarioNome))
+                    }
+                )
+            }
+            
+            composable(
+                route = Screen.ChatConversation.route,
+                arguments = listOf(
+                    navArgument("destinatarioId") {
+                        type = androidx.navigation.NavType.StringType
+                    },
+                    navArgument("destinatarioNome") {
+                        type = androidx.navigation.NavType.StringType
+                    }
+                )
+            ) { backStackEntry ->
+                val destinatarioId = backStackEntry.arguments?.getString("destinatarioId") ?: ""
+                val destinatarioNome = backStackEntry.arguments?.getString("destinatarioNome")?.replace("_", "/") ?: ""
+                
+                ChatConversationScreen(
+                    destinatarioId = destinatarioId,
+                    destinatarioNome = destinatarioNome,
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+            
+            composable(Screen.Perfil.route) {
+                PerfilScreen(
                     onNavigateToCadastroPessoaComId = { _ ->
                         navControllerPrincipal.navigate(Screen.CadastroPessoa.route)
                     }

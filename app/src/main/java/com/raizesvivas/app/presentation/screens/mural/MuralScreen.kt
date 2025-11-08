@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.outlined.PushPin
@@ -64,7 +65,8 @@ import java.util.*
 @Composable
 fun MuralScreen(
     viewModel: MuralViewModel = hiltViewModel(),
-    onNavigateToDetalhesPessoa: (String) -> Unit = {}
+    onNavigateToDetalhesPessoa: (String) -> Unit = {},
+    onNavigateToChat: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
     val recados by viewModel.recados.collectAsState()
@@ -173,12 +175,13 @@ fun MuralScreen(
             }
         }
     ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(backgroundBrush)
-                .padding(paddingValues)
-        ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(backgroundBrush)
+                    .padding(paddingValues)
+            ) {
             when {
                 state.isLoading && recados.isEmpty() -> {
                     Box(
@@ -272,7 +275,29 @@ fun MuralScreen(
             )
         }
         
-        // Modal para criar novo recado
+        // FAB do Chat posicionado acima do FAB principal do Scaffold
+        // Posicionado fora do Box com paddingValues para garantir visibilidade
+        // O FAB principal do Scaffold fica a 16.dp do canto, então este precisa estar acima
+        // ExtendedFAB tem altura de ~56.dp, então precisamos de pelo menos 72.dp de espaçamento
+        FloatingActionButton(
+            onClick = onNavigateToChat,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 16.dp, bottom = 88.dp),
+            containerColor = colorScheme.secondary,
+            contentColor = colorScheme.onSecondary,
+            elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 8.dp)
+        ) {
+            Icon(
+                Icons.Default.Chat,
+                contentDescription = "Chat",
+                modifier = Modifier.size(24.dp)
+            )
+        }
+    }
+        
+    // Modais (fora do Scaffold para garantir que apareçam acima de tudo)
+    // Modal para criar novo recado
         if (state.mostrarModalNovoRecado) {
             ModalNovoRecado(
                 pessoas = pessoas,
