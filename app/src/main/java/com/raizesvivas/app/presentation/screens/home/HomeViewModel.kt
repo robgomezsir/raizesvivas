@@ -60,6 +60,10 @@ class HomeViewModel @Inject constructor(
         _mostrarModalEditarNome.value = false
     }
     
+    fun logout() {
+        authService.logout()
+    }
+    
     /**
      * Atualiza o nome da Família Zero
      */
@@ -576,10 +580,20 @@ class HomeViewModel @Inject constructor(
                 
                 // Contar pessoas até nascimento do usuário (ranking)
                 val pessoaVinculada = usuario?.pessoaVinculada
-                val dataNascimentoUsuario = pessoaVinculada?.let { 
-                    pessoaRepository.buscarPorId(it)?.dataNascimento 
+                val pessoaVinculadaObj = pessoaVinculada?.let { 
+                    pessoaRepository.buscarPorId(it)
                 }
-                val rankingPessoas = pessoaRepository.contarPessoasAteNascimento(dataNascimentoUsuario)
+                val dataNascimentoUsuario = pessoaVinculadaObj?.dataNascimento
+                
+                // Obter IDs do pai e da mãe para excluir da contagem
+                val idsExcluirRanking = mutableListOf<String>()
+                pessoaVinculadaObj?.pai?.let { idsExcluirRanking.add(it) }
+                pessoaVinculadaObj?.mae?.let { idsExcluirRanking.add(it) }
+                
+                val rankingPessoas = pessoaRepository.contarPessoasAteNascimento(
+                    dataNascimentoUsuario,
+                    excluirIds = idsExcluirRanking
+                )
                 
                 // Contar sobrinhos
                 val totalSobrinhos = pessoaVinculada?.let { 
@@ -628,10 +642,20 @@ class HomeViewModel @Inject constructor(
                 
                 val usuario = _state.value.usuario
                 val pessoaVinculada = usuario?.pessoaVinculada
-                val dataNascimentoUsuario = pessoaVinculada?.let { 
-                    pessoaRepository.buscarPorId(it)?.dataNascimento 
+                val pessoaVinculadaObj = pessoaVinculada?.let { 
+                    pessoaRepository.buscarPorId(it)
                 }
-                val rankingPessoas = pessoaRepository.contarPessoasAteNascimento(dataNascimentoUsuario)
+                val dataNascimentoUsuario = pessoaVinculadaObj?.dataNascimento
+                
+                // Obter IDs do pai e da mãe para excluir da contagem
+                val idsExcluirRanking = mutableListOf<String>()
+                pessoaVinculadaObj?.pai?.let { idsExcluirRanking.add(it) }
+                pessoaVinculadaObj?.mae?.let { idsExcluirRanking.add(it) }
+                
+                val rankingPessoas = pessoaRepository.contarPessoasAteNascimento(
+                    dataNascimentoUsuario,
+                    excluirIds = idsExcluirRanking
+                )
                 val totalSobrinhos = pessoaVinculada?.let { 
                     pessoaRepository.contarSobrinhos(it) 
                 } ?: 0

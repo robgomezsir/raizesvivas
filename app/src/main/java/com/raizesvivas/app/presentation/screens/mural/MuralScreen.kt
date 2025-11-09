@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -26,9 +25,12 @@ import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -64,7 +66,8 @@ import java.util.*
 @Composable
 fun MuralScreen(
     viewModel: MuralViewModel = hiltViewModel(),
-    onNavigateToDetalhesPessoa: (String) -> Unit = {}
+    onNavigateToDetalhesPessoa: (String) -> Unit = {},
+    onNavigateToChat: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
     val recados by viewModel.recados.collectAsState()
@@ -158,27 +161,45 @@ fun MuralScreen(
             )
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { viewModel.abrirModalNovoRecado() },
-                containerColor = colorScheme.primary,
-                contentColor = colorScheme.onPrimary,
-                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Icon(
-                    Icons.Default.Add,
-                    contentDescription = "Novo Recado"
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Novo recado")
+                // FAB do Chat
+                FloatingActionButton(
+                    onClick = onNavigateToChat,
+                    containerColor = colorScheme.secondary,
+                    contentColor = colorScheme.onSecondary,
+                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Chat,
+                        contentDescription = "Chat"
+                    )
+                }
+                
+                // FAB principal - Novo Recado
+                FloatingActionButton(
+                    onClick = { viewModel.abrirModalNovoRecado() },
+                    containerColor = colorScheme.primary,
+                    contentColor = colorScheme.onPrimary,
+                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = "Novo Recado"
+                    )
+                }
             }
         }
     ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(backgroundBrush)
-                .padding(paddingValues)
-        ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(backgroundBrush)
+                    .padding(paddingValues)
+            ) {
             when {
                 state.isLoading && recados.isEmpty() -> {
                     Box(
@@ -250,6 +271,7 @@ fun MuralScreen(
                                 isAdmin = isAdmin,
                                 onDelete = { viewModel.abrirModalExcluirRecado(recado.id) },
                                 onFixar = { viewModel.abrirModalFixarRecado(recado.id) },
+                                onCurtir = { curtir -> viewModel.curtirRecado(recado.id, curtir) },
                                 onNavigateToDetalhesPessoa = { pessoaId ->
                                     if (pessoaId != null) {
                                         onNavigateToDetalhesPessoa(pessoaId)
@@ -272,7 +294,29 @@ fun MuralScreen(
             )
         }
         
-        // Modal para criar novo recado
+        // FAB do Chat posicionado acima do FAB principal do Scaffold
+        // Posicionado fora do Box com paddingValues para garantir visibilidade
+        // O FAB principal do Scaffold fica a 16.dp do canto, então este precisa estar acima
+        // ExtendedFAB tem altura de ~56.dp, então precisamos de pelo menos 72.dp de espaçamento
+        FloatingActionButton(
+            onClick = onNavigateToChat,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 16.dp, bottom = 88.dp),
+            containerColor = colorScheme.secondary,
+            contentColor = colorScheme.onSecondary,
+            elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 8.dp)
+        ) {
+            Icon(
+                Icons.Default.Chat,
+                contentDescription = "Chat",
+                modifier = Modifier.size(24.dp)
+            )
+        }
+    }
+        
+    // Modais (fora do Scaffold para garantir que apareçam acima de tudo)
+    // Modal para criar novo recado
         if (state.mostrarModalNovoRecado) {
             ModalNovoRecado(
                 pessoas = pessoas,
@@ -326,6 +370,7 @@ private fun RecadoCard(
     isAdmin: Boolean = false,
     onDelete: () -> Unit,
     onFixar: () -> Unit = {},
+    onCurtir: (Boolean) -> Unit = {},
     onNavigateToDetalhesPessoa: (String?) -> Unit
 ) {
     val cores = getCoresRecado(recado.cor)
@@ -516,6 +561,35 @@ private fun RecadoCard(
                 color = cores.content,
                 lineHeight = MaterialTheme.typography.bodyLarge.lineHeight * 1.2
             )
+            
+            // Apoio Familiar (curtidas)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Start,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val usuarioDeuApoio = recado.usuarioDeuApoio(currentUserId)
+                val totalApoios = recado.totalApoios
+                
+                IconButton(
+                    onClick = { onCurtir(!usuarioDeuApoio) },
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = if (usuarioDeuApoio) Icons.Filled.Favorite else Icons.Outlined.Favorite,
+                        contentDescription = if (usuarioDeuApoio) "Remover apoio" else "Dar apoio",
+                        tint = if (usuarioDeuApoio) MaterialTheme.colorScheme.error else cores.content.copy(alpha = 0.7f),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                
+                Text(
+                    text = if (totalApoios > 0) totalApoios.toString() else "",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = cores.content.copy(alpha = 0.8f),
+                    fontWeight = FontWeight.Medium
+                )
+            }
         }
     }
 }

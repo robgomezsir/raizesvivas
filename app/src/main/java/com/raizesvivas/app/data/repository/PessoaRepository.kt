@@ -380,12 +380,19 @@ class PessoaRepository @Inject constructor(
     
     /**
      * Conta quantas pessoas nasceram antes da data de nascimento do usuário (ranking)
+     * Exclui os IDs fornecidos da contagem (ex: pai e mãe)
      */
-    suspend fun contarPessoasAteNascimento(dataNascimentoUsuario: java.util.Date?): Int {
+    suspend fun contarPessoasAteNascimento(
+        dataNascimentoUsuario: java.util.Date?,
+        excluirIds: List<String> = emptyList()
+    ): Int {
         if (dataNascimentoUsuario == null) return 0
         
         val todasPessoas = buscarTodas()
+        val idsExcluir = excluirIds.toSet()
+        
         return todasPessoas.count { pessoa ->
+            pessoa.id !in idsExcluir &&
             pessoa.dataNascimento != null && 
             pessoa.dataNascimento.before(dataNascimentoUsuario)
         }

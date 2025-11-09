@@ -22,7 +22,8 @@ data class Recado(
     val deletado: Boolean = false,         // Soft delete
     val fixado: Boolean = false,           // Se o recado está fixado (não expira)
     val fixadoAte: Date? = null,           // Data até quando está fixado (null = fixado permanentemente)
-    val fixadoPor: String? = null          // UserID do admin que fixou o recado
+    val fixadoPor: String? = null,          // UserID do admin que fixou o recado
+    val apoiosFamiliares: List<String> = emptyList() // Lista de UserIDs que deram apoio familiar (curtidas)
 ) {
     /**
      * Verifica se é um recado geral (não direcionado)
@@ -62,6 +63,20 @@ data class Recado(
     fun estaFixadoEValido(): Boolean {
         if (!fixado) return false
         return fixadoAte == null || !Date().after(fixadoAte)
+    }
+    
+    /**
+     * Retorna a quantidade de apoios familiares (curtidas)
+     */
+    val totalApoios: Int
+        get() = apoiosFamiliares.size
+    
+    /**
+     * Verifica se um usuário específico deu apoio familiar
+     */
+    fun usuarioDeuApoio(userId: String?): Boolean {
+        if (userId == null) return false
+        return apoiosFamiliares.contains(userId)
     }
 }
 

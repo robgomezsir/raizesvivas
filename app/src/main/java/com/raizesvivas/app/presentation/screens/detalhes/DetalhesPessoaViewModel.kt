@@ -24,6 +24,61 @@ class DetalhesPessoaViewModel @Inject constructor(
     private val _state = MutableStateFlow(DetalhesPessoaState())
     val state: StateFlow<DetalhesPessoaState> = _state.asStateFlow()
     
+    private val _mostrarModalConfirmacao = MutableStateFlow(false)
+    val mostrarModalConfirmacao: StateFlow<Boolean> = _mostrarModalConfirmacao.asStateFlow()
+    
+    /**
+     * Abre o modal de confirmação de exclusão
+     */
+    fun abrirModalConfirmacao() {
+        _mostrarModalConfirmacao.value = true
+    }
+    
+    /**
+     * Fecha o modal de confirmação de exclusão
+     */
+    fun fecharModalConfirmacao() {
+        _mostrarModalConfirmacao.value = false
+    }
+    
+    /**
+     * Deleta a pessoa do banco de dados
+     */
+    fun deletarPessoa(pessoaId: String, onSucesso: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                _state.update { it.copy(isLoading = true, erro = null) }
+                
+                val resultado = pessoaRepository.deletar(pessoaId)
+                
+                resultado.onSuccess {
+                    Timber.d("✅ Pessoa deletada com sucesso: $pessoaId")
+                    _mostrarModalConfirmacao.value = false
+                    _state.update { it.copy(isLoading = false) }
+                    onSucesso()
+                }
+                
+                resultado.onFailure { erro ->
+                    Timber.e(erro, "❌ Erro ao deletar pessoa")
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            erro = "Erro ao deletar pessoa: ${erro.message}"
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao deletar pessoa")
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        erro = "Erro ao deletar pessoa: ${e.message}"
+                    )
+                }
+            }
+        }
+    }
+    
     /**
      * Carrega os dados da pessoa e seus relacionamentos
      */

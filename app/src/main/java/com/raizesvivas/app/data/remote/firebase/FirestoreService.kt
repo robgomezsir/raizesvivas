@@ -35,6 +35,7 @@ class FirestoreService @Inject constructor(
     private val pendingEditsCollection = firestore.collection("pending_edits")
     private val duplicatesCollection = firestore.collection("duplicates")
     private val recadosCollection = firestore.collection("recados")
+    private val familiasPersonalizadasCollection = firestore.collection("familias_personalizadas")
     
     // Coleção de conquistas: usuarios/{userId}/conquistas/{conquistaId}
     private fun conquistasCollection(usuarioId: String) = 
@@ -323,8 +324,9 @@ class FirestoreService @Inject constructor(
                 "pai" to pessoa.pai,
                 "mae" to pessoa.mae,
                 "conjugeAtual" to pessoa.conjugeAtual,
-                "exConjuges" to pessoa.exConjuges,
-                "filhos" to pessoa.filhos,
+                    "exConjuges" to pessoa.exConjuges,
+                    "filhos" to pessoa.filhos,
+                    "familias" to pessoa.familias,
                 "fotoUrl" to pessoa.fotoUrl,
                 "criadoPor" to pessoa.criadoPor,
                 "criadoEm" to pessoa.criadoEm,
@@ -947,6 +949,7 @@ class FirestoreService @Inject constructor(
                             "conjugeAtual" to pessoaAtualizada.conjugeAtual,
                             "exConjuges" to pessoaAtualizada.exConjuges,
                             "filhos" to pessoaAtualizada.filhos,
+                            "familias" to pessoaAtualizada.familias,
                             "fotoUrl" to pessoaAtualizada.fotoUrl,
                             "criadoPor" to pessoaAtualizada.criadoPor,
                             "criadoEm" to pessoaAtualizada.criadoEm,
@@ -1212,6 +1215,70 @@ class FirestoreService @Inject constructor(
     }
     
     // ============================================
+    // FAMÍLIAS PERSONALIZADAS
+    // ============================================
+    
+    suspend fun salvarFamiliaPersonalizada(familia: FamiliaPersonalizada): Result<Unit> {
+        return RetryHelper.withNetworkRetry {
+            try {
+                if (familia.familiaId.isBlank()) {
+                    return@withNetworkRetry Result.failure(IllegalArgumentException("familiaId não pode ser vazio"))
+                }
+                
+                val data = hashMapOf(
+                    "familiaId" to familia.familiaId,
+                    "nome" to familia.nome,
+                    "conjuguePrincipalId" to familia.conjuguePrincipalId,
+                    "conjugueSecundarioId" to familia.conjugueSecundarioId,
+                    "ehFamiliaZero" to familia.ehFamiliaZero,
+                    "atualizadoPor" to familia.atualizadoPor,
+                    "atualizadoEm" to familia.atualizadoEm
+                )
+                
+                familiasPersonalizadasCollection
+                    .document(familia.familiaId)
+                    .set(data)
+                    .await()
+                
+                Timber.d("✅ Família personalizada salva: ${familia.familiaId} -> ${familia.nome}")
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao salvar família personalizada")
+                Result.failure(e)
+            }
+        }
+    }
+    
+    suspend fun buscarFamiliasPersonalizadas(): Result<List<FamiliaPersonalizada>> {
+        return RetryHelper.withNetworkRetry {
+            try {
+                val snapshot = familiasPersonalizadasCollection.get().await()
+                val familias = snapshot.documents.mapNotNull { it.toFamiliaPersonalizada() }
+                Timber.d("📚 Encontradas ${familias.size} famílias personalizadas")
+                Result.success(familias)
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao buscar famílias personalizadas")
+                Result.failure(e)
+            }
+        }
+    }
+    
+    fun observarFamiliasPersonalizadas(): Flow<List<FamiliaPersonalizada>> = callbackFlow {
+        val listener = familiasPersonalizadasCollection.addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                Timber.e(error, "❌ Erro ao observar famílias personalizadas")
+                trySend(emptyList())
+                return@addSnapshotListener
+            }
+            
+            val familias = snapshot?.documents?.mapNotNull { it.toFamiliaPersonalizada() } ?: emptyList()
+            trySend(familias).isSuccess
+        }
+        
+        awaitClose { listener.remove() }
+    }
+    
+    // ============================================
     // MEMBROS DE FAMÍLIAS
     // ============================================
     
@@ -1386,6 +1453,29 @@ class FirestoreService @Inject constructor(
         )
     }
     
+    private fun com.google.firebase.firestore.DocumentSnapshot.toFamiliaPersonalizada(): FamiliaPersonalizada? {
+        val data = this.data ?: return null
+        
+        val atualizadoEm = when (val valor = data["atualizadoEm"]) {
+            is com.google.firebase.Timestamp -> valor.toDate()
+            is Date -> valor
+            else -> Date()
+        }
+        
+        val familiaId = (data["familiaId"] as? String)?.takeIf { it.isNotBlank() } ?: id
+        val nome = data["nome"] as? String ?: return null
+        
+        return FamiliaPersonalizada(
+            familiaId = familiaId,
+            nome = nome,
+            conjuguePrincipalId = data["conjuguePrincipalId"] as? String,
+            conjugueSecundarioId = data["conjugueSecundarioId"] as? String,
+            ehFamiliaZero = data["ehFamiliaZero"] as? Boolean ?: false,
+            atualizadoPor = data["atualizadoPor"] as? String,
+            atualizadoEm = atualizadoEm
+        )
+    }
+    
     // ============================================
     // RECADOS
     // ============================================
@@ -1424,7 +1514,8 @@ class FirestoreService @Inject constructor(
                     // NOTA: Campo "deletado" removido - agora fazemos hard delete (exclusão definitiva)
                     "fixado" to recado.fixado,
                     "fixadoAte" to (recado.fixadoAte?.let { com.google.firebase.Timestamp(it) }),
-                    "fixadoPor" to recado.fixadoPor
+                    "fixadoPor" to recado.fixadoPor,
+                    "apoiosFamiliares" to recado.apoiosFamiliares
                 )
                 
                 val docRef = if (recado.id.isBlank()) {
@@ -1626,6 +1717,11 @@ class FirestoreService @Inject constructor(
     private fun com.google.firebase.firestore.DocumentSnapshot.toRecado(): Recado? {
         val data = this.data ?: return null
         
+        // Converter apoiosFamiliares de List<Any> para List<String>
+        val apoiosFamiliares = (data["apoiosFamiliares"] as? List<*>)?.mapNotNull { 
+            it as? String 
+        } ?: emptyList()
+        
         return Recado(
             id = id,
             autorId = data["autorId"] as? String ?: "",
@@ -1640,7 +1736,8 @@ class FirestoreService @Inject constructor(
             deletado = data["deletado"] as? Boolean ?: false,
             fixado = data["fixado"] as? Boolean ?: false,
             fixadoAte = (data["fixadoAte"] as? com.google.firebase.Timestamp)?.toDate(),
-            fixadoPor = data["fixadoPor"] as? String
+            fixadoPor = data["fixadoPor"] as? String,
+            apoiosFamiliares = apoiosFamiliares
         )
     }
     
@@ -1685,6 +1782,45 @@ class FirestoreService @Inject constructor(
                 Result.success(Unit)
             } catch (e: Exception) {
                 Timber.e(e, "❌ Erro ao ${if (fixado) "fixar" else "desfixar"} recado")
+                Result.failure(e)
+            }
+        }
+    }
+    
+    /**
+     * Adiciona ou remove apoio familiar (curtida) de um recado
+     * @param recadoId ID do recado
+     * @param userId ID do usuário que está curtindo/descurtindo
+     * @param curtir true para curtir, false para descurtir
+     */
+    suspend fun curtirRecado(recadoId: String, userId: String, curtir: Boolean): Result<Unit> {
+        return RetryHelper.withNetworkRetry {
+            try {
+                val recadoRef = recadosCollection.document(recadoId)
+                
+                if (curtir) {
+                    // Adicionar userId à lista de apoiosFamiliares usando arrayUnion
+                    recadoRef.update(
+                        mapOf(
+                            "apoiosFamiliares" to com.google.firebase.firestore.FieldValue.arrayUnion(userId),
+                            "atualizadoEm" to com.google.firebase.Timestamp.now()
+                        )
+                    ).await()
+                    Timber.d("✅ Apoio familiar adicionado ao recado $recadoId pelo usuário $userId")
+                } else {
+                    // Remover userId da lista de apoiosFamiliares usando arrayRemove
+                    recadoRef.update(
+                        mapOf(
+                            "apoiosFamiliares" to com.google.firebase.firestore.FieldValue.arrayRemove(userId),
+                            "atualizadoEm" to com.google.firebase.Timestamp.now()
+                        )
+                    ).await()
+                    Timber.d("✅ Apoio familiar removido do recado $recadoId pelo usuário $userId")
+                }
+                
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao ${if (curtir) "curtir" else "descurtir"} recado")
                 Result.failure(e)
             }
         }

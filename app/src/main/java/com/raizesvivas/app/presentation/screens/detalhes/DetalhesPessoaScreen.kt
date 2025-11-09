@@ -31,6 +31,7 @@ fun DetalhesPessoaScreen(
     onNavigateToEditar: (String) -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
+    val mostrarModalConfirmacao by viewModel.mostrarModalConfirmacao.collectAsState()
     val dateFormatter = remember { SimpleDateFormat("dd/MM/yyyy", Locale("pt", "BR")) }
     
     // Carregar pessoa ao entrar na tela
@@ -51,6 +52,13 @@ fun DetalhesPessoaScreen(
                     if (state.pessoa != null) {
                         IconButton(onClick = { onNavigateToEditar(pessoaId) }) {
                             Icon(Icons.Default.Edit, contentDescription = "Editar")
+                        }
+                        IconButton(onClick = { viewModel.abrirModalConfirmacao() }) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Excluir",
+                                tint = MaterialTheme.colorScheme.error
+                            )
                         }
                     }
                 }
@@ -357,7 +365,100 @@ fun DetalhesPessoaScreen(
                 }
             }
         }
+        
+        // Modal de confirmação de exclusão
+        if (mostrarModalConfirmacao && state.pessoa != null) {
+            ModalConfirmacaoExclusao(
+                nomePessoa = state.pessoa!!.nome,
+                isLoading = state.isLoading,
+                onConfirmar = {
+                    viewModel.deletarPessoa(pessoaId) {
+                        onNavigateBack()
+                    }
+                },
+                onCancelar = {
+                    viewModel.fecharModalConfirmacao()
+                }
+            )
+        }
     }
+}
+
+/**
+ * Modal de confirmação para exclusão de pessoa
+ */
+@Composable
+private fun ModalConfirmacaoExclusao(
+    nomePessoa: String,
+    isLoading: Boolean,
+    onConfirmar: () -> Unit,
+    onCancelar: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = { if (!isLoading) onCancelar() },
+        icon = {
+            Icon(
+                imageVector = Icons.Default.Warning,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(48.dp)
+            )
+        },
+        title = {
+            Text(
+                text = "Confirmar Exclusão",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "Tem certeza que deseja excluir permanentemente o cadastro de:",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    text = nomePessoa,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.error
+                )
+                Text(
+                    text = "Esta ação não pode ser desfeita e removerá completamente o cadastro do banco de dados.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirmar,
+                enabled = !isLoading,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        color = MaterialTheme.colorScheme.onError
+                    )
+                } else {
+                    Text("Excluir")
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onCancelar,
+                enabled = !isLoading
+            ) {
+                Text("Cancelar")
+            }
+        }
+    )
 }
 
 /**

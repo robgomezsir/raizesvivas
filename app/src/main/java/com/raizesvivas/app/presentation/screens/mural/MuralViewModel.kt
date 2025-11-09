@@ -258,6 +258,34 @@ class MuralViewModel @Inject constructor(
     fun fecharModalExcluirRecado() {
         _state.update { it.copy(mostrarModalExcluirRecado = null) }
     }
+    
+    fun curtirRecado(recadoId: String, curtir: Boolean) {
+        viewModelScope.launch {
+            try {
+                val resultado = recadoRepository.curtirRecado(recadoId, curtir)
+                
+                resultado.onSuccess {
+                    Timber.d("✅ Recado ${if (curtir) "curtido" else "descurtido"} com sucesso")
+                }
+                
+                resultado.onFailure { error ->
+                    Timber.e(error, "❌ Erro ao ${if (curtir) "curtir" else "descurtir"} recado")
+                    _state.update { 
+                        it.copy(
+                            erro = "Erro ao ${if (curtir) "curtir" else "descurtir"} recado: ${error.message}"
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao ${if (curtir) "curtir" else "descurtir"} recado")
+                _state.update { 
+                    it.copy(
+                        erro = "Erro ao ${if (curtir) "curtir" else "descurtir"} recado: ${e.message}"
+                    )
+                }
+            }
+        }
+    }
 }
 
 /**

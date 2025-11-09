@@ -214,5 +214,22 @@ class RecadoRepository @Inject constructor(
             Result.failure(e)
         }
     }
+    
+    /**
+     * Adiciona ou remove apoio familiar (curtida) de um recado
+     */
+    suspend fun curtirRecado(recadoId: String, curtir: Boolean): Result<Unit> {
+        return try {
+            val currentUser = authService.currentUser
+            if (currentUser == null) {
+                return Result.failure(Exception("Usuário não autenticado"))
+            }
+            
+            firestoreService.curtirRecado(recadoId, currentUser.uid, curtir)
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao ${if (curtir) "curtir" else "descurtir"} recado")
+            Result.failure(e)
+        }
+    }
 }
 
