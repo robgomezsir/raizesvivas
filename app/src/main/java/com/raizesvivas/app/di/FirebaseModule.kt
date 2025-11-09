@@ -40,10 +40,12 @@ object FirebaseModule {
     @Singleton
     fun provideFirebaseFirestore(): FirebaseFirestore {
         return FirebaseFirestore.getInstance().apply {
-            // Configurações de performance
-            // Nota: setPersistenceEnabled e setCacheSizeBytes são deprecated no Firestore
-            // A persistência é habilitada por padrão e o tamanho do cache é gerenciado automaticamente
+            // Configurações de performance e economia de custos
+            // Habilitar persistência offline para reduzir leituras da nuvem
+            // Isso faz o Firestore guardar os dados no cache e reduzir leituras da nuvem
             firestoreSettings = FirebaseFirestoreSettings.Builder()
+                .setPersistenceEnabled(true)
+                .setCacheSizeBytes(FirebaseFirestoreSettings.CACHE_SIZE_UNLIMITED)
                 .build()
         }
     }

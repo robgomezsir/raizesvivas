@@ -293,26 +293,6 @@ fun MuralScreen(
                 modifier = Modifier.align(Alignment.TopCenter)
             )
         }
-        
-        // FAB do Chat posicionado acima do FAB principal do Scaffold
-        // Posicionado fora do Box com paddingValues para garantir visibilidade
-        // O FAB principal do Scaffold fica a 16.dp do canto, então este precisa estar acima
-        // ExtendedFAB tem altura de ~56.dp, então precisamos de pelo menos 72.dp de espaçamento
-        FloatingActionButton(
-            onClick = onNavigateToChat,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = 16.dp, bottom = 88.dp),
-            containerColor = colorScheme.secondary,
-            contentColor = colorScheme.onSecondary,
-            elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 8.dp)
-        ) {
-            Icon(
-                Icons.AutoMirrored.Filled.Chat,
-                contentDescription = "Chat",
-                modifier = Modifier.size(24.dp)
-            )
-        }
     }
         
     // Modais (fora do Scaffold para garantir que apareçam acima de tudo)

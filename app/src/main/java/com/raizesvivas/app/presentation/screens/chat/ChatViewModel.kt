@@ -2,7 +2,7 @@ package com.raizesvivas.app.presentation.screens.chat
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.raizesvivas.app.data.local.ChatPreferences
+import com.raizesvivas.app.data.repository.ChatRepository
 import com.raizesvivas.app.data.remote.firebase.AuthService
 import com.raizesvivas.app.data.repository.UsuarioRepository
 import com.raizesvivas.app.domain.model.MensagemChat
@@ -21,7 +21,7 @@ import javax.inject.Inject
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class ChatViewModel @Inject constructor(
-    private val chatPreferences: ChatPreferences,
+    private val chatRepository: ChatRepository,
     private val usuarioRepository: UsuarioRepository,
     private val authService: AuthService
 ) : ViewModel() {
@@ -42,14 +42,14 @@ class ChatViewModel @Inject constructor(
     private val _usuarios = MutableStateFlow<List<Usuario>>(emptyList())
     val usuarios: StateFlow<List<Usuario>> = _usuarios.asStateFlow()
 
-    // Mensagens da conversa atual
+    // Mensagens da conversa atual (sincronizadas em tempo real via Firestore)
     val mensagens: StateFlow<List<MensagemChat>> = combine(
         _state.map { it.destinatarioId },
         flow { emit(currentUserId) }
     ) { destinatarioId: String?, remetenteId: String? ->
         when {
             destinatarioId != null && remetenteId != null -> {
-                chatPreferences.observarMensagens(
+                chatRepository.observarMensagens(
                     remetenteId = remetenteId,
                     destinatarioId = destinatarioId
                 )
@@ -150,7 +150,7 @@ class ChatViewModel @Inject constructor(
         if (remetenteId != null) {
             viewModelScope.launch {
                 try {
-                    chatPreferences.marcarMensagensComoLidas(
+                    chatRepository.marcarMensagensComoLidas(
                         remetenteId = remetenteId,
                         destinatarioId = destinatarioId
                     )
@@ -212,8 +212,15 @@ class ChatViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                chatPreferences.salvarMensagem(mensagem)
-                Timber.d("💬 Mensagem enviada: ${mensagem.id}")
+                val resultado = chatRepository.enviarMensagem(mensagem)
+                resultado.onSuccess {
+                    Timber.d("💬 Mensagem enviada com sucesso: ${mensagem.id}")
+                }.onFailure { error ->
+                    Timber.e(error, "❌ Erro ao enviar mensagem")
+                    _state.update {
+                        it.copy(erro = "Erro ao enviar mensagem: ${error.message}")
+                    }
+                }
             } catch (e: Exception) {
                 Timber.e(e, "❌ Erro ao enviar mensagem")
                 _state.update {
@@ -245,9 +252,19 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 _state.update { it.copy(isLoading = true, erro = null, mostrarModalLimparMensagens = false) }
-                chatPreferences.limparMensagensConversa(remetenteId, destinatarioId)
-                _state.update { it.copy(isLoading = false) }
-                Timber.d("✅ Mensagens da conversa limpas com sucesso")
+                val resultado = chatRepository.limparMensagensConversa(remetenteId, destinatarioId)
+                resultado.onSuccess {
+                    _state.update { it.copy(isLoading = false) }
+                    Timber.d("✅ Mensagens da conversa limpas com sucesso")
+                }.onFailure { error ->
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            erro = "Erro ao limpar mensagens: ${error.message}"
+                        )
+                    }
+                    Timber.e(error, "❌ Erro ao limpar mensagens da conversa")
+                }
             } catch (e: Exception) {
                 Timber.e(e, "❌ Erro ao limpar mensagens da conversa")
                 _state.update {

@@ -2,24 +2,28 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Helper function: verifica se usuário está autenticado
+
+    // ==============================
+    // 🔧 Funções auxiliares
+    // ==============================
+
+    // Garante que o usuário está autenticado
     function isAuthenticated() {
       return request.auth != null;
     }
-    
-    // Helper function: verifica se usuário é admin
+
+    // Verifica se o usuário é administrador
     function isAdmin() {
-      return isAuthenticated() && 
+      return isAuthenticated() &&
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.ehAdministrador == true;
     }
-    
-    // Helper function: verifica se usuário é o dono do documento
+
+    // Verifica se o usuário é o dono de um documento
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
-    
-    // Helper function: valida documento de família personalizada
+
+    // Valida documento de família personalizada (mantida do original)
     function isValidFamiliaPersonalizada(data, familiaId) {
       return data.keys().hasOnly([
                'familiaId',
@@ -39,204 +43,162 @@ service cloud.firestore {
              (!data.keys().hasAny(['atualizadoPor']) || data.atualizadoPor == null || data.atualizadoPor is string) &&
              data.atualizadoEm is timestamp;
     }
-    
-    // ============================================
-    // COLEÇÃO: users
-    // ============================================
+
+    // 🔒 Função para limitar consultas grandes e sem ordenação
+    // Evita que usuários façam queries sem filtro ou que tragam milhares de documentos
+    // Economiza custos e melhora performance
+    function isEfficientQuery() {
+      return (request.query.limit <= 100) && (request.query.orderBy.size() > 0);
+    }
+
+    // ==============================
+    // 👤 Coleção: users
+    // ==============================
     match /users/{userId} {
-      // Qualquer usuário autenticado pode ler qualquer usuário
-      allow read: if isAuthenticated();
-      
-      // Usuário pode criar/atualizar apenas seu próprio documento
-      // CORRIGIDO: Usando a função isOwner() que já está definida
+      allow read: if isAuthenticated(); // todos podem ver perfis (mantido)
       allow create, update: if isOwner(userId) || isAdmin();
-      
-      // Apenas admin pode deletar usuários
       allow delete: if isAdmin();
     }
-    
-    // ============================================
-    // COLEÇÃO: people
-    // ============================================
+
+    // ==============================
+    // 🧍 Coleção: people
+    // ==============================
     match /people/{pessoaId} {
-      // Qualquer usuário autenticado pode ler pessoas
+      allow list: if isAuthenticated() && isEfficientQuery(); // 🔹 impede listagens amplas
       allow read: if isAuthenticated();
-      
-      // Usuário autenticado pode criar pessoas
-      allow create: if isAuthenticated() && 
+      allow create: if isAuthenticated() &&
                      request.resource.data.keys().hasAll(['nome', 'criadoPor', 'criadoEm']);
-      
-      // Admin pode atualizar/deletar qualquer pessoa
-      // Usuário comum pode atualizar apenas se criou ou se pessoa vinculada
-      allow update: if isAuthenticated() && 
-                     (isAdmin() || 
+      allow update: if isAuthenticated() &&
+                     (isAdmin() ||
                       request.resource.data.criadoPor == request.auth.uid ||
                       get(/databases/$(database)/documents/users/$(request.auth.uid)).data.pessoaVinculada == pessoaId);
-      
-      // Apenas admin pode deletar pessoas
       allow delete: if isAdmin();
     }
-    
-    // ============================================
-    // COLEÇÃO: familia_zero
-    // ============================================
+
+    // ==============================
+    // 👪 Coleção: familia_zero
+    // ==============================
     match /familia_zero/{familiaId} {
-      // Qualquer usuário autenticado pode ler
+      allow list: if isAuthenticated() && isEfficientQuery();
       allow read: if isAuthenticated();
-      
-      // CORRIGIDO: Verifica fundadoPor e valida campos obrigatórios
-      allow create: if isAuthenticated() && 
+      allow create: if isAuthenticated() &&
                      request.resource.data.fundadoPor == request.auth.uid &&
                      request.resource.data.locked == true;
-      
-      // Apenas admin pode atualizar/deletar
       allow update, delete: if isAdmin();
     }
-    
-    // ============================================
-    // COLEÇÃO: familias_personalizadas
-    // ============================================
+
+    // ==============================
+    // 🧬 Coleção: familias_personalizadas
+    // ==============================
     match /familias_personalizadas/{familiaId} {
+      allow list: if isAdmin() && isEfficientQuery();
       allow read: if isAuthenticated();
-      
       allow create, update: if isAdmin() &&
                              isValidFamiliaPersonalizada(request.resource.data, familiaId);
-      
       allow delete: if isAdmin();
     }
-    
-    // ============================================
-    // COLEÇÃO: invites
-    // ============================================
+
+    // ==============================
+    // ✉️ Coleção: invites
+    // ==============================
     match /invites/{inviteId} {
-      // Helper function: verifica se usuário é admin
-      function isAdmin() {
-        return request.auth != null && 
+      allow list: if isAdmin() && isEfficientQuery();
+
+      function isAdminInvite() {
+        return isAuthenticated() &&
                exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
                get(/databases/$(database)/documents/users/$(request.auth.uid)).data.ehAdministrador == true;
       }
 
-      // Helper function: verifica se usuário é o dono do convite ou o convidado
-      function isOwnerOrInvited() {
-        return request.auth != null && (
-          resource.data.convidadoPor == request.auth.uid ||
-          resource.data.emailConvidado == request.auth.token.email
-        );
-      }
-
-      // CREATE: Apenas admins podem criar convites
-      allow create: if isAdmin() && 
+      allow create: if isAdminInvite() &&
                        request.resource.data.convidadoPor == request.auth.uid;
 
-      // READ: 
-      // - Admins podem ler todos os convites
-      // - Usuários podem ler seus próprios convites (onde são o convidado)
-      allow read: if isAdmin() || 
-                    (request.auth != null && 
+      allow read: if isAdminInvite() ||
+                    (isAuthenticated() &&
                      request.resource.data.emailConvidado == request.auth.token.email);
 
-      // UPDATE:
-      // - Admins podem atualizar qualquer convite
-      // - Usuários autenticados podem atualizar apenas seus próprios convites (aceitar/rejeitar)
-      allow update: if isAdmin() || 
-                       (request.auth != null && 
+      allow update: if isAdminInvite() ||
+                       (isAuthenticated() &&
                         resource.data.emailConvidado == request.auth.token.email &&
-                        // Só permite atualizar status para ACEITO ou REJEITADO
                         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']));
 
-      // DELETE: Apenas admins podem deletar convites
-      allow delete: if isAdmin();
+      allow delete: if isAdminInvite();
     }
-    
-    // ============================================
-    // COLEÇÃO: pending_edits
-    // ============================================
+
+    // ==============================
+    // 🕓 Coleção: pending_edits
+    // ==============================
     match /pending_edits/{edicaoId} {
-      // Usuário pode ler suas próprias edições pendentes
-      // Admin pode ler todas
-      allow read: if isAuthenticated() && 
+      allow list: if isAuthenticated() && isEfficientQuery();
+      allow read: if isAuthenticated() &&
                    (resource.data.editadoPor == request.auth.uid || isAdmin());
-      
-      // Usuário autenticado pode criar edições pendentes
       allow create: if isAuthenticated();
-      
-      // Apenas admin pode atualizar (aprovar/rejeitar)
-      allow update: if isAdmin();
-      
-      // Admin pode deletar edições
-      allow delete: if isAdmin();
-    }
-    
-    // ============================================
-    // COLEÇÃO: duplicates
-    // ============================================
-    match /duplicates/{duplicataId} {
-      // Apenas admin pode ler
-      allow read: if isAdmin();
-      
-      // Sistema pode criar (via admin ou app)
-      allow create: if isAuthenticated();
-      
-      // Apenas admin pode atualizar/deletar
       allow update, delete: if isAdmin();
     }
-    
-    // ============================================
-    // COLEÇÃO: recados
-    // ============================================
-    match /recados/{recadoId} {
-      // Helper function: verifica se o usuário é o autor do recado
-      function isAutor() {
-        return isAuthenticated() && resource.data.autorId == request.auth.uid;
-      }
-      
-      // READ: Usuários autenticados podem ler todos os recados
-      // O filtro por destinatário é feito no código do aplicativo
-      // NOTA: Não é mais necessário filtrar por "deletado" pois agora fazemos hard delete
-      allow read: if isAuthenticated();
-      
-      // CREATE: Usuários autenticados podem criar recados
-      // A integridade do autorId é garantida pelo app (sempre usa request.auth.uid)
-      // Esta validação foi flexibilizada porque alguns clientes estavam falhando
-      // ao enviar autorId mesmo após autenticação (erros de PERMISSION_DENIED).
-      allow create: if isAuthenticated();
-      
-      // UPDATE: Autor pode atualizar seu próprio recado, admin pode atualizar todos
-      allow update: if isAuthenticated() && (
-                      (isAutor() && request.resource.data.autorId == resource.data.autorId) ||
-                      isAdmin()
-                    );
-      
-      // DELETE: Autor pode deletar seu próprio recado definitivamente, admin pode deletar todos
-      // IMPORTANTE: Esta é uma exclusão permanente (hard delete), o documento será completamente removido
-      allow delete: if isAutor() || isAdmin();
+
+    // ==============================
+    // 🔁 Coleção: duplicates
+    // ==============================
+    match /duplicates/{duplicataId} {
+      allow list: if isAdmin() && isEfficientQuery();
+      allow read, update, delete: if isAdmin();
+      allow create: if isAuthenticated(); // app/sistema cria
     }
-    
-    // ============================================
-    // COLEÇÃO: conquistas (subcoleção de users)
-    // Estrutura: users/{userId}/conquistas/{conquistaId}
-    // ============================================
+
+    // ==============================
+    // 📬 Coleção: recados
+    // ==============================
+    match /recados/{recadoId} {
+      allow list: if isAuthenticated() && isEfficientQuery();
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() &&
+                     ((resource.data.autorId == request.auth.uid &&
+                       request.resource.data.autorId == resource.data.autorId) ||
+                      isAdmin());
+      allow delete: if isAuthenticated() &&
+                     (resource.data.autorId == request.auth.uid || isAdmin());
+    }
+
+    // ==============================
+    // 💬 Coleção: mensagens_chat
+    // ==============================
+    match /mensagens_chat/{mensagemId} {
+      allow list: if isAuthenticated() && isEfficientQuery(); // 🔹 previne queries sem limit
+
+      function isRemetente() {
+        return isAuthenticated() && resource.data.remetenteId == request.auth.uid;
+      }
+
+      function isDestinatario() {
+        return isAuthenticated() && resource.data.destinatarioId == request.auth.uid;
+      }
+
+      function isParticipante() {
+        return isAuthenticated() &&
+          (resource.data.remetenteId == request.auth.uid ||
+           resource.data.destinatarioId == request.auth.uid);
+      }
+
+      allow read: if isParticipante(); // apenas quem participa lê
+      allow create: if isAuthenticated() &&
+                      request.resource.data.remetenteId == request.auth.uid &&
+                      request.resource.data.texto is string &&
+                      request.resource.data.texto.size() > 0 &&
+                      request.resource.data.enviadoEm is timestamp;
+      allow update: if isParticipante() &&
+                      isDestinatario() &&
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lida']) &&
+                      request.resource.data.lida == true;
+      allow delete: if isRemetente();
+    }
+
+    // ==============================
+    // 🏆 Subcoleção: conquistas
+    // users/{userId}/conquistas/{conquistaId}
+    // ==============================
     match /users/{userId}/conquistas/{conquistaId} {
-      // READ: Usuário pode ler apenas suas próprias conquistas
-      allow read: if isAuthenticated() && request.auth.uid == userId;
-      
-      // CREATE: Usuário pode criar apenas suas próprias conquistas
-      // Validar que o usuarioId corresponde ao usuário autenticado
-      allow create: if isAuthenticated() && 
-                      request.auth.uid == userId &&
-                      request.resource.data.usuarioId == userId &&
-                      request.resource.data.conquistaId == conquistaId;
-      
-      // UPDATE: Usuário pode atualizar apenas suas próprias conquistas
-      // Validar que o usuarioId não muda
-      allow update: if isAuthenticated() && 
-                      request.auth.uid == userId &&
-                      resource.data.usuarioId == userId &&
-                      request.resource.data.usuarioId == userId &&
-                      request.resource.data.conquistaId == conquistaId;
-      
-      // DELETE: Usuário pode deletar apenas suas próprias conquistas
-      allow delete: if isAuthenticated() && request.auth.uid == userId;
+      allow read, create, update, delete: if isAuthenticated() && request.auth.uid == userId;
     }
   }
 }

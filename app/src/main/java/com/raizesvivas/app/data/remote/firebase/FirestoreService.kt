@@ -160,7 +160,10 @@ class FirestoreService @Inject constructor(
      */
     suspend fun buscarTodosUsuarios(): Result<List<Usuario>> {
         return try {
+            // Limite de 100 para economizar leituras e cumprir regras de segurança
             val snapshot = usersCollection
+                .orderBy("nome", Query.Direction.ASCENDING)
+                .limit(100)
                 .get()
                 .await()
             
@@ -172,6 +175,27 @@ class FirestoreService @Inject constructor(
             
         } catch (e: Exception) {
             Timber.e(e, "❌ Erro ao buscar todos os usuários")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Deleta um usuário do Firestore
+     * 
+     * ATENÇÃO: Isso não deleta o usuário do Firebase Auth, apenas do Firestore
+     * Para deletar completamente, use Firebase Admin SDK ou Cloud Function
+     */
+    suspend fun deletarUsuario(userId: String): Result<Unit> {
+        return try {
+            usersCollection.document(userId)
+                .delete()
+                .await()
+            
+            Timber.d("✅ Usuário deletado do Firestore: $userId")
+            Result.success(Unit)
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao deletar usuário")
             Result.failure(e)
         }
     }
@@ -319,6 +343,7 @@ class FirestoreService @Inject constructor(
                 "localResidencia" to pessoa.localResidencia,
                 "profissao" to pessoa.profissao,
                 "biografia" to pessoa.biografia,
+                "telefone" to pessoa.telefone,
                 "estadoCivil" to (pessoa.estadoCivil?.name),
                 "genero" to (pessoa.genero?.name),
                 "pai" to pessoa.pai,
@@ -379,6 +404,8 @@ class FirestoreService @Inject constructor(
         return try {
             Timber.d("🔍 Buscando todas as pessoas no Firestore...")
             val snapshot = peopleCollection
+                .orderBy("nome", Query.Direction.ASCENDING)
+                .limit(100)
                 .get()
                 .await()
             
@@ -426,6 +453,8 @@ class FirestoreService @Inject constructor(
      */
     fun observarTodasPessoas(): Flow<List<Pessoa>> = callbackFlow {
         val registration = peopleCollection
+            .orderBy("nome", Query.Direction.ASCENDING)
+            .limit(100)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     Timber.e(error, "Erro ao observar pessoas")
@@ -549,7 +578,12 @@ class FirestoreService @Inject constructor(
             val termoLower = termo.lowercase()
             
             // Buscar todas e filtrar localmente (nomeNormalizado é calculado)
-            val snapshot = peopleCollection.get().await()
+            // Limite de 100 para economizar leituras e cumprir regras de segurança
+            val snapshot = peopleCollection
+                .orderBy("nome", Query.Direction.ASCENDING)
+                .limit(100)
+                .get()
+                .await()
             val todasPessoas = snapshot.documents.mapNotNull { it.toPessoa() }
             
             // Filtrar por nome normalizado calculado
@@ -576,7 +610,10 @@ class FirestoreService @Inject constructor(
         mae: String?
     ): Result<List<Pessoa>> {
         return try {
-            var query = peopleCollection.whereEqualTo("nome", nome)
+            var query = peopleCollection
+                .whereEqualTo("nome", nome)
+                .orderBy("nome", Query.Direction.ASCENDING)
+                .limit(100)
             
             if (dataNascimento != null) {
                 query = query.whereEqualTo("dataNascimento", dataNascimento)
@@ -685,7 +722,12 @@ class FirestoreService @Inject constructor(
     suspend fun buscarTodosConvites(): Result<List<Convite>> {
         return RetryHelper.withNetworkRetry {
             try {
-                val snapshot = invitesCollection.get().await()
+                // Limite de 100 para economizar leituras e cumprir regras de segurança
+                val snapshot = invitesCollection
+                    .orderBy("criadoEm", Query.Direction.DESCENDING)
+                    .limit(100)
+                    .get()
+                    .await()
                 val convites = snapshot.documents.map { it.toConvite() }
                 Result.success(convites)
                 
@@ -1185,8 +1227,11 @@ class FirestoreService @Inject constructor(
      */
     suspend fun buscarTodasSubfamilias(): Result<List<Subfamilia>> {
         return try {
+            // Limite de 100 para economizar leituras e cumprir regras de segurança
             val snapshot = subfamiliasCollection
                 .whereEqualTo("ativa", true)
+                .orderBy("nome", Query.Direction.ASCENDING)
+                .limit(100)
                 .get()
                 .await()
             
@@ -1252,7 +1297,12 @@ class FirestoreService @Inject constructor(
     suspend fun buscarFamiliasPersonalizadas(): Result<List<FamiliaPersonalizada>> {
         return RetryHelper.withNetworkRetry {
             try {
-                val snapshot = familiasPersonalizadasCollection.get().await()
+                // Limite de 100 para economizar leituras e cumprir regras de segurança
+                val snapshot = familiasPersonalizadasCollection
+                    .orderBy("nome", Query.Direction.ASCENDING)
+                    .limit(100)
+                    .get()
+                    .await()
                 val familias = snapshot.documents.mapNotNull { it.toFamiliaPersonalizada() }
                 Timber.d("📚 Encontradas ${familias.size} famílias personalizadas")
                 Result.success(familias)
@@ -1264,7 +1314,11 @@ class FirestoreService @Inject constructor(
     }
     
     fun observarFamiliasPersonalizadas(): Flow<List<FamiliaPersonalizada>> = callbackFlow {
-        val listener = familiasPersonalizadasCollection.addSnapshotListener { snapshot, error ->
+        // Limite de 100 para economizar leituras e cumprir regras de segurança
+        val listener = familiasPersonalizadasCollection
+            .orderBy("nome", Query.Direction.ASCENDING)
+            .limit(100)
+            .addSnapshotListener { snapshot, error ->
             if (error != null) {
                 Timber.e(error, "❌ Erro ao observar famílias personalizadas")
                 trySend(emptyList())
@@ -1550,8 +1604,10 @@ class FirestoreService @Inject constructor(
                 // NOTA: Não é mais necessário filtrar por "deletado" pois agora fazemos hard delete
                 // Buscar recados gerais (destinatarioId == null) e direcionados
                 // Como não podemos fazer query OR no Firestore, buscamos todos e filtramos
+                // Limite de 100 para economizar leituras e cumprir regras de segurança
                 val snapshot = recadosCollection
                     .orderBy("criadoEm", Query.Direction.DESCENDING)
+                    .limit(100)
                     .get()
                     .await()
                 
@@ -1588,8 +1644,10 @@ class FirestoreService @Inject constructor(
         try {
             // NOTA: Não é mais necessário filtrar por "deletado" pois agora fazemos hard delete
             // Apenas ordenar por data de criação (descendente)
+            // Limite de 100 para economizar leituras e cumprir regras de segurança
             val registration = recadosCollection
                 .orderBy("criadoEm", Query.Direction.DESCENDING)
+                .limit(100)
                 .addSnapshotListener { snapshot, error ->
                     if (error != null) {
                         val errorMessage = error.message ?: "Erro desconhecido"
@@ -2022,6 +2080,234 @@ class FirestoreService @Inject constructor(
                 listenerRegistration.remove()
             }
         }
+    }
+    
+    // ============================================
+    // CHAT - MENSAGENS INSTANTÂNEAS
+    // ============================================
+    
+    // Collection de mensagens do chat
+    private val mensagensChatCollection = firestore.collection("mensagens_chat")
+    
+    /**
+     * Salva uma mensagem de chat no Firestore
+     */
+    suspend fun salvarMensagemChat(mensagem: com.raizesvivas.app.domain.model.MensagemChat): Result<Unit> {
+        return RetryHelper.withNetworkRetry {
+            try {
+                if (mensagem.remetenteId.isBlank() || mensagem.destinatarioId.isBlank()) {
+                    return@withNetworkRetry Result.failure(
+                        IllegalArgumentException("remetenteId e destinatarioId não podem estar vazios")
+                    )
+                }
+                
+                val data = hashMapOf(
+                    "remetenteId" to mensagem.remetenteId,
+                    "remetenteNome" to mensagem.remetenteNome,
+                    "destinatarioId" to mensagem.destinatarioId,
+                    "destinatarioNome" to mensagem.destinatarioNome,
+                    "texto" to mensagem.texto.trim(),
+                    "enviadoEm" to com.google.firebase.Timestamp(mensagem.enviadoEm),
+                    "lida" to mensagem.lida
+                )
+                
+                val docRef = if (mensagem.id.isBlank()) {
+                    mensagensChatCollection.document()
+                } else {
+                    mensagensChatCollection.document(mensagem.id)
+                }
+                
+                docRef.set(data).await()
+                
+                Timber.d("💬 Mensagem de chat salva no Firestore: ${docRef.id}")
+                Result.success(Unit)
+                
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao salvar mensagem de chat no Firestore")
+                Result.failure(e)
+            }
+        }
+    }
+    
+    /**
+     * Observa mensagens de uma conversa em tempo real
+     * Retorna mensagens onde o usuário é remetente OU destinatário
+     * Usa dois listeners separados e combina os resultados
+     */
+    fun observarMensagensChat(
+        remetenteId: String,
+        destinatarioId: String
+    ): Flow<List<com.raizesvivas.app.domain.model.MensagemChat>> = callbackFlow {
+        try {
+            var mensagens1 = emptyList<com.raizesvivas.app.domain.model.MensagemChat>()
+            var mensagens2 = emptyList<com.raizesvivas.app.domain.model.MensagemChat>()
+            
+            fun combinarEEnviar() {
+                val todasMensagens = (mensagens1 + mensagens2)
+                    .distinctBy { it.id }
+                    .sortedBy { it.enviadoEm }
+                
+                Timber.d("📨 Mensagens observadas: ${todasMensagens.size} mensagens")
+                trySend(todasMensagens)
+            }
+            
+            // Listener 1: remetenteId -> destinatarioId
+            // Limite de 100 para economizar leituras e cumprir regras de segurança
+            val listener1 = mensagensChatCollection
+                .whereEqualTo("remetenteId", remetenteId)
+                .whereEqualTo("destinatarioId", destinatarioId)
+                .orderBy("enviadoEm", Query.Direction.ASCENDING)
+                .limit(100)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        Timber.e(error, "❌ Erro ao observar mensagens (direção 1)")
+                        mensagens1 = emptyList()
+                        combinarEEnviar()
+                        return@addSnapshotListener
+                    }
+                    
+                    mensagens1 = snapshot?.documents?.mapNotNull { doc ->
+                        try {
+                            doc.toMensagemChat()
+                        } catch (e: Exception) {
+                            Timber.e(e, "❌ Erro ao converter mensagem: ${doc.id}")
+                            null
+                        }
+                    } ?: emptyList()
+                    
+                    combinarEEnviar()
+                }
+            
+            // Listener 2: destinatarioId -> remetenteId (direção inversa)
+            // Limite de 100 para economizar leituras e cumprir regras de segurança
+            val listener2 = mensagensChatCollection
+                .whereEqualTo("remetenteId", destinatarioId)
+                .whereEqualTo("destinatarioId", remetenteId)
+                .orderBy("enviadoEm", Query.Direction.ASCENDING)
+                .limit(100)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        Timber.e(error, "❌ Erro ao observar mensagens (direção 2)")
+                        mensagens2 = emptyList()
+                        combinarEEnviar()
+                        return@addSnapshotListener
+                    }
+                    
+                    mensagens2 = snapshot?.documents?.mapNotNull { doc ->
+                        try {
+                            doc.toMensagemChat()
+                        } catch (e: Exception) {
+                            Timber.e(e, "❌ Erro ao converter mensagem: ${doc.id}")
+                            null
+                        }
+                    } ?: emptyList()
+                    
+                    combinarEEnviar()
+                }
+            
+            awaitClose {
+                listener1.remove()
+                listener2.remove()
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao configurar observação de mensagens")
+            close(e)
+        }
+    }
+    
+    /**
+     * Marca mensagens como lidas
+     */
+    suspend fun marcarMensagensComoLidas(
+        remetenteId: String,
+        destinatarioId: String
+    ): Result<Unit> {
+        return RetryHelper.withNetworkRetry {
+            try {
+                // Buscar todas as mensagens não lidas onde o usuário atual é o destinatário
+                val snapshot = mensagensChatCollection
+                    .whereEqualTo("remetenteId", remetenteId)
+                    .whereEqualTo("destinatarioId", destinatarioId)
+                    .whereEqualTo("lida", false)
+                    .get()
+                    .await()
+                
+                if (snapshot.documents.isNotEmpty()) {
+                    val batch = firestore.batch()
+                    snapshot.documents.forEach { doc ->
+                        batch.update(doc.reference, "lida", true)
+                    }
+                    batch.commit().await()
+                    Timber.d("✅ ${snapshot.documents.size} mensagens marcadas como lidas")
+                }
+                
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao marcar mensagens como lidas")
+                Result.failure(e)
+            }
+        }
+    }
+    
+    /**
+     * Deleta todas as mensagens de uma conversa
+     */
+    suspend fun deletarMensagensConversa(
+        remetenteId: String,
+        destinatarioId: String
+    ): Result<Unit> {
+        return RetryHelper.withNetworkRetry {
+            try {
+                // Buscar todas as mensagens da conversa (ambas as direções)
+                val snapshot1 = mensagensChatCollection
+                    .whereEqualTo("remetenteId", remetenteId)
+                    .whereEqualTo("destinatarioId", destinatarioId)
+                    .get()
+                    .await()
+                
+                val snapshot2 = mensagensChatCollection
+                    .whereEqualTo("remetenteId", destinatarioId)
+                    .whereEqualTo("destinatarioId", remetenteId)
+                    .get()
+                    .await()
+                
+                val batch = firestore.batch()
+                snapshot1.documents.forEach { doc ->
+                    batch.delete(doc.reference)
+                }
+                snapshot2.documents.forEach { doc ->
+                    batch.delete(doc.reference)
+                }
+                
+                if (snapshot1.documents.isNotEmpty() || snapshot2.documents.isNotEmpty()) {
+                    batch.commit().await()
+                    Timber.d("✅ Mensagens da conversa deletadas")
+                }
+                
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao deletar mensagens da conversa")
+                Result.failure(e)
+            }
+        }
+    }
+    
+    /**
+     * Helper para converter DocumentSnapshot para MensagemChat
+     */
+    private fun com.google.firebase.firestore.DocumentSnapshot.toMensagemChat(): com.raizesvivas.app.domain.model.MensagemChat? {
+        val data = this.data ?: return null
+        
+        return com.raizesvivas.app.domain.model.MensagemChat(
+            id = id,
+            remetenteId = data["remetenteId"] as? String ?: "",
+            remetenteNome = data["remetenteNome"] as? String ?: "",
+            destinatarioId = data["destinatarioId"] as? String ?: "",
+            destinatarioNome = data["destinatarioNome"] as? String ?: "",
+            texto = data["texto"] as? String ?: "",
+            enviadoEm = (data["enviadoEm"] as? com.google.firebase.Timestamp)?.toDate() ?: java.util.Date(),
+            lida = data["lida"] as? Boolean ?: false
+        )
     }
 }
 
