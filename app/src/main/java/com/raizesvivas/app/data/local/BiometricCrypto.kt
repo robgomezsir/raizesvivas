@@ -46,11 +46,20 @@ class BiometricCrypto @Inject constructor(
      */
     fun savePassword(email: String, password: String) {
         try {
-            val key = "$PASSWORD_KEY_PREFIX${email.hashCode()}"
+            val key = "$PASSWORD_KEY_PREFIX${email.trim().lowercase().hashCode()}"
+            Timber.d("🔐 Salvando senha para email: ${email.trim().lowercase()} (key: $key)")
             encryptedPrefs.edit()
                 .putString(key, password)
-                .apply()
-            Timber.d("✅ Senha salva de forma segura para: $email")
+                .commit() // Usar commit() ao invés de apply() para garantir que seja salvo imediatamente
+            Timber.d("✅ Senha salva de forma segura para: $email (key: $key)")
+            
+            // Verificar se foi salva corretamente
+            val savedPassword = encryptedPrefs.getString(key, null)
+            if (savedPassword != null) {
+                Timber.d("✅ Verificação: Senha confirmada como salva para: $email")
+            } else {
+                Timber.e("❌ ERRO: Senha não foi salva corretamente para: $email")
+            }
         } catch (e: Exception) {
             Timber.e(e, "❌ Erro ao salvar senha criptografada")
         }
@@ -64,8 +73,18 @@ class BiometricCrypto @Inject constructor(
      */
     fun getPassword(email: String): String? {
         return try {
-            val key = "$PASSWORD_KEY_PREFIX${email.hashCode()}"
-            encryptedPrefs.getString(key, null)
+            val key = "$PASSWORD_KEY_PREFIX${email.trim().lowercase().hashCode()}"
+            Timber.d("🔐 Buscando senha para email: ${email.trim().lowercase()} (key: $key)")
+            val password = encryptedPrefs.getString(key, null)
+            if (password != null) {
+                Timber.d("✅ Senha encontrada para: $email (key: $key)")
+            } else {
+                Timber.w("⚠️ Senha não encontrada para: $email (key: $key)")
+                // Tentar buscar todas as chaves para debug
+                val allKeys = encryptedPrefs.all.keys
+                Timber.d("🔍 Chaves disponíveis: $allKeys")
+            }
+            password
         } catch (e: Exception) {
             Timber.e(e, "❌ Erro ao obter senha descriptografada")
             null

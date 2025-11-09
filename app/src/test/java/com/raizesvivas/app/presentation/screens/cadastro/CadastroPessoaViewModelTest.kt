@@ -10,6 +10,7 @@ import com.raizesvivas.app.utils.ValidationUtils
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.*
 import org.junit.Test
+import java.util.Date
 
 /**
  * Testes unitários para validações e utilitários relacionados ao CadastroPessoaViewModel

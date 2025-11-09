@@ -3,15 +3,17 @@ package com.raizesvivas.app.data.local.dao
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.raizesvivas.app.data.local.RaizesVivasDatabase
 import com.raizesvivas.app.data.local.entities.PessoaEntity
+import com.raizesvivas.app.domain.model.EstadoCivil
+import com.raizesvivas.app.domain.model.Genero
 import kotlinx.coroutines.runBlocking
+import org.junit.runner.RunWith
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import java.util.Date
 
 /**
@@ -20,7 +22,7 @@ import java.util.Date
  * Estes testes verificam se as operações do banco de dados
  * estão funcionando corretamente.
  */
-@RunWith(AndroidJUnit4::class)
+@RunWith(RobolectricTestRunner::class)
 class PessoaDaoTest {
     
     private lateinit var database: RaizesVivasDatabase
@@ -165,6 +167,8 @@ class PessoaDaoTest {
         localResidencia = null,
         profissao = null,
         biografia = null,
+        estadoCivil = EstadoCivil.SOLTEIRO,
+        genero = Genero.MASCULINO,
         pai = pai,
         mae = mae,
         conjugeAtual = null,

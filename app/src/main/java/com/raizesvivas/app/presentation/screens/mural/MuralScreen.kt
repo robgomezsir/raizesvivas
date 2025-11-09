@@ -25,7 +25,7 @@ import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.outlined.PushPin
@@ -173,7 +173,7 @@ fun MuralScreen(
                     elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
                 ) {
                     Icon(
-                        Icons.Default.Chat,
+                        Icons.AutoMirrored.Filled.Chat,
                         contentDescription = "Chat"
                     )
                 }
@@ -308,7 +308,7 @@ fun MuralScreen(
             elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 8.dp)
         ) {
             Icon(
-                Icons.Default.Chat,
+                Icons.AutoMirrored.Filled.Chat,
                 contentDescription = "Chat",
                 modifier = Modifier.size(24.dp)
             )

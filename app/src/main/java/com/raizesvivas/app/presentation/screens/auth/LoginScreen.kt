@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -24,19 +23,16 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -69,7 +65,7 @@ fun LoginScreen(
     val state by viewModel.state.collectAsState()
     val focusManager = LocalFocusManager.current
     val context = LocalContext.current
-    val activity = context as? MainActivity
+    val activity = remember { context as? MainActivity }
 
     var biometricPromptShown by remember { mutableStateOf(false) }
 
@@ -86,6 +82,7 @@ fun LoginScreen(
         }
     }
 
+    // LaunchedEffect para login automático com biometria
     LaunchedEffect(state.biometricAvailable, state.biometricEnabled, state.lastEmail, activity) {
         Timber.d(
             "🔐 LaunchedEffect biometria - available: ${state.biometricAvailable}, enabled: ${state.biometricEnabled}, " +
@@ -97,12 +94,17 @@ fun LoginScreen(
             state.biometricEnabled &&
             state.lastEmail != null &&
             activity != null &&
-            !biometricPromptShown
+            !biometricPromptShown &&
+            !state.loginSuccess
         ) {
-            biometricPromptShown = true
-            delay(500)
-            viewModel.loginWithBiometric(activity) {
-                // Login automático após biometria
+            Timber.d("🔐 Condições atendidas, aguardando delay antes de mostrar biometria")
+            delay(800) // Aumentar delay para garantir que a tela está pronta
+            if (!biometricPromptShown && !state.loginSuccess) {
+                biometricPromptShown = true
+                Timber.d("🔐 Chamando loginWithBiometric")
+                viewModel.loginWithBiometric(activity) {
+                    Timber.d("🔐 Callback onBiometricSuccess chamado")
+                }
             }
         }
     }
@@ -143,21 +145,18 @@ fun LoginScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
-                    Surface(
-                        modifier = Modifier.size(96.dp),
-                        shape = MaterialTheme.shapes.large,
-                        tonalElevation = 2.dp,
-                        color = colorScheme.secondaryContainer.copy(alpha = 0.8f)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Default.Email,
-                                contentDescription = "Logo Raízes Vivas",
-                                tint = colorScheme.onSecondaryContainer,
-                                modifier = Modifier.size(44.dp)
-                            )
-                        }
+                    val isDarkTheme = isSystemInDarkTheme()
+                    val logoRes = if (isDarkTheme) {
+                        com.raizesvivas.app.R.drawable.logo512x512_escuro
+                    } else {
+                        com.raizesvivas.app.R.drawable.logo512x512_claro
                     }
+
+                    Image(
+                        painter = painterResource(id = logoRes),
+                        contentDescription = "Brasão da Família Gomes",
+                        modifier = Modifier.size(128.dp)
+                    )
 
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -262,6 +261,7 @@ fun LoginScreen(
                     if (state.biometricAvailable && state.biometricEnabled && state.lastEmail != null && activity != null) {
                         OutlinedButton(
                             onClick = {
+                                biometricPromptShown = false // Resetar para permitir nova tentativa
                                 viewModel.loginWithBiometric(activity) {
                                     // Login automático após biometria
                                 }

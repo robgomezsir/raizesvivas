@@ -1,24 +1,134 @@
-> Task :app:compileDebugKotlin
-e: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/auth/LoginScreen.kt:297:17 Unresolved reference: Row
-e: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/auth/LoginScreen.kt:304:21 @Composable invocations can only happen from the context of a @Composable function
-e: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/auth/LoginScreen.kt:305:21 @Composable invocations can only happen from the context of a @Composable function
-e: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/auth/LoginScreen.kt:307:55 @Composable invocations can only happen from the context of a @Composable function
-e: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/auth/LoginScreen.kt:310:21 @Composable invocations can only happen from the context of a @Composable function
-e: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/auth/LoginScreen.kt:335:13 Unresolved reference: Row
-e: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/auth/LoginScreen.kt:340:17 @Composable invocations can only happen from the context of a @Composable function
-e: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/auth/LoginScreen.kt:342:43 @Composable invocations can only happen from the context of a @Composable function
-e: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/auth/LoginScreen.kt:344:17 @Composable invocations can only happen from the context of a @Composable function
+> Task :app:kaptDebugKotlin
+error: ModuleProcessingStep was unable to process 'com.raizesvivas.app.di.DatabaseModule' because 'ChatPreferences' could not be resolved.
+  
+  Dependency trace:
+      => element (CLASS): com.raizesvivas.app.di.DatabaseModule
+      => element (METHOD): provideChatPreferences(android.content.Context)
+      => type (ERROR return type): ChatPreferences
+  
+  If type 'ChatPreferences' is a generated type, check above for compilation errors that may have prevented the type from being generated. Otherwise, ensure that type 'ChatPreferences' is on your classpath.
+error: BindingMethodProcessingStep was unable to process 'provideDatabase(android.content.Context)' because 'ChatPreferences' could not be resolved.
+  
+  Dependency trace:
+      => element (CLASS): com.raizesvivas.app.di.DatabaseModule
+      => element (METHOD): provideChatPreferences(android.content.Context)
+      => type (ERROR return type): ChatPreferences
+  
+  If type 'ChatPreferences' is a generated type, check above for compilation errors that may have prevented the type from being generated. Otherwise, ensure that type 'ChatPreferences' is on your classpath.
+error: BindingMethodProcessingStep was unable to process 'providePessoaDao(com.raizesvivas.app.data.local.RaizesVivasDatabase)' because 'ChatPreferences' could not be resolved.
+  
+  Dependency trace:
+      => element (CLASS): com.raizesvivas.app.di.DatabaseModule
+      => element (METHOD): provideChatPreferences(android.content.Context)
+      => type (ERROR return type): ChatPreferences
+  
+  If type 'ChatPreferences' is a generated type, check above for compilation errors that may have prevented the type from being generated. Otherwise, ensure that type 'ChatPreferences' is on your classpath.
+error: BindingMethodProcessingStep was unable to process 'provideUsuarioDao(com.raizesvivas.app.data.local.RaizesVivasDatabase)' because 'ChatPreferences' could not be resolved.
+  
+  Dependency trace:
+      => element (CLASS): com.raizesvivas.app.di.DatabaseModule
+      => element (METHOD): provideChatPreferences(android.content.Context)
+      => type (ERROR return type): ChatPreferences
+  
+  If type 'ChatPreferences' is a generated type, check above for compilation errors that may have prevented the type from being generated. Otherwise, ensure that type 'ChatPreferences' is on your classpath.
+error: BindingMethodProcessingStep was unable to process 'provideSubfamiliaDao(com.raizesvivas.app.data.local.RaizesVivasDatabase)' because 'ChatPreferences' could not be resolved.
+  
+  Dependency trace:
+      => element (CLASS): com.raizesvivas.app.di.DatabaseModule
+      => element (METHOD): provideChatPreferences(android.content.Context)
+      => type (ERROR return type): ChatPreferences
+  
+  If type 'ChatPreferences' is a generated type, check above for compilation errors that may have prevented the type from being generated. Otherwise, ensure that type 'ChatPreferences' is on your classpath.
+error: BindingMethodProcessingStep was unable to process 'provideMembroFamiliaDao(com.raizesvivas.app.data.local.RaizesVivasDatabase)' because 'ChatPreferences' could not be resolved.
+  
+  Dependency trace:
+      => element (CLASS): com.raizesvivas.app.di.DatabaseModule
+      => element (METHOD): provideChatPreferences(android.content.Context)
+      => type (ERROR return type): ChatPreferences
+  
+  If type 'ChatPreferences' is a generated type, check above for compilation errors that may have prevented the type from being generated. Otherwise, ensure that type 'ChatPreferences' is on your classpath.
+error: BindingMethodProcessingStep was unable to process 'provideSugestaoSubfamiliaDao(com.raizesvivas.app.data.local.RaizesVivasDatabase)' because 'ChatPreferences' could not be resolved.
+  
+  Dependency trace:
+      => element (CLASS): com.raizesvivas.app.di.DatabaseModule
+      => element (METHOD): provideChatPreferences(android.content.Context)
+      => type (ERROR return type): ChatPreferences
+  
+  If type 'ChatPreferences' is a generated type, check above for compilation errors that may have prevented the type from being generated. Otherwise, ensure that type 'ChatPreferences' is on your classpath.
+error: BindingMethodProcessingStep was unable to process 'provideNotificacaoDao(com.raizesvivas.app.data.local.RaizesVivasDatabase)' because 'ChatPreferences' could not be resolved.
+  
+  Dependency trace:
+      => element (CLASS): com.raizesvivas.app.di.DatabaseModule
+      => element (METHOD): provideChatPreferences(android.content.Context)
+      => type (ERROR return type): ChatPreferences
+  
+  If type 'ChatPreferences' is a generated type, check above for compilation errors that may have prevented the type from being generated. Otherwise, ensure that type 'ChatPreferences' is on your classpath.
+error: BindingMethodProcessingStep was unable to process 'provideConquistaDao(com.raizesvivas.app.data.local.RaizesVivasDatabase)' because 'ChatPreferences' could not be resolved.
+  
+  Dependency trace:
+      => element (CLASS): com.raizesvivas.app.di.DatabaseModule
+      => element (METHOD): provideChatPreferences(android.content.Context)
+      => type (ERROR return type): ChatPreferences
+  
+  If type 'ChatPreferences' is a generated type, check above for compilation errors that may have prevented the type from being generated. Otherwise, ensure that type 'ChatPreferences' is on your classpath.
+error: BindingMethodProcessingStep was unable to process 'providePerfilGamificacaoDao(com.raizesvivas.app.data.local.RaizesVivasDatabase)' because 'ChatPreferences' could not be resolved.
+  
+  Dependency trace:
+      => element (CLASS): com.raizesvivas.app.di.DatabaseModule
+      => element (METHOD): provideChatPreferences(android.content.Context)
+      => type (ERROR return type): ChatPreferences
+  
+  If type 'ChatPreferences' is a generated type, check above for compilation errors that may have prevented the type from being generated. Otherwise, ensure that type 'ChatPreferences' is on your classpath.
+error: BindingMethodProcessingStep was unable to process 'provideFamiliaPersonalizadaDao(com.raizesvivas.app.data.local.RaizesVivasDatabase)' because 'ChatPreferences' could not be resolved.
+  
+  Dependency trace:
+      => element (CLASS): com.raizesvivas.app.di.DatabaseModule
+      => element (METHOD): provideChatPreferences(android.content.Context)
+      => type (ERROR return type): ChatPreferences
+  
+  If type 'ChatPreferences' is a generated type, check above for compilation errors that may have prevented the type from being generated. Otherwise, ensure that type 'ChatPreferences' is on your classpath.
+error: BindingMethodProcessingStep was unable to process 'provideBiometricService(android.content.Context)' because 'ChatPreferences' could not be resolved.
+  
+  Dependency trace:
+      => element (CLASS): com.raizesvivas.app.di.DatabaseModule
+      => element (METHOD): provideChatPreferences(android.content.Context)
+      => type (ERROR return type): ChatPreferences
+  
+  If type 'ChatPreferences' is a generated type, check above for compilation errors that may have prevented the type from being generated. Otherwise, ensure that type 'ChatPreferences' is on your classpath.
+error: BindingMethodProcessingStep was unable to process 'provideBiometricPreferences(android.content.Context)' because 'ChatPreferences' could not be resolved.
+  
+  Dependency trace:
+      => element (CLASS): com.raizesvivas.app.di.DatabaseModule
+      => element (METHOD): provideChatPreferences(android.content.Context)
+      => type (ERROR return type): ChatPreferences
+  
+  If type 'ChatPreferences' is a generated type, check above for compilation errors that may have prevented the type from being generated. Otherwise, ensure that type 'ChatPreferences' is on your classpath.
+error: BindingMethodProcessingStep was unable to process 'provideBiometricCrypto(android.content.Context)' because 'ChatPreferences' could not be resolved.
+  
+  Dependency trace:
+      => element (CLASS): com.raizesvivas.app.di.DatabaseModule
+      => element (METHOD): provideChatPreferences(android.content.Context)
+      => type (ERROR return type): ChatPreferences
+  
+  If type 'ChatPreferences' is a generated type, check above for compilation errors that may have prevented the type from being generated. Otherwise, ensure that type 'ChatPreferences' is on your classpath.
+error: BindingMethodProcessingStep was unable to process 'provideChatPreferences(android.content.Context)' because 'ChatPreferences' could not be resolved.
+  
+  Dependency trace:
+      => element (CLASS): com.raizesvivas.app.di.DatabaseModule
+      => element (METHOD): provideChatPreferences(android.content.Context)
+      => type (ERROR return type): ChatPreferences
+  
+  If type 'ChatPreferences' is a generated type, check above for compilation errors that may have prevented the type from being generated. Otherwise, ensure that type 'ChatPreferences' is on your classpath.
 
-> Task :app:compileDebugKotlin FAILED
+> Task :app:kaptDebugKotlin FAILED
 
 [Incubating] Problems report is available at: file:///C:/Users/robgo/raizesvivas/build/reports/problems/problems-report.html
 
 FAILURE: Build failed with an exception.
 
 * What went wrong:
-Execution failed for task ':app:compileDebugKotlin'.
-> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
-   > Compilation error. See log for more details
+Execution failed for task ':app:kaptDebugKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.gradle.internal.KaptWithoutKotlincTask$KaptExecutionWorkAction
 
 * Try:
 > Run with --info or --debug option to get more log output.
@@ -26,7 +136,7 @@ Execution failed for task ':app:compileDebugKotlin'.
 > Get more help at https://help.gradle.org.
 
 * Exception is:
-org.gradle.api.tasks.TaskExecutionException: Execution failed for task ':app:compileDebugKotlin'.
+org.gradle.api.tasks.TaskExecutionException: Execution failed for task ':app:kaptDebugKotlin'.
 	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.lambda$executeIfValid$1(ExecuteActionsTaskExecuter.java:130)
 	at org.gradle.internal.Try$Failure.ifSuccessfulOrElse(Try.java:293)
 	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.executeIfValid(ExecuteActionsTaskExecuter.java:128)
@@ -59,7 +169,7 @@ org.gradle.api.tasks.TaskExecutionException: Execution failed for task ':app:com
 	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:376)
 	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
-Caused by: org.gradle.workers.internal.DefaultWorkerExecutor$WorkExecutionException: A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+Caused by: org.gradle.workers.internal.DefaultWorkerExecutor$WorkExecutionException: A failure occurred while executing org.jetbrains.kotlin.gradle.internal.KaptWithoutKotlincTask$KaptExecutionWorkAction
 	at org.gradle.workers.internal.DefaultWorkerExecutor$WorkItemExecution.waitForCompletion(DefaultWorkerExecutor.java:287)
 	at org.gradle.internal.work.DefaultAsyncWorkTracker.lambda$waitForItemsAndGatherFailures$2(DefaultAsyncWorkTracker.java:130)
 	at org.gradle.internal.Factories$1.create(Factories.java:31)
@@ -138,7 +248,7 @@ Caused by: org.gradle.workers.internal.DefaultWorkerExecutor$WorkExecutionExcept
 	at org.gradle.internal.execution.steps.AbstractCaptureStateBeforeExecutionStep.execute(AbstractCaptureStateBeforeExecutionStep.java:64)
 	at org.gradle.internal.execution.steps.AbstractCaptureStateBeforeExecutionStep.execute(AbstractCaptureStateBeforeExecutionStep.java:43)
 	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.executeWithNonEmptySources(AbstractSkipEmptyWorkStep.java:125)
-	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.execute(AbstractSkipEmptyWorkStep.java:61)
+	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.execute(AbstractSkipEmptyWorkStep.java:56)
 	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.execute(AbstractSkipEmptyWorkStep.java:36)
 	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsStartedStep.execute(MarkSnapshottingInputsStartedStep.java:38)
 	at org.gradle.internal.execution.steps.LoadPreviousExecutionStateStep.execute(LoadPreviousExecutionStateStep.java:36)
@@ -189,10 +299,12 @@ Caused by: org.gradle.workers.internal.DefaultWorkerExecutor$WorkExecutionExcept
 	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:376)
 	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
-Caused by: org.jetbrains.kotlin.gradle.tasks.CompilationErrorException: Compilation error. See log for more details
-	at org.jetbrains.kotlin.gradle.tasks.TasksUtilsKt.throwExceptionIfCompilationFailed(tasksUtils.kt:20)
-	at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.run(GradleKotlinCompilerWork.kt:141)
-	at org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction.execute(GradleCompilerRunnerWithWorkers.kt:73)
+Caused by: java.lang.reflect.InvocationTargetException
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at org.jetbrains.kotlin.gradle.internal.KaptExecution.run(KaptWithoutKotlincTask.kt:313)
+	at org.jetbrains.kotlin.gradle.internal.KaptWithoutKotlincTask$KaptExecutionWorkAction.execute(KaptWithoutKotlincTask.kt:259)
 	at org.gradle.workers.internal.DefaultWorkerServer.execute(DefaultWorkerServer.java:63)
 	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:66)
 	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:62)
@@ -220,6 +332,11 @@ Caused by: org.jetbrains.kotlin.gradle.tasks.CompilationErrorException: Compilat
 	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runBatch(DefaultConditionalExecutionQueue.java:164)
 	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.run(DefaultConditionalExecutionQueue.java:133)
 	... 2 more
+Caused by: org.jetbrains.kotlin.kapt3.base.util.KaptBaseError: Error while annotation processing
+	at org.jetbrains.kotlin.kapt3.base.AnnotationProcessingKt.doAnnotationProcessing(annotationProcessing.kt:138)
+	at org.jetbrains.kotlin.kapt3.base.AnnotationProcessingKt.doAnnotationProcessing$default(annotationProcessing.kt:33)
+	at org.jetbrains.kotlin.kapt3.base.Kapt.kapt(Kapt.kt:47)
+	... 33 more
 
 
 Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
@@ -228,5 +345,5 @@ You can use '--warning-mode all' to show the individual deprecation warnings and
 
 For more on this, please refer to https://docs.gradle.org/8.13/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
 
-BUILD FAILED in 5m 4s
-31 actionable tasks: 17 executed, 14 from cache
+BUILD FAILED in 1m
+30 actionable tasks: 2 executed, 28 up-to-date

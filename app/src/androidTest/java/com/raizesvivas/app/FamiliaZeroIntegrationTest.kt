@@ -34,6 +34,7 @@ class FamiliaZeroIntegrationTest {
     private lateinit var database: RaizesVivasDatabase
     private val testEmail = "teste_familia@raizesvivas.com"
     private val testPassword = "Teste123456"
+    private val testNomeCompleto = "Usuário Teste Família"
     
     @Before
     fun setup() = runTest {
@@ -52,8 +53,8 @@ class FamiliaZeroIntegrationTest {
         
         // Criar ou autenticar usuário de teste
         try {
-            authService.cadastrar(testEmail, testPassword)
-        } catch (e: Exception) {
+            authService.cadastrar(testEmail, testPassword, testNomeCompleto)
+        } catch (_: Exception) {
             try {
                 authService.login(testEmail, testPassword)
             } catch (e2: Exception) {
@@ -67,7 +68,7 @@ class FamiliaZeroIntegrationTest {
             RaizesVivasDatabase::class.java
         ).allowMainThreadQueries().build()
         
-        usuarioRepository = UsuarioRepository(firestoreService, database.usuarioDao())
+        usuarioRepository = UsuarioRepository(database.usuarioDao(), firestoreService)
         familiaZeroRepository = FamiliaZeroRepository(firestoreService)
         
         Timber.d("✅ Setup completo para testes de Família Zero")
@@ -97,9 +98,12 @@ class FamiliaZeroIntegrationTest {
         
         val familiaZero = FamiliaZero(
             id = UUID.randomUUID().toString() + "_TESTE",
-            nome = "TESTE - Família Teste",
-            criadoPor = authService.currentUser?.uid ?: "",
-            criadoEm = Date()
+            pai = "pai_teste",
+            mae = "mae_teste",
+            fundadoPor = authService.currentUser?.uid.orEmpty(),
+            fundadoEm = Date(),
+            locked = false,
+            arvoreNome = "TESTE - Família Teste"
         )
         
         val resultado = familiaZeroRepository.criar(familiaZero)
@@ -114,7 +118,7 @@ class FamiliaZeroIntegrationTest {
             "Família Zero deve estar criada"
         }
         
-        assert(familiaRecuperada?.nome == familiaZero.nome) {
+        assert(familiaRecuperada?.arvoreNome == familiaZero.arvoreNome) {
             "Nome da Família Zero deve corresponder"
         }
         
@@ -127,9 +131,12 @@ class FamiliaZeroIntegrationTest {
         
         val familiaZero = FamiliaZero(
             id = UUID.randomUUID().toString() + "_TESTE",
-            nome = "TESTE - Família Admin",
-            criadoPor = authService.currentUser?.uid ?: "",
-            criadoEm = Date()
+            pai = "pai_teste",
+            mae = "mae_teste",
+            fundadoPor = authService.currentUser?.uid.orEmpty(),
+            fundadoEm = Date(),
+            locked = false,
+            arvoreNome = "TESTE - Família Admin"
         )
         
         familiaZeroRepository.criar(familiaZero)

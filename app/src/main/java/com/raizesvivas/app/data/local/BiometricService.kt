@@ -66,7 +66,10 @@ class BiometricService @Inject constructor(
         negativeButtonText: String = "Cancelar"
     ): Result<Unit> {
         return suspendCancellableCoroutine { continuation ->
+            Timber.d("🔐 BiometricService.authenticate chamado")
+            
             if (!isBiometricAvailable()) {
+                Timber.e("❌ Biometria não disponível no momento")
                 continuation.resume(Result.failure(Exception("Biometria não disponível")))
                 return@suspendCancellableCoroutine
             }
@@ -74,11 +77,15 @@ class BiometricService @Inject constructor(
             // BiometricPrompt requer FragmentActivity
             val fragmentActivity = activity as? FragmentActivity
             if (fragmentActivity == null) {
+                Timber.e("❌ Activity não é FragmentActivity: ${activity.javaClass.simpleName}")
                 continuation.resume(Result.failure(Exception("Activity precisa ser FragmentActivity para usar BiometricPrompt")))
                 return@suspendCancellableCoroutine
             }
             
-            val executor = ContextCompat.getMainExecutor(context)
+            Timber.d("🔐 Criando BiometricPrompt com FragmentActivity: ${fragmentActivity.javaClass.simpleName}")
+            
+            // Usar o executor da activity para garantir que está na thread principal
+            val executor = ContextCompat.getMainExecutor(fragmentActivity)
             
             val biometricPrompt = BiometricPrompt(
                 fragmentActivity,
@@ -86,8 +93,14 @@ class BiometricService @Inject constructor(
                 object : BiometricPrompt.AuthenticationCallback() {
                     override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
                         super.onAuthenticationSucceeded(result)
-                        Timber.d("✅ Autenticação biométrica bem-sucedida")
-                        continuation.resume(Result.success(Unit))
+                        Timber.d("✅ Autenticação biométrica bem-sucedida - resumindo corrotina")
+                        // O callback já é executado na thread principal pelo BiometricPrompt
+                        if (continuation.isActive) {
+                            continuation.resume(Result.success(Unit))
+                            Timber.d("✅ Corrotina resumida com sucesso")
+                        } else {
+                            Timber.w("⚠️ Corrotina não está mais ativa")
+                        }
                     }
                     
                     override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
@@ -98,16 +111,22 @@ class BiometricService @Inject constructor(
                         if (errorCode == BiometricPrompt.ERROR_NEGATIVE_BUTTON || 
                             errorCode == BiometricPrompt.ERROR_USER_CANCELED ||
                             errorCode == BiometricPrompt.ERROR_CANCELED) {
-                            continuation.cancel()
+                            Timber.d("🔐 Autenticação cancelada pelo usuário (code: $errorCode)")
+                            if (continuation.isActive) {
+                                continuation.cancel()
+                            }
                         } else {
-                            continuation.resume(Result.failure(Exception(errString.toString())))
+                            if (continuation.isActive) {
+                                continuation.resume(Result.failure(Exception("$errString (code: $errorCode)")))
+                            }
                         }
                     }
                     
                     override fun onAuthenticationFailed() {
                         super.onAuthenticationFailed()
-                        Timber.w("⚠️ Autenticação biométrica falhou")
-                        continuation.resume(Result.failure(Exception("Falha na autenticação biométrica")))
+                        Timber.w("⚠️ Autenticação biométrica falhou - usuário pode tentar novamente")
+                        // Não fazer nada aqui - o prompt permite tentar novamente
+                        // Apenas logar para debug
                     }
                 }
             )
@@ -128,7 +147,19 @@ class BiometricService @Inject constructor(
                 Timber.d("🔒 Autenticação biométrica cancelada")
             }
             
-            biometricPrompt.authenticate(promptInfo)
+            Timber.d("🔐 Exibindo BiometricPrompt")
+            // Garantir que authenticate é chamado na thread principal
+            fragmentActivity.runOnUiThread {
+                try {
+                    biometricPrompt.authenticate(promptInfo)
+                    Timber.d("🔐 BiometricPrompt.authenticate chamado com sucesso")
+                } catch (e: Exception) {
+                    Timber.e(e, "❌ Erro ao exibir BiometricPrompt")
+                    if (continuation.isActive) {
+                        continuation.resume(Result.failure(e))
+                    }
+                }
+            }
         }
     }
 }

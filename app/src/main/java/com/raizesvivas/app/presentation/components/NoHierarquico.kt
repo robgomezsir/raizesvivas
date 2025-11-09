@@ -1,15 +1,16 @@
 package com.raizesvivas.app.presentation.components
 
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -18,6 +19,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.raizesvivas.app.domain.model.Pessoa
+import java.util.Calendar
 
 /**
  * Componente de nó hierárquico para árvore genealógica
@@ -40,23 +42,46 @@ fun NoHierarquico(
     modifier: Modifier = Modifier,
     isRaiz: Boolean = false
 ) {
-    val containerColor = when {
-        isRaiz -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f)
-        isSelected -> MaterialTheme.colorScheme.secondaryContainer
-        pessoa.dataFalecimento != null -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-        else -> MaterialTheme.colorScheme.surface
+    val colorScheme = MaterialTheme.colorScheme
+    val baseElevation = when {
+        isRaiz -> 12.dp
+        isSelected -> 8.dp
+        else -> 4.dp
     }
-    
-    val borderColor = when {
-        isRaiz -> MaterialTheme.colorScheme.primary
-        isSelected -> MaterialTheme.colorScheme.secondary
-        else -> MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+
+    val containerColor = remember(isRaiz, isSelected, pessoa.dataFalecimento, colorScheme) {
+        when {
+            isRaiz -> colorScheme.primaryContainer
+            isSelected -> colorScheme.secondaryContainer
+            pessoa.dataFalecimento != null -> colorScheme.surfaceVariant.copy(alpha = 0.8f)
+            else -> colorScheme.surfaceVariant
+        }
     }
-    
-    val borderWidth = when {
-        isRaiz -> 3.dp
-        isSelected -> 2.dp
-        else -> 1.dp
+
+    val iconContainerColor = remember(isRaiz, isSelected, pessoa.dataFalecimento, colorScheme) {
+        when {
+            isRaiz -> colorScheme.primary
+            isSelected -> colorScheme.secondary
+            pessoa.dataFalecimento != null -> colorScheme.surfaceVariant.copy(alpha = 0.7f)
+            else -> colorScheme.surfaceVariant
+        }
+    }
+
+    val iconContentColor = remember(isRaiz, isSelected, pessoa.dataFalecimento, colorScheme) {
+        when {
+            isRaiz -> colorScheme.onPrimary
+            isSelected -> colorScheme.onSecondary
+            pessoa.dataFalecimento != null -> colorScheme.onSurfaceVariant
+            else -> colorScheme.onSurfaceVariant
+        }
+    }
+
+    val idadeOuAno = remember(pessoa.dataNascimento, pessoa.dataFalecimento) {
+        pessoa.calcularIdade()?.takeIf { it >= 0 }?.let { idade ->
+            "$idade anos"
+        } ?: pessoa.dataNascimento?.let { data ->
+            Calendar.getInstance().apply { time = data }.get(Calendar.YEAR).toString()
+        }
     }
     
     Row(
@@ -92,22 +117,19 @@ fun NoHierarquico(
         Card(
             modifier = Modifier
                 .size(if (isRaiz) 110.dp else 90.dp)
-                .clickable { onClick() }
-                .border(
-                    width = borderWidth,
-                    color = borderColor,
-                    shape = RoundedCornerShape(12.dp)
-                ),
+                .clickable { onClick() },
             colors = CardDefaults.cardColors(
-                containerColor = containerColor
-            ),
-            shape = RoundedCornerShape(12.dp),
-            elevation = CardDefaults.cardElevation(
-                defaultElevation = when {
-                    isRaiz -> 8.dp
-                    isSelected -> 6.dp
-                    else -> 4.dp
+                containerColor = containerColor,
+                contentColor = when {
+                    isRaiz -> colorScheme.onPrimaryContainer
+                    isSelected -> colorScheme.onSecondaryContainer
+                    pessoa.dataFalecimento != null -> colorScheme.onSurfaceVariant
+                    else -> colorScheme.onSurfaceVariant
                 }
+            ),
+            shape = RoundedCornerShape(16.dp),
+            elevation = CardDefaults.cardElevation(
+                defaultElevation = baseElevation
             )
         ) {
             Column(
@@ -120,30 +142,40 @@ fun NoHierarquico(
                 // Badge Família Zero
                 if (isRaiz && pessoa.ehFamiliaZero) {
                     Surface(
-                        color = MaterialTheme.colorScheme.primary,
-                        shape = RoundedCornerShape(8.dp),
+                        color = colorScheme.primary,
+                        shape = RoundedCornerShape(50),
                         modifier = Modifier.padding(bottom = 4.dp)
                     ) {
                         Text(
                             text = "Família Zero",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            color = colorScheme.onPrimary,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                             fontWeight = FontWeight.Bold
                         )
                     }
                 }
                 
                 // Ícone
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = null,
-                    modifier = Modifier.size((if (isRaiz) 40.dp else 32.dp)),
-                    tint = when {
-                        isRaiz -> MaterialTheme.colorScheme.primary
-                        else -> MaterialTheme.colorScheme.primary
+                Surface(
+                    modifier = Modifier.size(if (isRaiz) 44.dp else 36.dp),
+                    shape = CircleShape,
+                    color = iconContainerColor,
+                    tonalElevation = if (isRaiz || isSelected) 6.dp else 2.dp,
+                    shadowElevation = if (isRaiz || isSelected) 6.dp else 2.dp
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = null,
+                            tint = iconContentColor,
+                            modifier = Modifier.size(if (isRaiz) 28.dp else 22.dp)
+                        )
                     }
-                )
+                }
                 
                 Spacer(modifier = Modifier.height(if (isRaiz) 6.dp else 4.dp))
                 
@@ -157,23 +189,26 @@ fun NoHierarquico(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.fillMaxWidth(),
                     color = when {
-                        isRaiz -> MaterialTheme.colorScheme.onPrimaryContainer
-                        else -> MaterialTheme.colorScheme.onSurface
+                        isRaiz -> colorScheme.onPrimaryContainer
+                        isSelected -> colorScheme.onSecondaryContainer
+                        else -> colorScheme.onSurface
                     }
                 )
                 
-                // Idade
-                pessoa.dataNascimento?.let { _ ->
-                    val anos = pessoa.calcularIdade()
-                    if (anos != null && anos > 0) {
-                        Text(
-                            text = "${anos} anos",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
+                // Idade ou ano de nascimento
+                idadeOuAno?.let { texto ->
+                    Text(
+                        text = texto,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = when {
+                            isRaiz -> colorScheme.onPrimaryContainer.copy(alpha = 0.9f)
+                            isSelected -> colorScheme.onSecondaryContainer.copy(alpha = 0.9f)
+                            pessoa.dataFalecimento != null -> colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            else -> colorScheme.onSurfaceVariant.copy(alpha = 0.95f)
+                        },
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
                 
                 // Indicador de falecido
@@ -181,7 +216,7 @@ fun NoHierarquico(
                     Text(
                         text = "†",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = colorScheme.error,
                         modifier = Modifier.padding(top = 2.dp)
                     )
                 }

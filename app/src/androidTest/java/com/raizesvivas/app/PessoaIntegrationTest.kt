@@ -8,8 +8,8 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.raizesvivas.app.data.local.RaizesVivasDatabase
 import com.raizesvivas.app.data.remote.firebase.AuthService
 import com.raizesvivas.app.data.remote.firebase.FirestoreService
+import com.raizesvivas.app.data.repository.EdicaoPendenteRepository
 import com.raizesvivas.app.data.repository.PessoaRepository
-import com.raizesvivas.app.data.repository.UsuarioRepository
 import com.raizesvivas.app.domain.model.Pessoa
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.tasks.await
@@ -34,6 +34,7 @@ class PessoaIntegrationTest {
     private lateinit var database: RaizesVivasDatabase
     private val testEmail = "teste_pessoa@raizesvivas.com"
     private val testPassword = "Teste123456"
+    private val testNomeCompleto = "Usuário Teste Pessoa"
     
     @Before
     fun setup() = runTest {
@@ -52,8 +53,8 @@ class PessoaIntegrationTest {
         
         // Criar ou autenticar usuário de teste
         try {
-            authService.cadastrar(testEmail, testPassword)
-        } catch (e: Exception) {
+            authService.cadastrar(testEmail, testPassword, testNomeCompleto)
+        } catch (_: Exception) {
             try {
                 authService.login(testEmail, testPassword)
             } catch (e2: Exception) {
@@ -67,11 +68,11 @@ class PessoaIntegrationTest {
             RaizesVivasDatabase::class.java
         ).allowMainThreadQueries().build()
         
-        val usuarioRepository = UsuarioRepository(firestoreService, database.usuarioDao())
+        val edicaoPendenteRepository = EdicaoPendenteRepository(firestoreService, authService)
         pessoaRepository = PessoaRepository(
-            firestoreService,
             database.pessoaDao(),
-            usuarioRepository
+            firestoreService,
+            edicaoPendenteRepository
         )
         
         Timber.d("✅ Setup completo para testes de pessoa")

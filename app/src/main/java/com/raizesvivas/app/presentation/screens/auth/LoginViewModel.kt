@@ -93,26 +93,59 @@ class LoginViewModel @Inject constructor(
             
             result.onSuccess { user ->
                 Timber.d("✅ Login bem-sucedido: ${user.uid}")
-                val email = user.email ?: _state.value.email
+                val email = (user.email ?: _state.value.email).trim().lowercase()
+                Timber.d("🔐 Email normalizado para salvar: $email")
+                
                 // Salvar email para biometria
                 biometricPreferences.saveLastEmail(email)
-                // Se biometria está disponível mas não habilitada, habilitar automaticamente e salvar senha
-                val shouldEnableBiometric = _state.value.biometricAvailable && !_state.value.biometricEnabled
-                if (shouldEnableBiometric) {
-                    biometricPreferences.setBiometricEnabled(email, true)
+                
+                // Verificar novamente se biometria está disponível (pode ter mudado desde init)
+                val biometricAvailableNow = biometricService.isBiometricAvailable()
+                
+                // Sempre salvar senha se biometria estiver disponível
+                // Isso garante que a senha estará disponível para login biométrico futuro
+                if (biometricAvailableNow) {
+                    Timber.d("🔐 Biometria disponível - salvando senha para login futuro")
+                    Timber.d("🔐 Email usado para salvar senha: $email")
+                    Timber.d("🔐 Senha tem ${_state.value.senha.length} caracteres")
                     biometricCrypto.savePassword(email, _state.value.senha)
-                    _state.update { 
-                        it.copy(
-                            isLoading = false, 
-                            loginSuccess = true,
-                            biometricEnabled = true
-                        )
+                    
+                    // Aguardar um pouco para garantir que a senha foi salva
+                    kotlinx.coroutines.delay(200)
+                    
+                    // Verificar se foi salva corretamente
+                    val savedPasswordCheck = biometricCrypto.getPassword(email)
+                    if (savedPasswordCheck != null) {
+                        Timber.d("✅ Confirmação: Senha foi salva e pode ser recuperada")
+                    } else {
+                        Timber.e("❌ ERRO CRÍTICO: Senha não pode ser recuperada após salvar!")
                     }
-                } else if (_state.value.biometricEnabled) {
-                    // Se já estava habilitada, apenas atualizar senha se necessário
-                    biometricCrypto.savePassword(email, _state.value.senha)
-                    _state.update { it.copy(isLoading = false, loginSuccess = true) }
+                    
+                    // Se biometria não estava habilitada, habilitar automaticamente
+                    if (!_state.value.biometricEnabled) {
+                        Timber.d("🔐 Habilitando biometria automaticamente")
+                        biometricPreferences.setBiometricEnabled(email, true)
+                        _state.update { 
+                            it.copy(
+                                isLoading = false, 
+                                loginSuccess = true,
+                                biometricEnabled = true,
+                                biometricAvailable = true
+                            )
+                        }
+                    } else {
+                        // Se já estava habilitada, apenas atualizar estado
+                        _state.update { 
+                            it.copy(
+                                isLoading = false, 
+                                loginSuccess = true,
+                                biometricAvailable = true
+                            ) 
+                        }
+                    }
                 } else {
+                    // Biometria não disponível - apenas fazer login
+                    Timber.d("⚠️ Biometria não disponível - senha não será salva")
                     _state.update { it.copy(isLoading = false, loginSuccess = true) }
                 }
             }
@@ -148,8 +181,15 @@ class LoginViewModel @Inject constructor(
             return
         }
         
+        // Verificar se biometria ainda está disponível
+        if (!_state.value.biometricAvailable) {
+            Timber.e("❌ Biometria não está mais disponível")
+            _state.update { it.copy(error = "Biometria não está disponível") }
+            return
+        }
+        
         viewModelScope.launch {
-            Timber.d("🔐 Chamando biometricService.authenticate")
+            Timber.d("🔐 Chamando biometricService.authenticate para email: $lastEmail")
             val result = biometricService.authenticate(
                 activity = activity,
                 title = "Entrar com Biometria",
@@ -159,28 +199,70 @@ class LoginViewModel @Inject constructor(
             
             result.onSuccess {
                 Timber.d("✅ Biometria autenticada com sucesso")
+                // Normalizar email para buscar senha
+                val normalizedEmail = lastEmail.trim().lowercase()
+                Timber.d("🔐 Email normalizado para buscar senha: $normalizedEmail")
+                
                 // Após biometria, fazer login automático com email e senha salvos
-                val savedPassword = biometricCrypto.getPassword(lastEmail)
+                val savedPassword = biometricCrypto.getPassword(normalizedEmail)
                 if (savedPassword != null) {
+                    Timber.d("🔐 Senha encontrada, fazendo login automático para: $normalizedEmail")
+                    Timber.d("🔐 Senha recuperada tem ${savedPassword.length} caracteres")
+                    // Atualizar estado primeiro
                     _state.update { 
                         it.copy(
-                            email = lastEmail,
-                            senha = savedPassword
+                            email = normalizedEmail,
+                            senha = savedPassword,
+                            emailError = null,
+                            senhaError = null,
+                            error = null
                         )
                     }
+                    // Aguardar um pouco para garantir que o estado foi atualizado
+                    kotlinx.coroutines.delay(100)
                     // Fazer login automaticamente
+                    Timber.d("🔐 Chamando login() após biometria")
                     login()
                 } else {
-                    // Se não houver senha salva, apenas preenche o email
-                    _state.update { it.copy(email = lastEmail) }
-                    onBiometricSuccess()
+                    Timber.w("⚠️ Senha não encontrada para email: $normalizedEmail")
+                    Timber.w("⚠️ Tentando buscar com email original: $lastEmail")
+                    // Tentar com email original também
+                    val savedPasswordOriginal = biometricCrypto.getPassword(lastEmail)
+                    if (savedPasswordOriginal != null) {
+                        Timber.d("🔐 Senha encontrada com email original, fazendo login")
+                        _state.update { 
+                            it.copy(
+                                email = lastEmail,
+                                senha = savedPasswordOriginal,
+                                emailError = null,
+                                senhaError = null,
+                                error = null
+                            )
+                        }
+                        kotlinx.coroutines.delay(100)
+                        login()
+                    } else {
+                        // Se não houver senha salva, apenas preenche o email
+                        _state.update { 
+                            it.copy(
+                                email = lastEmail,
+                                error = "Senha não encontrada. Por favor, faça login manualmente."
+                            ) 
+                        }
+                        onBiometricSuccess()
+                    }
                 }
             }
             
             result.onFailure { error ->
-                Timber.e(error, "❌ Erro na autenticação biométrica")
-                if (error.message != null && !error.message!!.contains("cancel")) {
-                    _state.update { it.copy(error = "Erro na autenticação biométrica") }
+                Timber.e(error, "❌ Erro na autenticação biométrica: ${error.message}")
+                // Não mostrar erro se foi cancelado pelo usuário
+                if (error.message != null && 
+                    !error.message!!.contains("cancel", ignoreCase = true) &&
+                    !error.message!!.contains("Cancel", ignoreCase = true)) {
+                    _state.update { it.copy(error = "Erro na autenticação biométrica: ${error.message}") }
+                } else {
+                    Timber.d("🔐 Autenticação biométrica cancelada pelo usuário")
                 }
             }
         }

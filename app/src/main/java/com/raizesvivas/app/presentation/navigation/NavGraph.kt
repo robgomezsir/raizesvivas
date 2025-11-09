@@ -19,6 +19,7 @@ import com.raizesvivas.app.presentation.screens.edicoes.GerenciarEdicoesScreen
 import com.raizesvivas.app.presentation.screens.detalhes.DetalhesPessoaScreen
 import com.raizesvivas.app.presentation.screens.duplicatas.ResolverDuplicatasScreen
 import com.raizesvivas.app.presentation.screens.onboarding.FamiliaZeroScreen
+import timber.log.Timber
 
 /**
  * NavGraph principal do app
@@ -38,9 +39,17 @@ fun NavGraph(
     // Navegar para login quando o usuário fizer logout
     LaunchedEffect(authState) {
         val currentRoute = navController.currentBackStackEntry?.destination?.route
-        if (authState == null && currentRoute != Screen.Login.route && currentRoute != Screen.Cadastro.route && currentRoute != Screen.RecuperarSenha.route) {
-            navController.navigate(Screen.Login.route) {
-                popUpTo(0) { inclusive = true }
+        if (authState == null) {
+            // Usuário fez logout - navegar para login
+            if (currentRoute != Screen.Login.route && 
+                currentRoute != Screen.Cadastro.route && 
+                currentRoute != Screen.RecuperarSenha.route) {
+                Timber.d("👋 Usuário deslogado, navegando para Login")
+                navController.navigate(Screen.Login.route) {
+                    // Limpar toda a pilha de navegação e ir para login
+                    popUpTo(Screen.Login.route) { inclusive = false }
+                    launchSingleTop = true
+                }
             }
         }
     }
@@ -142,17 +151,17 @@ fun NavGraph(
             )
         }
         
-        composable(Screen.Arvore.route) {
-            MainNavigation(
-                navControllerPrincipal = navController,
-                startDestination = Screen.Arvore.route
-            )
-        }
-        
         composable(Screen.Perfil.route) {
             MainNavigation(
                 navControllerPrincipal = navController,
                 startDestination = Screen.Perfil.route
+            )
+        }
+        
+        composable(Screen.Familia.route) {
+            MainNavigation(
+                navControllerPrincipal = navController,
+                startDestination = Screen.Familia.route
             )
         }
         

@@ -61,7 +61,7 @@ class FamiliaViewModel @Inject constructor(
 
                 val outrosFamiliares = pessoas.filter { pessoa ->
                     pessoa.id.isNotBlank() && pessoa.id !in montagem.membrosAssociados
-                }
+                }.distinctBy { it.id }
 
                 DadosFamilia(
                     familias = montagem.familias,
@@ -278,8 +278,8 @@ class FamiliaViewModel @Inject constructor(
             val familiaId = calcularFamiliaId(grupo, familiaZero)
             val conjuguePrincipal = grupo.conjugue1 ?: grupo.conjugue2 ?: grupo.filhos.firstOrNull()
             val conjugueSecundario = when {
-                grupo.conjugue1 != null && grupo.conjugue1?.id != conjuguePrincipal?.id -> grupo.conjugue1
-                grupo.conjugue2 != null && grupo.conjugue2?.id != conjuguePrincipal?.id -> grupo.conjugue2
+                grupo.conjugue1 != null && grupo.conjugue1.id != conjuguePrincipal?.id -> grupo.conjugue1
+                grupo.conjugue2 != null && grupo.conjugue2.id != conjuguePrincipal?.id -> grupo.conjugue2
                 else -> null
             }
 
@@ -320,7 +320,8 @@ class FamiliaViewModel @Inject constructor(
                 pessoa.familias.any { it == familiaId || it.equals(familiaId, ignoreCase = true) } &&
                     pessoa.id.isNotBlank() &&
                     pessoa.id !in idsAssociados
-            }.sortedBy { it.nome.lowercase(Locale.getDefault()) }
+            }.distinctBy { it.id }
+            .sortedBy { it.nome.lowercase(Locale.getDefault()) }
 
             val familia = familiaBase.copy(membrosExtras = membrosExtras)
 
@@ -432,12 +433,39 @@ data class FamiliaState(
 )
 
 private fun TreeNodeData.flatten(): List<FamiliaPessoaItem> {
-    val atual = FamiliaPessoaItem(
-        pessoa = pessoa,
-        conjuge = conjuge,
-        nivel = nivel
-    )
-    val filhos = children.flatMap { it.flatten() }
-    return listOf(atual) + filhos
+    val resultado = mutableListOf<FamiliaPessoaItem>()
+    val pessoasProcessadas = mutableSetOf<String>()
+    
+    fun adicionarSeNaoDuplicado(item: FamiliaPessoaItem) {
+        // Verificar se a pessoa principal já foi processada
+        if (item.pessoa.id.isNotBlank() && item.pessoa.id !in pessoasProcessadas) {
+            resultado.add(item)
+            pessoasProcessadas.add(item.pessoa.id)
+        }
+        // Verificar se o cônjuge já foi processado (se não for nulo e não estiver na lista)
+        item.conjuge?.let { conjuge ->
+            if (conjuge.id.isNotBlank() && conjuge.id !in pessoasProcessadas) {
+                // O cônjuge será incluído como parte do item, então apenas marcamos como processado
+                pessoasProcessadas.add(conjuge.id)
+            }
+        }
+    }
+    
+    fun processarRecursivo(node: TreeNodeData) {
+        val item = FamiliaPessoaItem(
+            pessoa = node.pessoa,
+            conjuge = node.conjuge,
+            nivel = node.nivel
+        )
+        adicionarSeNaoDuplicado(item)
+        
+        // Processar filhos recursivamente
+        node.children.forEach { filho ->
+            processarRecursivo(filho)
+        }
+    }
+    
+    processarRecursivo(this)
+    return resultado
 }
 

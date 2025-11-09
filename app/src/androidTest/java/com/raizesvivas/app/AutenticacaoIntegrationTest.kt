@@ -26,6 +26,7 @@ class AutenticacaoIntegrationTest {
     private lateinit var firebaseAuth: FirebaseAuth
     private val testEmail = "teste@raizesvivas.com"
     private val testPassword = "Teste123456"
+    private val testNomeCompleto = "Usuário Teste"
     
     @Before
     fun setup() {
@@ -64,12 +65,12 @@ class AutenticacaoIntegrationTest {
         try {
             val existingUser = firebaseAuth.currentUser
             existingUser?.delete()?.await()
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             // Ignorar se não existir
         }
         
         // Cadastrar novo usuário
-        val resultado = authService.cadastrar(testEmail, testPassword)
+        val resultado = authService.cadastrar(testEmail, testPassword, testNomeCompleto)
         
         assert(resultado.isSuccess) {
             "Cadastro deve ter sucesso. Erro: ${resultado.exceptionOrNull()?.message}"
@@ -95,10 +96,10 @@ class AutenticacaoIntegrationTest {
         try {
             val user = firebaseAuth.currentUser
             if (user == null || user.email != testEmail) {
-                authService.cadastrar(testEmail, testPassword)
+                authService.cadastrar(testEmail, testPassword, testNomeCompleto)
             }
-        } catch (e: Exception) {
-            authService.cadastrar(testEmail, testPassword)
+        } catch (_: Exception) {
+            authService.cadastrar(testEmail, testPassword, testNomeCompleto)
         }
         
         // Fazer logout
@@ -131,10 +132,10 @@ class AutenticacaoIntegrationTest {
         try {
             val user = firebaseAuth.currentUser
             if (user == null || user.email != testEmail) {
-                authService.cadastrar(testEmail, testPassword)
+                authService.cadastrar(testEmail, testPassword, testNomeCompleto)
             }
-        } catch (e: Exception) {
-            authService.cadastrar(testEmail, testPassword)
+        } catch (_: Exception) {
+            authService.cadastrar(testEmail, testPassword, testNomeCompleto)
         }
         
         assert(authService.currentUser != null) {

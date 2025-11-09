@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.raizesvivas.app.data.local.BiometricCrypto
 import com.raizesvivas.app.data.local.BiometricPreferences
 import com.raizesvivas.app.data.local.BiometricService
+import com.raizesvivas.app.data.local.ChatPreferences
 import com.raizesvivas.app.data.local.RaizesVivasDatabase
 import com.raizesvivas.app.data.local.dao.PessoaDao
 import com.raizesvivas.app.data.local.dao.SubfamiliaDao
@@ -13,6 +14,7 @@ import com.raizesvivas.app.data.local.dao.SugestaoSubfamiliaDao
 import com.raizesvivas.app.data.local.dao.NotificacaoDao
 import com.raizesvivas.app.data.local.dao.ConquistaDao
 import com.raizesvivas.app.data.local.dao.PerfilGamificacaoDao
+import com.raizesvivas.app.data.local.dao.FamiliaPersonalizadaDao
 import com.raizesvivas.app.data.local.dao.UsuarioDao
 import com.raizesvivas.app.data.local.migration.RoomMigrations
 import dagger.Module
@@ -138,6 +140,17 @@ object DatabaseModule {
     }
     
     /**
+     * Provê DAO de famílias personalizadas
+     */
+    @Provides
+    @Singleton
+    fun provideFamiliaPersonalizadaDao(
+        database: RaizesVivasDatabase
+    ): FamiliaPersonalizadaDao {
+        return database.familiaPersonalizadaDao()
+    }
+    
+    /**
      * Provê instância do BiometricService
      */
     @Provides
@@ -168,6 +181,17 @@ object DatabaseModule {
         @ApplicationContext context: Context
     ): BiometricCrypto {
         return BiometricCrypto(context)
+    }
+    
+    /**
+     * Provê instância do ChatPreferences
+     */
+    @Provides
+    @Singleton
+    fun provideChatPreferences(
+        @ApplicationContext context: Context
+    ): ChatPreferences {
+        return ChatPreferences(context)
     }
 }
 

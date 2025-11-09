@@ -7,6 +7,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -81,7 +84,7 @@ fun ChatConversationScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Voltar"
                         )
                     }
@@ -144,7 +147,7 @@ fun ChatConversationScreen(
                                     modifier = Modifier.padding(32.dp)
                                 ) {
                                     Icon(
-                                        Icons.Default.Chat,
+                                        Icons.AutoMirrored.Filled.Chat,
                                         contentDescription = null,
                                         modifier = Modifier.size(48.dp),
                                         tint = colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
@@ -409,7 +412,7 @@ private fun MessageInputBar(
                 }
             ) {
                 Icon(
-                    imageVector = Icons.Default.Send,
+                    imageVector = Icons.AutoMirrored.Filled.Send,
                     contentDescription = "Enviar"
                 )
             }

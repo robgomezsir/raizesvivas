@@ -800,9 +800,11 @@ private fun FamiliaCard(
 
                     // Ordenar membros: primeiro por nível, depois por idade decrescente dentro de cada nível
                     val membrosOrdenados = remember(membros) {
-                        membros.groupBy { it.nivel }
+                        // Remover duplicatas por ID da pessoa antes de ordenar
+                        val membrosUnicos = membros.distinctBy { it.pessoa.id }
+                        membrosUnicos.groupBy { it.nivel }
                             .toSortedMap()
-                            .flatMap { (nivel, itemsDoNivel) ->
+                            .flatMap { (_, itemsDoNivel) ->
                                 itemsDoNivel.sortedWith(
                                     compareByDescending<FamiliaPessoaItem> { item ->
                                         // Priorizar idade calculada (mais velho primeiro)

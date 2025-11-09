@@ -170,6 +170,131 @@ object RoomMigrations {
             """)
         }
     }
+    
+    val MIGRATION_6_7 = object : Migration(6, 7) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS familias_personalizadas (
+                    familiaId TEXT NOT NULL PRIMARY KEY,
+                    nome TEXT NOT NULL,
+                    conjuguePrincipalId TEXT,
+                    conjugueSecundarioId TEXT,
+                    ehFamiliaZero INTEGER NOT NULL,
+                    atualizadoPor TEXT,
+                    atualizadoEm INTEGER NOT NULL,
+                    sincronizadoEm INTEGER,
+                    precisaSincronizar INTEGER NOT NULL
+                )
+                """.trimIndent()
+            )
+        }
+    }
+
+    val MIGRATION_7_8 = object : Migration(7, 8) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE pessoas RENAME TO pessoas_old")
+
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS pessoas (
+                    id TEXT NOT NULL PRIMARY KEY,
+                    nome TEXT NOT NULL,
+                    dataNascimento INTEGER,
+                    dataFalecimento INTEGER,
+                    localNascimento TEXT,
+                    localResidencia TEXT,
+                    profissao TEXT,
+                    biografia TEXT,
+                    estadoCivil TEXT,
+                    genero TEXT,
+                    pai TEXT,
+                    mae TEXT,
+                    conjugeAtual TEXT,
+                    exConjuges TEXT NOT NULL,
+                    filhos TEXT NOT NULL,
+                    familias TEXT NOT NULL,
+                    fotoUrl TEXT,
+                    criadoPor TEXT NOT NULL,
+                    criadoEm INTEGER NOT NULL,
+                    modificadoPor TEXT NOT NULL,
+                    modificadoEm INTEGER NOT NULL,
+                    aprovado INTEGER NOT NULL,
+                    versao INTEGER NOT NULL,
+                    ehFamiliaZero INTEGER NOT NULL,
+                    distanciaFamiliaZero INTEGER NOT NULL,
+                    sincronizadoEm INTEGER NOT NULL,
+                    precisaSincronizar INTEGER NOT NULL
+                )
+                """.trimIndent()
+            )
+
+            db.execSQL(
+                """
+                INSERT INTO pessoas (
+                    id,
+                    nome,
+                    dataNascimento,
+                    dataFalecimento,
+                    localNascimento,
+                    localResidencia,
+                    profissao,
+                    biografia,
+                    estadoCivil,
+                    genero,
+                    pai,
+                    mae,
+                    conjugeAtual,
+                    exConjuges,
+                    filhos,
+                    familias,
+                    fotoUrl,
+                    criadoPor,
+                    criadoEm,
+                    modificadoPor,
+                    modificadoEm,
+                    aprovado,
+                    versao,
+                    ehFamiliaZero,
+                    distanciaFamiliaZero,
+                    sincronizadoEm,
+                    precisaSincronizar
+                )
+                SELECT
+                    id,
+                    nome,
+                    dataNascimento,
+                    dataFalecimento,
+                    localNascimento,
+                    localResidencia,
+                    profissao,
+                    biografia,
+                    estadoCivil,
+                    genero,
+                    pai,
+                    mae,
+                    conjugeAtual,
+                    exConjuges,
+                    filhos,
+                    '[]' AS familias,
+                    fotoUrl,
+                    criadoPor,
+                    criadoEm,
+                    modificadoPor,
+                    modificadoEm,
+                    aprovado,
+                    versao,
+                    ehFamiliaZero,
+                    distanciaFamiliaZero,
+                    sincronizadoEm,
+                    precisaSincronizar
+                FROM pessoas_old
+                """.trimIndent()
+            )
+
+            db.execSQL("DROP TABLE pessoas_old")
+        }
+    }
 
     fun getAllMigrations(): Array<Migration> {
         return arrayOf(
@@ -177,7 +302,9 @@ object RoomMigrations {
             MIGRATION_2_3,
             MIGRATION_3_4,
             MIGRATION_4_5,
-            MIGRATION_5_6
+            MIGRATION_5_6,
+            MIGRATION_6_7,
+            MIGRATION_7_8
         )
     }
 }

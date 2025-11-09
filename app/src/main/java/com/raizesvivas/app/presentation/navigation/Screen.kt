@@ -14,7 +14,7 @@ sealed class Screen(val route: String) {
     
     // Principal
     object Home : Screen("home")
-    object Arvore : Screen("arvore")
+    object Familia : Screen("familia")
     object Conquistas : Screen("conquistas")
     object Mural : Screen("mural")
     object CadastroPessoa : Screen("cadastro_pessoa")
@@ -35,5 +35,12 @@ sealed class Screen(val route: String) {
     
     // Duplicatas
     object ResolverDuplicatas : Screen("resolver_duplicatas")
+    
+    // Chat
+    object ChatContacts : Screen("chat_contacts")
+    object ChatConversation : Screen("chat_conversation/{destinatarioId}/{destinatarioNome}") {
+        fun createRoute(destinatarioId: String, destinatarioNome: String) = 
+            "chat_conversation/$destinatarioId/${destinatarioNome.replace("/", "_")}"
+    }
 }
 

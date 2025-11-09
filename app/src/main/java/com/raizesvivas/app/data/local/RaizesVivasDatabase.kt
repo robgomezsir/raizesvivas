@@ -18,6 +18,7 @@ import com.raizesvivas.app.data.local.entities.*
  * Versão 4: Adiciona sistema de gamificação (conquistas e perfil)
  * Versão 5: Adiciona campos estadoCivil e genero na tabela pessoas
  * Versão 6: Conquistas agora são exclusivas por usuário (adiciona usuarioId à tabela progresso_conquistas)
+ * Versão 7: Adiciona tabela de famílias personalizadas para nomes customizados
  */
 @Database(
     entities = [
@@ -28,9 +29,10 @@ import com.raizesvivas.app.data.local.entities.*
         MembroFamiliaEntity::class,
         NotificacaoEntity::class,
         ConquistaEntity::class,
-        PerfilGamificacaoEntity::class
+        PerfilGamificacaoEntity::class,
+        FamiliaPersonalizadaEntity::class
     ],
-    version = 6,
+    version = 8,
     exportSchema = true,
     autoMigrations = []
 )
@@ -76,6 +78,11 @@ abstract class RaizesVivasDatabase : RoomDatabase() {
      * DAO para operações com perfil de gamificação
      */
     abstract fun perfilGamificacaoDao(): PerfilGamificacaoDao
+    
+    /**
+     * DAO para nomes personalizados de famílias
+     */
+    abstract fun familiaPersonalizadaDao(): FamiliaPersonalizadaDao
     
     companion object {
         /**
