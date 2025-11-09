@@ -2,7 +2,6 @@ package com.raizesvivas.app.di
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.FirebaseFirestoreSettings
 import com.google.firebase.storage.FirebaseStorage
 import com.raizesvivas.app.data.remote.firebase.StorageService
 import dagger.Module
@@ -35,19 +34,15 @@ object FirebaseModule {
     
     /**
      * Provê instância do Cloud Firestore
+     * 
+     * Nota: A persistência offline é habilitada por padrão nas versões recentes do Firestore.
+     * Os métodos setPersistenceEnabled() e setCacheSizeBytes() foram deprecated porque
+     * a persistência offline agora é automática e não precisa ser configurada explicitamente.
      */
     @Provides
     @Singleton
     fun provideFirebaseFirestore(): FirebaseFirestore {
-        return FirebaseFirestore.getInstance().apply {
-            // Configurações de performance e economia de custos
-            // Habilitar persistência offline para reduzir leituras da nuvem
-            // Isso faz o Firestore guardar os dados no cache e reduzir leituras da nuvem
-            firestoreSettings = FirebaseFirestoreSettings.Builder()
-                .setPersistenceEnabled(true)
-                .setCacheSizeBytes(FirebaseFirestoreSettings.CACHE_SIZE_UNLIMITED)
-                .build()
-        }
+        return FirebaseFirestore.getInstance()
     }
     
     /**
