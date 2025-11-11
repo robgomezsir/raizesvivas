@@ -12,7 +12,10 @@ import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,6 +25,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.raizesvivas.app.domain.model.MensagemChat
+import kotlinx.coroutines.flow.collectLatest
+import timber.log.Timber
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -37,22 +42,76 @@ fun ChatConversationScreen(
     onNavigateBack: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
-    val mensagens by viewModel.mensagens.collectAsState()
+    val conversaState by viewModel.conversa.collectAsState()
     val currentUserId = viewModel.currentUserId
     var textoMensagem by remember { mutableStateOf("") }
     val colorScheme = MaterialTheme.colorScheme
     val mostrarModalLimpar = state.mostrarModalLimparMensagens
 
     val listState = rememberLazyListState()
+    val pullToRefreshState = rememberPullToRefreshState()
 
-    LaunchedEffect(mensagens.size) {
-        if (mensagens.isNotEmpty()) {
-            listState.animateScrollToItem(mensagens.size - 1)
+    LaunchedEffect(pullToRefreshState.isRefreshing) {
+        if (pullToRefreshState.isRefreshing && !state.isRefreshingConversa) {
+            viewModel.recarregarConversa()
         }
     }
 
-    LaunchedEffect(destinatarioId, destinatarioNome) {
-        viewModel.abrirConversa(destinatarioId, destinatarioNome)
+    LaunchedEffect(state.isRefreshingConversa) {
+        if (!state.isRefreshingConversa && pullToRefreshState.isRefreshing) {
+            pullToRefreshState.endRefresh()
+        }
+    }
+
+    // Auto-scroll para última mensagem quando nova mensagem chega (se usuário estiver próximo do final)
+    LaunchedEffect(conversaState.mensagens.size) {
+        val mensagens = conversaState.mensagens
+        if (mensagens.isNotEmpty() && !conversaState.isCarregandoMais) {
+            val lastIndex = mensagens.lastIndex
+            val nearBottom = listState.firstVisibleItemIndex >= (lastIndex - 1)
+            if (nearBottom) {
+                Timber.d("📱 Auto-scroll até a posição $lastIndex")
+                listState.animateScrollToItem(lastIndex)
+            }
+        }
+    }
+
+    LaunchedEffect(listState, conversaState.possuiMaisAntigas, conversaState.isCarregandoMais) {
+        snapshotFlow { listState.firstVisibleItemIndex }
+            .collectLatest { index ->
+                if (
+                    index <= 2 &&
+                    conversaState.possuiMaisAntigas &&
+                    !conversaState.isCarregandoMais &&
+                    !conversaState.isLoadingInicial
+                ) {
+                    Timber.d("⬆️ Solicitando carregamento de mensagens antigas")
+                    viewModel.carregarMensagensAntigas()
+                }
+            }
+    }
+
+    // CRÍTICO: Inicia o listener quando a tela é composta
+    // Segue o padrão do possivel.txt: chama iniciarConversa() diretamente
+    LaunchedEffect(destinatarioId, currentUserId) {
+        val remetenteId = currentUserId
+        if (remetenteId != null) {
+            Timber.d("🚀 LaunchedEffect: Iniciando conversa - remetenteId=$remetenteId, destinatarioId=$destinatarioId")
+            // abrirConversa() já chama iniciarConversa() internamente
+            viewModel.abrirConversa(destinatarioId, destinatarioNome)
+        } else {
+            Timber.e("❌ LaunchedEffect: currentUserId é null")
+        }
+    }
+    
+    // CRÍTICO: Limpa quando sai da tela para evitar memory leaks
+    // IMPORTANTE: Sempre chame limparConversa() ao sair da tela
+    DisposableEffect(Unit) {
+        Timber.d("🔍 DisposableEffect: Configurando limpeza para conversa")
+        onDispose {
+            Timber.d("🧹 DisposableEffect: Limpando conversa ao sair da tela")
+            viewModel.limparConversa()
+        }
     }
 
     val backgroundBrush = remember(colorScheme) {
@@ -75,7 +134,7 @@ fun ChatConversationScreen(
                             style = MaterialTheme.typography.titleLarge
                         )
                         Text(
-                            text = if (mensagens.isNotEmpty()) "Online" else "",
+                            text = if (conversaState.mensagens.isNotEmpty()) "Online" else "",
                             style = MaterialTheme.typography.labelSmall,
                             color = colorScheme.onSurfaceVariant
                         )
@@ -90,7 +149,7 @@ fun ChatConversationScreen(
                     }
                 },
                 actions = {
-                    if (mensagens.isNotEmpty()) {
+                    if (conversaState.mensagens.isNotEmpty()) {
                         IconButton(onClick = { viewModel.abrirModalLimparMensagens() }) {
                             Icon(
                                 imageVector = Icons.Default.Delete,
@@ -117,6 +176,22 @@ fun ChatConversationScreen(
                     .fillMaxSize()
                     .padding(paddingValues)
             ) {
+                if (state.isRefreshingConversa) {
+                    LinearProgressIndicator(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                    )
+                }
+                val mensagensDistinct = remember(conversaState.mensagens) {
+                    val ordenadas = conversaState.mensagens.sortedBy { it.enviadoEm }
+                    val mapa = LinkedHashMap<String, MensagemChat>()
+                    ordenadas.forEach { mensagem ->
+                        mapa[mensagem.id] = mensagem
+                    }
+                    mapa.values.toList()
+                }
+
                 LazyColumn(
                     state = listState,
                     modifier = Modifier
@@ -125,9 +200,23 @@ fun ChatConversationScreen(
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    if (conversaState.isCarregandoMais) {
+                        item("loading_more") {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                            }
+                        }
+                    }
+
                     items(
-                        items = mensagens,
-                        key = { it.id }
+                        items = mensagensDistinct,
+                        key = { mensagem -> mensagem.id },
+                        contentType = { "message" }
                     ) { mensagem ->
                         MessageBubble(
                             mensagem = mensagem,
@@ -135,33 +224,48 @@ fun ChatConversationScreen(
                         )
                     }
 
-                    if (mensagens.isEmpty()) {
-                        item {
-                            Box(
-                                modifier = Modifier.fillMaxWidth(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                                    modifier = Modifier.padding(32.dp)
+                    when {
+                        conversaState.isLoadingInicial && mensagensDistinct.isEmpty() -> {
+                            item("initial_loading") {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 24.dp),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(
-                                        Icons.AutoMirrored.Filled.Chat,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(48.dp),
-                                        tint = colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                    )
-                                    Text(
-                                        "Nenhuma mensagem ainda",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = colorScheme.onSurfaceVariant
-                                    )
-                                    Text(
-                                        "Envie a primeira mensagem!",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                                    )
+                                    CircularProgressIndicator()
+                                }
+                            }
+                        }
+
+                        mensagensDistinct.isEmpty() -> {
+                            item("empty_state") {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                                        modifier = Modifier.padding(32.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.AutoMirrored.Filled.Chat,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(48.dp),
+                                            tint = colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                        )
+                                        Text(
+                                            "Nenhuma mensagem ainda",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = colorScheme.onSurfaceVariant
+                                        )
+                                        Text(
+                                            "Envie a primeira mensagem!",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -180,8 +284,13 @@ fun ChatConversationScreen(
                     enabled = !state.isLoading
                 )
             }
+
+            PullToRefreshContainer(
+                state = pullToRefreshState,
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
         }
-        
+
         // Modal de confirmação para limpar mensagens
         if (mostrarModalLimpar) {
             ModalLimparMensagens(
@@ -230,11 +339,11 @@ private fun ModalLimparMensagens(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "Tem certeza que deseja limpar todas as mensagens da conversa com $destinatarioNome?",
+                    text = "Tem certeza que deseja apagar todas as mensagens que você enviou para $destinatarioNome?",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
-                    text = "Esta ação não pode ser desfeita e removerá permanentemente todas as mensagens desta conversa.",
+                    text = "Esta ação não pode ser desfeita e removerá permanentemente apenas as mensagens que você enviou. As mensagens recebidas serão mantidas.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

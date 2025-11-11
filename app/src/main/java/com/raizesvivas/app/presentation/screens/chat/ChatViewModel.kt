@@ -11,6 +11,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
 import timber.log.Timber
 import java.util.*
 import javax.inject.Inject
@@ -42,31 +43,22 @@ class ChatViewModel @Inject constructor(
     private val _usuarios = MutableStateFlow<List<Usuario>>(emptyList())
     val usuarios: StateFlow<List<Usuario>> = _usuarios.asStateFlow()
 
-    // Mensagens da conversa atual (sincronizadas em tempo real via Firestore)
-    val mensagens: StateFlow<List<MensagemChat>> = combine(
-        _state.map { it.destinatarioId },
-        flow { emit(currentUserId) }
-    ) { destinatarioId: String?, remetenteId: String? ->
-        when {
-            destinatarioId != null && remetenteId != null -> {
-                chatRepository.observarMensagens(
-                    remetenteId = remetenteId,
-                    destinatarioId = destinatarioId
-                )
-            }
-            else -> {
-                flowOf(emptyList())
-            }
-        }
-    }.flatMapLatest { it }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = emptyList()
-    )
+    // Estado da conversa atual (mensagens + status de paginação)
+    private val _conversa = MutableStateFlow(ConversaUiState())
+    val conversa: StateFlow<ConversaUiState> = _conversa.asStateFlow()
+
+    // Mapa de mensagens não lidas por contato (remetenteId -> quantidade)
+    private val _mensagensNaoLidas = MutableStateFlow<Map<String, Int>>(emptyMap())
+    val mensagensNaoLidas: StateFlow<Map<String, Int>> = _mensagensNaoLidas.asStateFlow()
+    
+    // Job para controlar a coleta do Flow de mensagens
+    private var conversaJob: Job? = null
+    private var carregarUsuariosJob: Job? = null
 
     init {
         carregarUsuarios()
         atualizarNomeRemetente()
+        observarMensagensNaoLidas()
     }
 
     /**
@@ -96,8 +88,11 @@ class ChatViewModel @Inject constructor(
     /**
      * Carrega a lista de usuários disponíveis para chat
      */
-    private fun carregarUsuarios() {
-        viewModelScope.launch {
+    private fun carregarUsuarios(force: Boolean = false) {
+        if (_state.value.isLoading && !force) return
+        carregarUsuariosJob?.cancel()
+        carregarUsuariosJob = viewModelScope.launch {
+            if (_state.value.isLoading && !force) return@launch
             try {
                 _state.update { it.copy(isLoading = true) }
                 val userId = currentUserId
@@ -134,10 +129,83 @@ class ChatViewModel @Inject constructor(
         }
     }
 
+    fun recarregarUsuarios() {
+        carregarUsuarios(force = true)
+    }
+    
     /**
-     * Abre uma conversa com um destinatário
+     * Observa mensagens não lidas destinadas ao usuário atual.
+     */
+    private fun observarMensagensNaoLidas() {
+        viewModelScope.launch {
+            chatRepository.observarMensagensNaoLidas()
+                .distinctUntilChanged()
+                .catch { error ->
+                    Timber.e(error, "❌ Erro ao observar mensagens não lidas")
+                }
+                .collect { mapa ->
+                    if (_mensagensNaoLidas.value != mapa) {
+                        _mensagensNaoLidas.value = mapa
+                        _state.update { it.copy(mensagensNaoLidas = mapa) }
+                    }
+                }
+        }
+    }
+
+    fun iniciarConversa(
+        usuarioId: String,
+        contatoId: String,
+        marcarRefresh: Boolean = false
+    ) {
+        Timber.d("🚀 iniciarConversa: usuarioId=$usuarioId, contatoId=$contatoId, refresh=$marcarRefresh")
+
+        if (marcarRefresh) {
+            _state.update { it.copy(isRefreshingConversa = true) }
+            viewModelScope.launch {
+                chatRepository.reiniciarConversa(usuarioId, contatoId)
+            }
+        } else {
+            _conversa.value = ConversaUiState()
+        }
+
+        conversaJob?.cancel()
+        conversaJob = viewModelScope.launch {
+            chatRepository.observarConversa(usuarioId, contatoId)
+                .collect { estado ->
+                    _conversa.value = ConversaUiState(
+                        mensagens = estado.mensagens,
+                        isLoadingInicial = estado.isLoadingInicial,
+                        isCarregandoMais = estado.isCarregandoMais,
+                        possuiMaisAntigas = estado.possuiMaisAntigas
+                    )
+                    if (_state.value.isRefreshingConversa && !estado.isLoadingInicial && !estado.isCarregandoMais) {
+                        _state.update { it.copy(isRefreshingConversa = false) }
+                    }
+                }
+        }
+
+        viewModelScope.launch {
+            try {
+                val outroUsuarioId = contatoId
+                val usuarioAtualId = usuarioId
+                chatRepository.marcarMensagensComoLidas(
+                    remetenteId = outroUsuarioId,
+                    destinatarioId = usuarioAtualId
+                )
+                Timber.d("✅ Mensagens marcadas como lidas")
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao marcar mensagens como lidas")
+            }
+        }
+    }
+    
+    /**
+     * Abre uma conversa com um destinatário (compatibilidade com código existente)
+     * Chama iniciarConversa() internamente
      */
     fun abrirConversa(destinatarioId: String, destinatarioNome: String) {
+        Timber.d("💬 Abrindo conversa: destinatarioId=$destinatarioId, destinatarioNome=$destinatarioNome")
+        
         _state.update {
             it.copy(
                 destinatarioId = destinatarioId,
@@ -148,23 +216,44 @@ class ChatViewModel @Inject constructor(
 
         val remetenteId = currentUserId
         if (remetenteId != null) {
-            viewModelScope.launch {
-                try {
-                    chatRepository.marcarMensagensComoLidas(
-                        remetenteId = remetenteId,
-                        destinatarioId = destinatarioId
-                    )
-                } catch (e: Exception) {
-                    Timber.e(e, "❌ Erro ao marcar mensagens como lidas")
-                }
-            }
+            // Usar iniciarConversa() para iniciar os listeners
+            iniciarConversa(remetenteId, destinatarioId)
+        } else {
+            Timber.e("❌ Erro: remetenteId é null ao abrir conversa")
+        }
+    }
+
+    fun recarregarConversa() {
+        val remetenteId = currentUserId ?: return
+        val destinatarioId = _state.value.destinatarioId ?: return
+        iniciarConversa(remetenteId, destinatarioId, marcarRefresh = true)
+    }
+
+    fun carregarMensagensAntigas() {
+        val remetenteId = currentUserId ?: return
+        val destinatarioId = _state.value.destinatarioId ?: return
+        viewModelScope.launch {
+            chatRepository.carregarMensagensAntigas(remetenteId, destinatarioId)
         }
     }
 
     /**
-     * Fecha a conversa atual
+     * Limpa a conversa e cancela os listeners
+     * CRÍTICO: Deve ser chamado ao sair da tela para evitar memory leaks
      */
-    fun fecharConversa() {
+    fun limparConversa() {
+        Timber.d("🧹 ChatViewModel.limparConversa: Cancelando listeners e limpando mensagens")
+        
+        // Cancelar job de coleta de mensagens
+        conversaJob?.cancel()
+        conversaJob = null
+        _conversa.value = ConversaUiState()
+        val remetenteId = currentUserId
+        val destinatarioId = _state.value.destinatarioId
+        if (remetenteId != null && destinatarioId != null) {
+            chatRepository.pararObservacao(remetenteId, destinatarioId)
+        }
+
         _state.update {
             it.copy(
                 mostrarConversa = false,
@@ -172,6 +261,15 @@ class ChatViewModel @Inject constructor(
                 destinatarioNome = null
             )
         }
+        
+        Timber.d("✅ Conversa limpa e listeners cancelados")
+    }
+    
+    /**
+     * Fecha a conversa atual (alias para limparConversa)
+     */
+    fun fecharConversa() {
+        limparConversa()
     }
 
     /**
@@ -199,6 +297,8 @@ class ChatViewModel @Inject constructor(
             return
         }
 
+        // Garantir que o timestamp seja sempre atual (não futuro)
+        val timestampAtual = System.currentTimeMillis()
         val mensagem = MensagemChat(
             id = UUID.randomUUID().toString(),
             remetenteId = remetenteId,
@@ -206,9 +306,11 @@ class ChatViewModel @Inject constructor(
             destinatarioId = destinatarioId,
             destinatarioNome = destinatarioNome,
             texto = textoLimpo,
-            enviadoEm = Date(),
+            enviadoEm = Date(timestampAtual), // Usar timestamp atual explícito
             lida = false
         )
+        
+        Timber.d("📤 Enviando mensagem: remetenteId=$remetenteId, destinatarioId=$destinatarioId, timestamp=${mensagem.enviadoEm.time}")
 
         viewModelScope.launch {
             try {
@@ -238,7 +340,8 @@ class ChatViewModel @Inject constructor(
     }
     
     /**
-     * Limpa todas as mensagens da conversa atual
+     * Limpa todas as mensagens ENVIADAS pelo usuário na conversa atual
+     * IMPORTANTE: Remove apenas mensagens enviadas pelo usuário, mantém mensagens recebidas
      */
     fun limparMensagensConversa() {
         val remetenteId = currentUserId
@@ -252,10 +355,12 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 _state.update { it.copy(isLoading = true, erro = null, mostrarModalLimparMensagens = false) }
+
                 val resultado = chatRepository.limparMensagensConversa(remetenteId, destinatarioId)
+
                 resultado.onSuccess {
                     _state.update { it.copy(isLoading = false) }
-                    Timber.d("✅ Mensagens da conversa limpas com sucesso")
+                    Timber.d("✅ Mensagens ENVIADAS da conversa limpas com sucesso")
                 }.onFailure { error ->
                     _state.update {
                         it.copy(
@@ -296,5 +401,14 @@ data class ChatState(
     val destinatarioId: String? = null,
     val destinatarioNome: String? = null,
     val remetenteNome: String = "Usuário",
+    val isRefreshingConversa: Boolean = false,
+    val mensagensNaoLidas: Map<String, Int> = emptyMap(),
     val mostrarModalLimparMensagens: Boolean = false
+)
+
+data class ConversaUiState(
+    val mensagens: List<MensagemChat> = emptyList(),
+    val isLoadingInicial: Boolean = true,
+    val isCarregandoMais: Boolean = false,
+    val possuiMaisAntigas: Boolean = true
 )

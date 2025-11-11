@@ -1,16 +1,19 @@
 package com.raizesvivas.app.data.remote.firebase
 
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.raizesvivas.app.domain.model.*
+import com.raizesvivas.app.domain.model.ConquistaDisponivel
+import com.raizesvivas.app.domain.model.ProgressoConquista
 import com.raizesvivas.app.utils.RetryHelper
-import com.google.firebase.firestore.WriteBatch
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import timber.log.Timber
-import java.util.Date
+import java.util.Date as JavaDate
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -33,11 +36,26 @@ class FirestoreService @Inject constructor(
     private val familiaZeroCollection = firestore.collection("familia_zero")
     private val invitesCollection = firestore.collection("invites")
     private val pendingEditsCollection = firestore.collection("pending_edits")
+    private val historicoEdicoesCollection = firestore.collection("edicoes_historico")
+    @Suppress("unused")
     private val duplicatesCollection = firestore.collection("duplicates")
     private val recadosCollection = firestore.collection("recados")
     private val familiasPersonalizadasCollection = firestore.collection("familias_personalizadas")
     
-    // Coleção de conquistas: usuarios/{userId}/conquistas/{conquistaId}
+    // NOVA ESTRUTURA: Coleções de conquistas
+    private val usuariosCollection = firestore.collection("usuarios")
+    private val conquistasDisponiveisCollection = firestore.collection("conquistasDisponiveis")
+    
+    // Coleção de progresso de conquistas: usuarios/{userId}/conquistasProgresso/{conquistaId}
+    private fun conquistasProgressoCollection(usuarioId: String) = 
+        usuariosCollection.document(usuarioId).collection("conquistasProgresso")
+    
+    // Coleção de perfis de gamificação: usuarios/{userId}/perfilGamificacao
+    private fun perfilGamificacaoCollection(usuarioId: String) = 
+        usuariosCollection.document(usuarioId).collection("perfilGamificacao")
+    
+    // DEPRECATED: Mantido para compatibilidade durante migração
+    @Deprecated("Use conquistasProgressoCollection ao invés de conquistasCollection", ReplaceWith("conquistasProgressoCollection(usuarioId)"))
     private fun conquistasCollection(usuarioId: String) = 
         usersCollection.document(usuarioId).collection("conquistas")
     
@@ -63,6 +81,7 @@ class FirestoreService @Inject constructor(
                     "nome" to usuario.nome,
                     "email" to usuario.email,
                     "fotoUrl" to usuario.fotoUrl,
+                    "posicaoRanking" to usuario.posicaoRanking,
                     "pessoaVinculada" to usuario.pessoaVinculada,
                     "ehAdministrador" to usuario.ehAdministrador,
                     "familiaZeroPai" to usuario.familiaZeroPai,
@@ -116,6 +135,7 @@ class FirestoreService @Inject constructor(
     /**
      * Observa usuário em tempo real
      */
+    @Suppress("unused")
     fun observarUsuario(userId: String): Flow<Usuario?> = callbackFlow {
         val registration = usersCollection.document(userId)
             .addSnapshotListener { snapshot, error ->
@@ -422,7 +442,7 @@ class FirestoreService @Inject constructor(
                             id = doc.id,
                             nome = pessoa.nome.takeIf { it.isNotBlank() } ?: "Sem nome",
                             criadoPor = pessoa.criadoPor.takeIf { it.isNotBlank() } ?: "unknown",
-                            criadoEm = pessoa.criadoEm.takeIf { it.time > 0 } ?: java.util.Date(),
+                            criadoEm = pessoa.criadoEm.takeIf { it.time > 0 } ?: JavaDate(),
                             modificadoPor = pessoa.modificadoPor.takeIf { it.isNotBlank() } ?: pessoa.criadoPor,
                             modificadoEm = pessoa.modificadoEm.takeIf { it.time > 0 } ?: pessoa.criadoEm
                         )
@@ -476,7 +496,7 @@ class FirestoreService @Inject constructor(
                                     id = doc.id,
                                     nome = pessoa.nome.takeIf { it.isNotBlank() } ?: "Sem nome",
                                     criadoPor = pessoa.criadoPor.takeIf { it.isNotBlank() } ?: "unknown",
-                                    criadoEm = pessoa.criadoEm.takeIf { it.time > 0 } ?: java.util.Date(),
+                                    criadoEm = pessoa.criadoEm.takeIf { it.time > 0 } ?: JavaDate(),
                                     modificadoPor = pessoa.modificadoPor.takeIf { it.isNotBlank() } ?: pessoa.criadoPor,
                                     modificadoEm = pessoa.modificadoEm.takeIf { it.time > 0 } ?: pessoa.criadoEm
                                 )
@@ -507,6 +527,7 @@ class FirestoreService @Inject constructor(
     /**
      * Busca pessoas aprovadas
      */
+    @Suppress("unused")
     suspend fun buscarPessoasAprovadas(): Result<List<Pessoa>> {
         return try {
             val snapshot = peopleCollection
@@ -527,6 +548,7 @@ class FirestoreService @Inject constructor(
     /**
      * Busca o casal da Família Zero
      */
+    @Suppress("unused")
     suspend fun buscarCasalFamiliaZero(): Result<List<Pessoa>> {
         return try {
             val snapshot = peopleCollection
@@ -573,6 +595,7 @@ class FirestoreService @Inject constructor(
      * Busca pessoas por nome (pesquisa parcial)
      * Como nomeNormalizado não está mais salvo, busca por nome diretamente
      */
+    @Suppress("unused")
     suspend fun buscarPessoasPorNome(termo: String): Result<List<Pessoa>> {
         return try {
             val termoLower = termo.lowercase()
@@ -603,9 +626,10 @@ class FirestoreService @Inject constructor(
      * Detecta possíveis duplicatas
      * (mesmo nome, data de nascimento e pais)
      */
+    @Suppress("unused")
     suspend fun detectarDuplicatas(
         nome: String,
-        dataNascimento: Date?,
+        dataNascimento: JavaDate?,
         pai: String?,
         mae: String?
     ): Result<List<Pessoa>> {
@@ -855,11 +879,11 @@ class FirestoreService @Inject constructor(
             pessoaVinculada = data["pessoaVinculada"] as? String,
             status = try {
                 StatusConvite.valueOf(data["status"] as? String ?: StatusConvite.PENDENTE.name)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 StatusConvite.PENDENTE
             },
-            criadoEm = (data["criadoEm"] as? com.google.firebase.Timestamp)?.toDate() ?: Date(),
-            expiraEm = (data["expiraEm"] as? com.google.firebase.Timestamp)?.toDate() ?: Date()
+            criadoEm = (data["criadoEm"] as? com.google.firebase.Timestamp)?.toDate() ?: JavaDate(),
+            expiraEm = (data["expiraEm"] as? com.google.firebase.Timestamp)?.toDate() ?: JavaDate()
         )
     }
     
@@ -873,9 +897,17 @@ class FirestoreService @Inject constructor(
     suspend fun criarEdicaoPendente(edicao: EdicaoPendente): Result<Unit> {
         return RetryHelper.withNetworkRetry {
             try {
+                // Converter AlteracaoCampo para Map para salvar no Firestore
+                val camposAlteradosMap = edicao.camposAlterados.mapValues { (_, alteracao) ->
+                    hashMapOf(
+                        "valorAnterior" to alteracao.valorAnterior,
+                        "valorNovo" to alteracao.valorNovo
+                    )
+                }
+                
                 val data = hashMapOf(
                     "pessoaId" to edicao.pessoaId,
-                    "camposAlterados" to edicao.camposAlterados,
+                    "camposAlterados" to camposAlteradosMap,
                     "editadoPor" to edicao.editadoPor,
                     "status" to edicao.status.name,
                     "criadoEm" to edicao.criadoEm,
@@ -969,8 +1001,12 @@ class FirestoreService @Inject constructor(
                         val pessoaOriginal = pessoaSnapshot.toPessoa()
                             ?: return@withNetworkRetry Result.failure(Exception("Erro ao converter pessoa"))
                         
-                        // Aplicar mudanças
-                        val pessoaAtualizada = aplicarMudancas(pessoaOriginal, edicao.camposAlterados)
+                        // Aplicar mudanças (usar apenas valores novos, filtrar nulos)
+                        val camposValoresNovos = edicao.camposAlterados
+                            .mapValues { it.value.valorNovo }
+                            .filterValues { it != null }
+                            .mapValues { it.value!! } as Map<String, Any>
+                        val pessoaAtualizada = aplicarMudancas(pessoaOriginal, camposValoresNovos)
                         
                         // Batch update: atualizar pessoa e marcar edição como aprovada
                         val batch = firestore.batch()
@@ -1008,11 +1044,18 @@ class FirestoreService @Inject constructor(
                         batch.set(pessoaRef, pessoaData)
                         
                         val edicaoRef = pendingEditsCollection.document(edicaoId)
-                        batch.update(edicaoRef, mapOf(
-                            "status" to StatusEdicao.APROVADA.name,
-                            "revisadoPor" to revisadoPor,
-                            "revisadoEm" to Date()
+                        val revisadoEm = JavaDate()
+
+                        val historicoRef = historicoEdicoesCollection.document(edicaoId)
+                        batch.set(historicoRef, criarDadosHistoricoEdicao(
+                            edicao = edicao,
+                            statusFinal = StatusEdicao.APROVADA,
+                            revisadoPor = revisadoPor,
+                            revisadoEm = revisadoEm,
+                            foiAplicada = true
                         ))
+
+                        batch.delete(edicaoRef)
                         
                         batch.commit().await()
                         
@@ -1037,17 +1080,29 @@ class FirestoreService @Inject constructor(
     ): Result<Unit> {
         return RetryHelper.withNetworkRetry {
             try {
-                pendingEditsCollection.document(edicaoId)
-                    .update(
-                        mapOf(
-                            "status" to StatusEdicao.REJEITADA.name,
-                            "revisadoPor" to revisadoPor,
-                            "revisadoEm" to Date()
-                        )
-                    )
-                    .await()
-                
-                Timber.d("✅ Edição $edicaoId rejeitada")
+                val edicaoSnapshot = pendingEditsCollection.document(edicaoId).get().await()
+                if (!edicaoSnapshot.exists()) {
+                    return@withNetworkRetry Result.failure(Exception("Edição pendente não encontrada"))
+                }
+
+                val edicao = edicaoSnapshot.toEdicaoPendente()
+                val batch = firestore.batch()
+                val edicaoRef = pendingEditsCollection.document(edicaoId)
+                val revisadoEm = JavaDate()
+
+                val historicoRef = historicoEdicoesCollection.document(edicaoId)
+                batch.set(historicoRef, criarDadosHistoricoEdicao(
+                    edicao = edicao,
+                    statusFinal = StatusEdicao.REJEITADA,
+                    revisadoPor = revisadoPor,
+                    revisadoEm = revisadoEm,
+                    foiAplicada = false
+                ))
+
+                batch.delete(edicaoRef)
+                batch.commit().await()
+
+                Timber.d("✅ Edição $edicaoId rejeitada e removida")
                 Result.success(Unit)
                 
             } catch (e: Exception) {
@@ -1091,8 +1146,8 @@ class FirestoreService @Inject constructor(
         camposAlterados.forEach { (campo, valor) ->
             pessoaAtualizada = when (campo) {
                 "nome" -> pessoaAtualizada.copy(nome = valor as String)
-                "dataNascimento" -> pessoaAtualizada.copy(dataNascimento = valor as? Date)
-                "dataFalecimento" -> pessoaAtualizada.copy(dataFalecimento = valor as? Date)
+                "dataNascimento" -> pessoaAtualizada.copy(dataNascimento = valor as? JavaDate)
+                "dataFalecimento" -> pessoaAtualizada.copy(dataFalecimento = valor as? JavaDate)
                 "localNascimento" -> pessoaAtualizada.copy(localNascimento = valor as? String)
                 "localResidencia" -> pessoaAtualizada.copy(localResidencia = valor as? String)
                 "profissao" -> pessoaAtualizada.copy(profissao = valor as? String)
@@ -1101,7 +1156,7 @@ class FirestoreService @Inject constructor(
                     estadoCivil = (valor as? String)?.let {
                         try {
                             EstadoCivil.valueOf(it)
-                        } catch (e: Exception) {
+                        } catch (_: Exception) {
                             null
                         }
                     }
@@ -1110,7 +1165,7 @@ class FirestoreService @Inject constructor(
                     genero = (valor as? String)?.let {
                         try {
                             Genero.valueOf(it)
-                        } catch (e: Exception) {
+                        } catch (_: Exception) {
                             null
                         }
                     }
@@ -1128,8 +1183,63 @@ class FirestoreService @Inject constructor(
         }
         
         return pessoaAtualizada.copy(
-            modificadoEm = Date(),
+            modificadoEm = JavaDate(),
             versao = pessoaOriginal.versao + 1
+        )
+    }
+
+    private suspend fun removerRecadosExpirados(
+        recadosExpirados: List<Recado>,
+        currentUserId: String,
+        usuarioEhAdmin: Boolean
+    ) {
+        val deletaveis = recadosExpirados.filter { recado ->
+            usuarioEhAdmin || recado.autorId == currentUserId
+        }
+
+        if (deletaveis.isEmpty()) {
+            if (recadosExpirados.isNotEmpty()) {
+                Timber.d("⚠️ Recados expirados encontrados, mas usuário não tem permissão para deletar: ${recadosExpirados.map { it.id }}")
+            }
+            return
+        }
+
+        try {
+            val batch = firestore.batch()
+            deletaveis.forEach { recado ->
+                batch.delete(recadosCollection.document(recado.id))
+            }
+            batch.commit().await()
+            Timber.d("🗑️ ${deletaveis.size} recados expirados removidos do Firestore")
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao remover recados expirados")
+        }
+    }
+
+    private fun criarDadosHistoricoEdicao(
+        edicao: EdicaoPendente,
+        statusFinal: StatusEdicao,
+        revisadoPor: String,
+        revisadoEm: JavaDate,
+        foiAplicada: Boolean
+    ): Map<String, Any?> {
+        val camposAlteradosMap = edicao.camposAlterados.mapValues { (_, alteracao) ->
+            mapOf(
+                "valorAnterior" to alteracao.valorAnterior,
+                "valorNovo" to alteracao.valorNovo
+            )
+        }
+
+        return mapOf(
+            "edicaoId" to edicao.id,
+            "pessoaId" to edicao.pessoaId,
+            "camposAlterados" to camposAlteradosMap,
+            "statusFinal" to statusFinal.name,
+            "foiAplicada" to foiAplicada,
+            "editadoPor" to edicao.editadoPor,
+            "criadoEm" to edicao.criadoEm,
+            "revisadoPor" to revisadoPor,
+            "revisadoEm" to revisadoEm
         )
     }
     
@@ -1140,20 +1250,52 @@ class FirestoreService @Inject constructor(
         val data = this.data ?: return EdicaoPendente()
         
         @Suppress("UNCHECKED_CAST")
+        val camposAlteradosRaw = (data["camposAlterados"] as? Map<String, Any>) ?: emptyMap()
+        
+        // Converter Map do Firestore para Map<String, AlteracaoCampo>
+        val camposAlterados = camposAlteradosRaw.mapValues { (_, valor) ->
+            when (valor) {
+                is Map<*, *> -> {
+                    // Formato novo: { valorAnterior: X, valorNovo: Y }
+                    AlteracaoCampo(
+                        valorAnterior = normalizarValorEdicaoCampo(valor["valorAnterior"]),
+                        valorNovo = normalizarValorEdicaoCampo(valor["valorNovo"])
+                    )
+                }
+                else -> {
+                    // Formato antigo (compatibilidade): apenas valor novo
+                    AlteracaoCampo(
+                        valorAnterior = null,
+                        valorNovo = normalizarValorEdicaoCampo(valor)
+                    )
+                }
+            }
+        }
+        
         return EdicaoPendente(
             id = id,
             pessoaId = data["pessoaId"] as? String ?: "",
-            camposAlterados = (data["camposAlterados"] as? Map<String, Any>) ?: emptyMap(),
+            camposAlterados = camposAlterados,
             editadoPor = data["editadoPor"] as? String ?: "",
             status = try {
                 StatusEdicao.valueOf(data["status"] as? String ?: StatusEdicao.PENDENTE.name)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 StatusEdicao.PENDENTE
             },
-            criadoEm = (data["criadoEm"] as? com.google.firebase.Timestamp)?.toDate() ?: Date(),
+            criadoEm = (data["criadoEm"] as? com.google.firebase.Timestamp)?.toDate() ?: JavaDate(),
             revisadoEm = (data["revisadoEm"] as? com.google.firebase.Timestamp)?.toDate(),
             revisadoPor = data["revisadoPor"] as? String
         )
+    }
+
+    private fun normalizarValorEdicaoCampo(valor: Any?): Any? {
+        return when (valor) {
+            null -> null
+            is com.google.firebase.Timestamp -> valor.toDate()
+            is List<*> -> valor.map { normalizarValorEdicaoCampo(it) }
+            is Map<*, *> -> valor.mapValues { (_, v) -> normalizarValorEdicaoCampo(v) }
+            else -> valor
+        }
     }
     
     // ============================================
@@ -1313,6 +1455,7 @@ class FirestoreService @Inject constructor(
         }
     }
     
+    @Suppress("unused")
     fun observarFamiliasPersonalizadas(): Flow<List<FamiliaPersonalizada>> = callbackFlow {
         // Limite de 100 para economizar leituras e cumprir regras de segurança
         val listener = familiasPersonalizadasCollection
@@ -1426,13 +1569,13 @@ class FirestoreService @Inject constructor(
      */
     suspend fun atualizarStatusSugestao(
         sugestaoId: String,
-        status: com.raizesvivas.app.domain.model.StatusSugestao
+        status: StatusSugestao
     ): Result<Unit> {
         return RetryHelper.withNetworkRetry {
             try {
                 val data = hashMapOf<String, Any>(
                     "status" to status.name,
-                    "processadoEm" to Date()
+                    "processadoEm" to JavaDate()
                 )
                 
                 sugestoesSubfamiliasCollection.document(sugestaoId)
@@ -1493,14 +1636,14 @@ class FirestoreService @Inject constructor(
             nome = data["nome"] as? String ?: "",
             tipo = try {
                 TipoFamilia.valueOf(data["tipo"] as? String ?: TipoFamilia.SUBFAMILIA.name)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 TipoFamilia.SUBFAMILIA
             },
             familiaPaiId = data["familiaPaiId"] as? String ?: "",
             membroOrigem1Id = data["membroOrigem1Id"] as? String ?: "",
             membroOrigem2Id = data["membroOrigem2Id"] as? String ?: "",
             nivelHierarquico = (data["nivelHierarquico"] as? Long)?.toInt() ?: 1,
-            criadoEm = (data["criadoEm"] as? com.google.firebase.Timestamp)?.toDate() ?: Date(),
+            criadoEm = (data["criadoEm"] as? com.google.firebase.Timestamp)?.toDate() ?: JavaDate(),
             criadoPor = data["criadoPor"] as? String ?: "",
             descricao = data["descricao"] as? String,
             ativa = data["ativa"] as? Boolean ?: true
@@ -1512,8 +1655,8 @@ class FirestoreService @Inject constructor(
         
         val atualizadoEm = when (val valor = data["atualizadoEm"]) {
             is com.google.firebase.Timestamp -> valor.toDate()
-            is Date -> valor
-            else -> Date()
+            is JavaDate -> valor
+            else -> JavaDate()
         }
         
         val familiaId = (data["familiaId"] as? String)?.takeIf { it.isNotBlank() } ?: id
@@ -1598,7 +1741,11 @@ class FirestoreService @Inject constructor(
      * @param filtroId ID da pessoa vinculada ao usuário (ou userId como fallback)
      * @param autorId ID do usuário autenticado (para filtrar recados criados por ele)
      */
-    suspend fun buscarRecados(filtroId: String, autorId: String): Result<List<Recado>> {
+    suspend fun buscarRecados(
+        filtroId: String,
+        autorId: String,
+        usuarioEhAdmin: Boolean
+    ): Result<List<Recado>> {
         return RetryHelper.withNetworkRetry {
             try {
                 // NOTA: Não é mais necessário filtrar por "deletado" pois agora fazemos hard delete
@@ -1612,20 +1759,20 @@ class FirestoreService @Inject constructor(
                     .await()
                 
                 val recados = snapshot.documents.mapNotNull { it.toRecado() }
-                    .filter { recado ->
-                        // Filtrar recados expirados (exceto fixados)
-                        if (recado.estaExpirado() && !recado.estaFixadoEValido()) {
-                            return@filter false
-                        }
-                        
-                        // Filtrar: 
-                        // - Recados gerais (destinatarioId == null)
-                        // - Recados direcionados ao filtroId (pessoa vinculada)
-                        // - Recados criados pelo próprio usuário (sempre visíveis)
-                        recado.ehGeral || recado.destinatarioId == filtroId || recado.autorId == autorId
-                    }
+                val (expirados, validosOuFixados) = recados.partition { it.estaExpirado() && !it.estaFixadoEValido() }
+
+                if (expirados.isNotEmpty()) {
+                    removerRecadosExpirados(expirados, autorId, usuarioEhAdmin)
+                }
+
+                val recadosFiltrados = validosOuFixados.filter { recado ->
+                    // - Recados gerais (destinatarioId == null)
+                    // - Recados direcionados ao filtroId (pessoa vinculada)
+                    // - Recados criados pelo próprio usuário (sempre visíveis)
+                    recado.ehGeral || recado.destinatarioId == filtroId || recado.autorId == autorId
+                }
                 
-                Result.success(recados)
+                Result.success(recadosFiltrados)
                 
             } catch (e: Exception) {
                 Timber.e(e, "❌ Erro ao buscar recados")
@@ -1640,7 +1787,11 @@ class FirestoreService @Inject constructor(
      * @param filtroId ID da pessoa vinculada ao usuário (ou userId como fallback)
      * @param autorId ID do usuário autenticado (para filtrar recados criados por ele)
      */
-    fun observarRecados(filtroId: String, autorId: String): Flow<List<Recado>> = callbackFlow {
+    fun observarRecados(
+        filtroId: String,
+        autorId: String,
+        usuarioEhAdmin: Boolean
+    ): Flow<List<Recado>> = callbackFlow {
         try {
             // NOTA: Não é mais necessário filtrar por "deletado" pois agora fazemos hard delete
             // Apenas ordenar por data de criação (descendente)
@@ -1667,20 +1818,21 @@ class FirestoreService @Inject constructor(
                                     Timber.e(e, "❌ Erro ao converter documento para Recado: ${doc.id}")
                                     null
                                 }
-                            }.filter { recado ->
-                                // Filtrar recados expirados (exceto fixados)
-                                if (recado.estaExpirado() && !recado.estaFixadoEValido()) {
-                                    return@filter false
+                            }
+
+                            val (expirados, validosOuFixados) = recados.partition { it.estaExpirado() && !it.estaFixadoEValido() }
+
+                            if (expirados.isNotEmpty()) {
+                                launch {
+                                    removerRecadosExpirados(expirados, autorId, usuarioEhAdmin)
                                 }
-                                
-                                // Filtrar: 
-                                // - Recados gerais (destinatarioId == null)
-                                // - Recados direcionados ao filtroId (pessoa vinculada)
-                                // - Recados criados pelo próprio usuário (sempre visíveis)
+                            }
+
+                            val recadosFiltrados = validosOuFixados.filter { recado ->
                                 recado.ehGeral || recado.destinatarioId == filtroId || recado.autorId == autorId
                             }
-                            Timber.d("📨 Recados observados: ${recados.size} recados (filtroId: $filtroId)")
-                            trySend(recados)
+                            Timber.d("📨 Recados observados: ${recadosFiltrados.size} recados (filtroId: $filtroId)")
+                            trySend(recadosFiltrados)
                         } catch (e: Exception) {
                             Timber.e(e, "❌ Erro ao processar recados")
                             trySend(emptyList())
@@ -1725,7 +1877,7 @@ class FirestoreService @Inject constructor(
                     .await()
                 
                 Timber.d("✅ Recado atualizado: ${recado.id}")
-                Result.success(recado.copy(atualizadoEm = java.util.Date()))
+                Result.success(recado.copy(atualizadoEm = JavaDate()))
                 
             } catch (e: Exception) {
                 Timber.e(e, "❌ Erro ao atualizar recado")
@@ -1789,8 +1941,8 @@ class FirestoreService @Inject constructor(
             titulo = data["titulo"] as? String ?: "",
             mensagem = data["mensagem"] as? String ?: "",
             cor = data["cor"] as? String ?: "primary",
-            criadoEm = (data["criadoEm"] as? com.google.firebase.Timestamp)?.toDate() ?: Date(),
-            atualizadoEm = (data["atualizadoEm"] as? com.google.firebase.Timestamp)?.toDate() ?: Date(),
+            criadoEm = (data["criadoEm"] as? com.google.firebase.Timestamp)?.toDate() ?: JavaDate(),
+            atualizadoEm = (data["atualizadoEm"] as? com.google.firebase.Timestamp)?.toDate() ?: JavaDate(),
             deletado = data["deletado"] as? Boolean ?: false,
             fixado = data["fixado"] as? Boolean ?: false,
             fixadoAte = (data["fixadoAte"] as? com.google.firebase.Timestamp)?.toDate(),
@@ -1809,7 +1961,7 @@ class FirestoreService @Inject constructor(
     suspend fun fixarRecado(
         recadoId: String,
         fixado: Boolean,
-        fixadoAte: Date? = null,
+        fixadoAte: JavaDate? = null,
         adminId: String
     ): Result<Unit> {
         return RetryHelper.withNetworkRetry {
@@ -1822,7 +1974,7 @@ class FirestoreService @Inject constructor(
                 if (fixado) {
                     // Se fixadoAte for null, significa fixação permanente (não expira)
                     if (fixadoAte != null) {
-                        updateData["fixadoAte"] = com.google.firebase.Timestamp(fixadoAte)
+                        updateData["fixadoAte"] = com.google.firebase.Timestamp(java.util.Date(fixadoAte.time))
                     }
                     // Se fixadoAte for null, não adicionar o campo (fixação permanente)
                     updateData["fixadoPor"] = adminId
@@ -1890,14 +2042,17 @@ class FirestoreService @Inject constructor(
     
     /**
      * Salva progresso de conquista do usuário no Firestore
+     * NOVA ESTRUTURA: usuarios/{userId}/conquistasProgresso/{conquistaId}
      */
     suspend fun salvarConquista(
         usuarioId: String,
         conquistaId: String,
-        desbloqueada: Boolean,
+        concluida: Boolean,
         desbloqueadaEm: Long?,
-        progressoAtual: Int,
-        progressoTotal: Int
+        progresso: Int,
+        progressoTotal: Int,
+        nivel: Int = 1,
+        pontuacaoTotal: Int = 0
     ): Result<Unit> {
         return RetryHelper.withNetworkRetry {
             try {
@@ -1908,19 +2063,25 @@ class FirestoreService @Inject constructor(
                     )
                 }
                 
-                val data = hashMapOf(
+                val data = hashMapOf<String, Any>(
                     "conquistaId" to conquistaId,
-                    "usuarioId" to usuarioId,
-                    "desbloqueada" to desbloqueada,
-                    "desbloqueadaEm" to (desbloqueadaEm?.let { 
-                        com.google.firebase.Timestamp(Date(it))
-                    }),
-                    "progressoAtual" to progressoAtual,
+                    "concluida" to concluida,
+                    "progresso" to progresso,
                     "progressoTotal" to progressoTotal,
-                    "atualizadoEm" to com.google.firebase.Timestamp.now()
+                    "nivel" to nivel,
+                    "pontuacaoTotal" to pontuacaoTotal
                 )
                 
-                conquistasCollection(usuarioId)
+                val desbloqueadaEmTimestamp = when {
+                    concluida -> desbloqueadaEm?.let { com.google.firebase.Timestamp(java.util.Date(it)) }
+                        ?: com.google.firebase.Timestamp.now()
+                    desbloqueadaEm != null -> com.google.firebase.Timestamp(java.util.Date(desbloqueadaEm))
+                    else -> null
+                }
+                
+                desbloqueadaEmTimestamp?.let { data["desbloqueadaEm"] = it }
+                
+                conquistasProgressoCollection(usuarioId)
                     .document(conquistaId)
                     .set(data)
                     .await()
@@ -1937,6 +2098,7 @@ class FirestoreService @Inject constructor(
     
     /**
      * Salva múltiplas conquistas do usuário no Firestore
+     * NOVA ESTRUTURA: usuarios/{userId}/conquistasProgresso/{conquistaId}
      */
     suspend fun salvarTodasConquistas(
         usuarioId: String,
@@ -1952,20 +2114,26 @@ class FirestoreService @Inject constructor(
                 }
                 
                 val batch = firestore.batch()
-                val collection = conquistasCollection(usuarioId)
+                val collection = conquistasProgressoCollection(usuarioId)
                 
-                conquistas.forEach { progresso ->
-                    val data = hashMapOf(
+                conquistas.forEach { progresso: ProgressoConquista ->
+                    val data = hashMapOf<String, Any>(
                         "conquistaId" to progresso.conquistaId,
-                        "usuarioId" to usuarioId,
-                        "desbloqueada" to progresso.desbloqueada,
-                        "desbloqueadaEm" to (progresso.desbloqueadaEm?.let { 
-                            com.google.firebase.Timestamp(it)
-                        }),
-                        "progressoAtual" to progresso.progressoAtual,
+                        "concluida" to progresso.concluida,
+                        "progresso" to progresso.progresso,
                         "progressoTotal" to progresso.progressoTotal,
-                        "atualizadoEm" to com.google.firebase.Timestamp.now()
+                        "nivel" to progresso.nivel,
+                        "pontuacaoTotal" to progresso.pontuacaoTotal
                     )
+                    
+                    val desbloqueadaEmTimestamp = when {
+                        progresso.concluida -> progresso.desbloqueadaEm?.let { com.google.firebase.Timestamp(it) }
+                            ?: com.google.firebase.Timestamp.now()
+                        progresso.desbloqueadaEm != null -> com.google.firebase.Timestamp(progresso.desbloqueadaEm)
+                        else -> null
+                    }
+                    
+                    desbloqueadaEmTimestamp?.let { data["desbloqueadaEm"] = it }
                     
                     val docRef = collection.document(progresso.conquistaId)
                     batch.set(docRef, data)
@@ -1984,6 +2152,7 @@ class FirestoreService @Inject constructor(
     
     /**
      * Busca todas as conquistas do usuário no Firestore
+     * NOVA ESTRUTURA: usuarios/{userId}/conquistasProgresso/{conquistaId}
      */
     suspend fun buscarConquistasDoUsuario(usuarioId: String): Result<List<ProgressoConquista>> {
         return try {
@@ -1995,28 +2164,29 @@ class FirestoreService @Inject constructor(
             
             Timber.d("🔍 Buscando conquistas do Firestore para usuarioId: $usuarioId")
             
-            // Usar subcollection específica do usuário: users/{userId}/conquistas/{conquistaId}
-            // Isso garante que apenas conquistas deste usuarioId sejam retornadas
-            val snapshot = conquistasCollection(usuarioId).get().await()
+            // NOVA ESTRUTURA: usuarios/{userId}/conquistasProgresso/{conquistaId}
+            val snapshot = conquistasProgressoCollection(usuarioId).get().await()
             
             val conquistas = snapshot.documents.mapNotNull { doc ->
                 try {
                     val data = doc.data ?: return@mapNotNull null
                     
-                    // VALIDAÇÃO: Verificar se o documento tem usuarioId e se corresponde
-                    val docUsuarioId = data["usuarioId"] as? String
-                    if (docUsuarioId != null && docUsuarioId != usuarioId) {
-                        Timber.e("❌ ERRO CRÍTICO: Documento de conquista tem usuarioId incorreto! Doc: ${doc.id}, Esperado: $usuarioId, Encontrado: $docUsuarioId")
-                        // Não incluir este documento
-                        return@mapNotNull null
-                    }
+                    // Suportar ambos formatos durante migração (antigo e novo)
+                    val concluida = data["concluida"] as? Boolean 
+                        ?: (data["desbloqueada"] as? Boolean ?: false)
+                    val progresso = (data["progresso"] as? Long)?.toInt()
+                        ?: (data["progressoAtual"] as? Long)?.toInt() ?: 0
+                    val nivel = (data["nivel"] as? Long)?.toInt() ?: 1
+                    val pontuacaoTotal = (data["pontuacaoTotal"] as? Long)?.toInt() ?: 0
                     
                     ProgressoConquista(
                         conquistaId = data["conquistaId"] as? String ?: doc.id,
-                        desbloqueada = data["desbloqueada"] as? Boolean ?: false,
+                        concluida = concluida,
                         desbloqueadaEm = (data["desbloqueadaEm"] as? com.google.firebase.Timestamp)?.toDate(),
-                        progressoAtual = (data["progressoAtual"] as? Long)?.toInt() ?: 0,
-                        progressoTotal = (data["progressoTotal"] as? Long)?.toInt() ?: 0
+                        progresso = progresso,
+                        progressoTotal = (data["progressoTotal"] as? Long)?.toInt() ?: 0,
+                        nivel = nivel,
+                        pontuacaoTotal = pontuacaoTotal
                     )
                 } catch (e: Exception) {
                     Timber.e(e, "❌ Erro ao converter conquista: ${doc.id} para usuarioId: $usuarioId")
@@ -2035,7 +2205,9 @@ class FirestoreService @Inject constructor(
     
     /**
      * Observa conquistas do usuário em tempo real
+     * NOVA ESTRUTURA: usuarios/{userId}/conquistasProgresso/{conquistaId}
      */
+    @Suppress("unused")
     fun observarConquistasDoUsuario(usuarioId: String): Flow<List<ProgressoConquista>> {
         return callbackFlow {
             if (usuarioId.isBlank()) {
@@ -2044,7 +2216,7 @@ class FirestoreService @Inject constructor(
                 return@callbackFlow
             }
             
-            val listenerRegistration = conquistasCollection(usuarioId)
+            val listenerRegistration = conquistasProgressoCollection(usuarioId)
                 .addSnapshotListener { snapshot, error ->
                     if (error != null) {
                         Timber.e(error, "❌ Erro ao observar conquistas")
@@ -2060,15 +2232,149 @@ class FirestoreService @Inject constructor(
                     val conquistas = snapshot.documents.mapNotNull { doc ->
                         try {
                             val data = doc.data ?: return@mapNotNull null
+                            
+                            // Suportar ambos formatos durante migração (antigo e novo)
+                            val concluida = data["concluida"] as? Boolean 
+                                ?: (data["desbloqueada"] as? Boolean ?: false)
+                            val progresso = (data["progresso"] as? Long)?.toInt()
+                                ?: (data["progressoAtual"] as? Long)?.toInt() ?: 0
+                            val nivel = (data["nivel"] as? Long)?.toInt() ?: 1
+                            val pontuacaoTotal = (data["pontuacaoTotal"] as? Long)?.toInt() ?: 0
+                            
                             ProgressoConquista(
                                 conquistaId = data["conquistaId"] as? String ?: doc.id,
-                                desbloqueada = data["desbloqueada"] as? Boolean ?: false,
+                                concluida = concluida,
                                 desbloqueadaEm = (data["desbloqueadaEm"] as? com.google.firebase.Timestamp)?.toDate(),
-                                progressoAtual = (data["progressoAtual"] as? Long)?.toInt() ?: 0,
-                                progressoTotal = (data["progressoTotal"] as? Long)?.toInt() ?: 0
+                                progresso = progresso,
+                                progressoTotal = (data["progressoTotal"] as? Long)?.toInt() ?: 0,
+                                nivel = nivel,
+                                pontuacaoTotal = pontuacaoTotal
                             )
                         } catch (e: Exception) {
                             Timber.e(e, "❌ Erro ao converter conquista: ${doc.id}")
+                            null
+                        }
+                    }
+                    
+                    trySend(conquistas)
+                }
+            
+            awaitClose {
+                listenerRegistration.remove()
+            }
+        }
+    }
+    
+    // ============================================
+    // CONQUISTAS DISPONÍVEIS (PÚBLICAS)
+    // ============================================
+    
+    /**
+     * Busca todas as conquistas disponíveis no Firestore
+     */
+    @Suppress("unused")
+    suspend fun buscarConquistasDisponiveis(): Result<List<ConquistaDisponivel>> {
+        return try {
+            Timber.d("🔍 Buscando conquistas disponíveis do Firestore")
+            
+            val snapshot = conquistasDisponiveisCollection.get().await()
+            
+            val conquistas = snapshot.documents.mapNotNull { doc ->
+                try {
+                    val data = doc.data ?: return@mapNotNull null
+                    
+                    ConquistaDisponivel(
+                        id = data["id"] as? String ?: doc.id,
+                        titulo = data["titulo"] as? String ?: "",
+                        descricao = data["descricao"] as? String ?: "",
+                        icone = data["icone"] as? String ?: "",
+                        categoria = data["categoria"] as? String ?: "",
+                        criterio = (data["criterio"] as? Long)?.toInt() ?: 0,
+                        pontosRecompensa = (data["pontosRecompensa"] as? Long)?.toInt() ?: 0
+                    )
+                } catch (e: Exception) {
+                    Timber.e(e, "❌ Erro ao converter conquista disponível: ${doc.id}")
+                    null
+                }
+            }
+            
+            Timber.d("✅ ${conquistas.size} conquistas disponíveis carregadas do Firestore")
+            Result.success(conquistas)
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao buscar conquistas disponíveis do Firestore")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Busca uma conquista disponível específica por ID
+     */
+    suspend fun buscarConquistaDisponivel(conquistaId: String): Result<ConquistaDisponivel> {
+        return try {
+            Timber.d("🔍 Buscando conquista disponível: $conquistaId")
+            
+            val doc = conquistasDisponiveisCollection.document(conquistaId).get().await()
+            
+            if (!doc.exists()) {
+                return Result.failure(Exception("Conquista não encontrada: $conquistaId"))
+            }
+            
+            val data = doc.data ?: return Result.failure(Exception("Dados vazios para: $conquistaId"))
+            
+            val conquista = ConquistaDisponivel(
+                id = data["id"] as? String ?: doc.id,
+                titulo = data["titulo"] as? String ?: "",
+                descricao = data["descricao"] as? String ?: "",
+                icone = data["icone"] as? String ?: "",
+                categoria = data["categoria"] as? String ?: "",
+                criterio = (data["criterio"] as? Long)?.toInt() ?: 0,
+                pontosRecompensa = (data["pontosRecompensa"] as? Long)?.toInt() ?: 0
+            )
+            
+            Result.success(conquista)
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao buscar conquista disponível: $conquistaId")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Observa conquistas disponíveis em tempo real
+     */
+    @Suppress("unused")
+    fun observarConquistasDisponiveis(): Flow<List<ConquistaDisponivel>> {
+        return callbackFlow {
+            Timber.d("🔍 Iniciando observação de conquistas disponíveis")
+            
+            val listenerRegistration = conquistasDisponiveisCollection
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        Timber.e(error, "❌ Erro ao observar conquistas disponíveis")
+                        close(error)
+                        return@addSnapshotListener
+                    }
+                    
+                    if (snapshot == null) {
+                        trySend(emptyList())
+                        return@addSnapshotListener
+                    }
+                    
+                    val conquistas: List<ConquistaDisponivel> = snapshot.documents.mapNotNull { doc ->
+                        try {
+                            val data = doc.data ?: return@mapNotNull null
+                            
+                            ConquistaDisponivel(
+                                id = data["id"] as? String ?: doc.id,
+                                titulo = data["titulo"] as? String ?: "",
+                                descricao = data["descricao"] as? String ?: "",
+                                icone = data["icone"] as? String ?: "",
+                                categoria = data["categoria"] as? String ?: "",
+                                criterio = (data["criterio"] as? Long)?.toInt() ?: 0,
+                                pontosRecompensa = (data["pontosRecompensa"] as? Long)?.toInt() ?: 0
+                            )
+                        } catch (e: Exception) {
+                            Timber.e(e, "❌ Erro ao converter conquista disponível: ${doc.id}")
                             null
                         }
                     }
@@ -2088,11 +2394,14 @@ class FirestoreService @Inject constructor(
     
     // Collection de mensagens do chat
     private val mensagensChatCollection = firestore.collection("mensagens_chat")
+    private companion object {
+        private const val CHAT_LISTENER_DEFAULT_LIMIT = 50
+    }
     
     /**
      * Salva uma mensagem de chat no Firestore
      */
-    suspend fun salvarMensagemChat(mensagem: com.raizesvivas.app.domain.model.MensagemChat): Result<Unit> {
+    suspend fun salvarMensagemChat(mensagem: MensagemChat): Result<Unit> {
         return RetryHelper.withNetworkRetry {
             try {
                 if (mensagem.remetenteId.isBlank() || mensagem.destinatarioId.isBlank()) {
@@ -2101,6 +2410,8 @@ class FirestoreService @Inject constructor(
                     )
                 }
                 
+                val conversaId = gerarConversaId(mensagem.remetenteId, mensagem.destinatarioId)
+                
                 val data = hashMapOf(
                     "remetenteId" to mensagem.remetenteId,
                     "remetenteNome" to mensagem.remetenteNome,
@@ -2108,7 +2419,9 @@ class FirestoreService @Inject constructor(
                     "destinatarioNome" to mensagem.destinatarioNome,
                     "texto" to mensagem.texto.trim(),
                     "enviadoEm" to com.google.firebase.Timestamp(mensagem.enviadoEm),
-                    "lida" to mensagem.lida
+                    "lida" to mensagem.lida,
+                    "conversaId" to conversaId,
+                    "participantes" to listOf(mensagem.remetenteId, mensagem.destinatarioId)
                 )
                 
                 val docRef = if (mensagem.id.isBlank()) {
@@ -2120,6 +2433,7 @@ class FirestoreService @Inject constructor(
                 docRef.set(data).await()
                 
                 Timber.d("💬 Mensagem de chat salva no Firestore: ${docRef.id}")
+                Timber.d("💬 Detalhes: remetenteId=${mensagem.remetenteId}, destinatarioId=${mensagem.destinatarioId}, texto=${mensagem.texto.take(30)}..., timestamp=${mensagem.enviadoEm.time}")
                 Result.success(Unit)
                 
             } catch (e: Exception) {
@@ -2133,44 +2447,59 @@ class FirestoreService @Inject constructor(
      * Observa mensagens de uma conversa em tempo real
      * Retorna mensagens onde o usuário é remetente OU destinatário
      * Usa dois listeners separados e combina os resultados
+     * IMPORTANTE: Filtra mensagens expiradas (mais de 24h) automaticamente
      */
     fun observarMensagensChat(
         remetenteId: String,
-        destinatarioId: String
-    ): Flow<List<com.raizesvivas.app.domain.model.MensagemChat>> = callbackFlow {
+        destinatarioId: String,
+        limite: Int = CHAT_LISTENER_DEFAULT_LIMIT
+    ): Flow<List<MensagemChat>> = callbackFlow {
         try {
-            var mensagens1 = emptyList<com.raizesvivas.app.domain.model.MensagemChat>()
-            var mensagens2 = emptyList<com.raizesvivas.app.domain.model.MensagemChat>()
+            Timber.d("🔍 Configurando listeners de mensagens: remetenteId=$remetenteId, destinatarioId=$destinatarioId")
+            
+            var mensagens1 = emptyList<MensagemChat>()
+            var mensagens2 = emptyList<MensagemChat>()
             
             fun combinarEEnviar() {
                 val todasMensagens = (mensagens1 + mensagens2)
                     .distinctBy { it.id }
                     .sortedBy { it.enviadoEm }
                 
-                Timber.d("📨 Mensagens observadas: ${todasMensagens.size} mensagens")
+                Timber.d("📨 Mensagens combinadas e filtradas: ${todasMensagens.size} total (Listener1: ${mensagens1.size}, Listener2: ${mensagens2.size})")
+                if (todasMensagens.isNotEmpty()) {
+                    Timber.d("📨 Primeira mensagem: ${todasMensagens.first().id}, Última: ${todasMensagens.last().id}")
+                }
                 trySend(todasMensagens)
             }
             
             // Listener 1: remetenteId -> destinatarioId
-            // Limite de 100 para economizar leituras e cumprir regras de segurança
+            // Captura mensagens enviadas pelo usuário atual para o destinatário
+            Timber.d("🔍 Configurando Listener1: remetenteId=$remetenteId -> destinatarioId=$destinatarioId")
             val listener1 = mensagensChatCollection
                 .whereEqualTo("remetenteId", remetenteId)
                 .whereEqualTo("destinatarioId", destinatarioId)
                 .orderBy("enviadoEm", Query.Direction.ASCENDING)
-                .limit(100)
+                .limit(limite.toLong())
                 .addSnapshotListener { snapshot, error ->
                     if (error != null) {
-                        Timber.e(error, "❌ Erro ao observar mensagens (direção 1)")
+                        Timber.e(error, "❌ Erro no Listener1 (remetenteId=$remetenteId -> destinatarioId=$destinatarioId)")
                         mensagens1 = emptyList()
                         combinarEEnviar()
                         return@addSnapshotListener
                     }
                     
+                    val count = snapshot?.documents?.size ?: 0
+                    Timber.d("📥 Listener1 recebeu $count documentos")
+                    
                     mensagens1 = snapshot?.documents?.mapNotNull { doc ->
                         try {
-                            doc.toMensagemChat()
+                            val msg = doc.toMensagemChat()
+                            msg?.let {
+                                Timber.d("📥 Listener1 - Mensagem: ${it.id}, remetente=${it.remetenteId}, destinatario=${it.destinatarioId}, texto=${it.texto.take(20)}...")
+                            }
+                            msg
                         } catch (e: Exception) {
-                            Timber.e(e, "❌ Erro ao converter mensagem: ${doc.id}")
+                            Timber.e(e, "❌ Erro ao converter mensagem no Listener1: ${doc.id}")
                             null
                         }
                     } ?: emptyList()
@@ -2179,25 +2508,33 @@ class FirestoreService @Inject constructor(
                 }
             
             // Listener 2: destinatarioId -> remetenteId (direção inversa)
-            // Limite de 100 para economizar leituras e cumprir regras de segurança
+            // Captura mensagens enviadas pelo destinatário para o usuário atual
+            Timber.d("🔍 Configurando Listener2: remetenteId=$destinatarioId -> destinatarioId=$remetenteId")
             val listener2 = mensagensChatCollection
                 .whereEqualTo("remetenteId", destinatarioId)
                 .whereEqualTo("destinatarioId", remetenteId)
                 .orderBy("enviadoEm", Query.Direction.ASCENDING)
-                .limit(100)
+                .limit(limite.toLong())
                 .addSnapshotListener { snapshot, error ->
                     if (error != null) {
-                        Timber.e(error, "❌ Erro ao observar mensagens (direção 2)")
+                        Timber.e(error, "❌ Erro no Listener2 (remetenteId=$destinatarioId -> destinatarioId=$remetenteId)")
                         mensagens2 = emptyList()
                         combinarEEnviar()
                         return@addSnapshotListener
                     }
                     
+                    val count = snapshot?.documents?.size ?: 0
+                    Timber.d("📥 Listener2 recebeu $count documentos")
+                    
                     mensagens2 = snapshot?.documents?.mapNotNull { doc ->
                         try {
-                            doc.toMensagemChat()
+                            val msg = doc.toMensagemChat()
+                            msg?.let {
+                                Timber.d("📥 Listener2 - Mensagem: ${it.id}, remetente=${it.remetenteId}, destinatario=${it.destinatarioId}, texto=${it.texto.take(20)}...")
+                            }
+                            msg
                         } catch (e: Exception) {
-                            Timber.e(e, "❌ Erro ao converter mensagem: ${doc.id}")
+                            Timber.e(e, "❌ Erro ao converter mensagem no Listener2: ${doc.id}")
                             null
                         }
                     } ?: emptyList()
@@ -2206,6 +2543,7 @@ class FirestoreService @Inject constructor(
                 }
             
             awaitClose {
+                Timber.d("🔍 Removendo listeners de mensagens")
                 listener1.remove()
                 listener2.remove()
             }
@@ -2216,7 +2554,90 @@ class FirestoreService @Inject constructor(
     }
     
     /**
+     * Observa mensagens não lidas destinadas a um usuário específico.
+     * Utilizado para notificações de novas mensagens.
+     */
+    fun observarMensagensNaoLidas(destinatarioId: String): Flow<List<MensagemChat>> = callbackFlow {
+        try {
+            val vinteQuatroHorasAtras = System.currentTimeMillis() - (24 * 60 * 60 * 1000L)
+
+            val registration = mensagensChatCollection
+                .whereEqualTo("destinatarioId", destinatarioId)
+                .whereEqualTo("lida", false)
+                .limit(100)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        Timber.e(error, "❌ Erro ao observar mensagens não lidas: destinatarioId=$destinatarioId")
+                        trySend(emptyList())
+                        return@addSnapshotListener
+                    }
+
+                    if (snapshot != null) {
+                        val mensagens = snapshot.documents.mapNotNull { doc ->
+                            try {
+                                doc.toMensagemChat()
+                            } catch (e: Exception) {
+                                Timber.e(e, "❌ Erro ao converter mensagem não lida: ${doc.id}")
+                                null
+                            }
+                        }
+
+                        val expiradas = mensagens.filter { it.enviadoEm.time < vinteQuatroHorasAtras }
+                        val validas = mensagens.filter { it.enviadoEm.time >= vinteQuatroHorasAtras }
+
+                        if (expiradas.isNotEmpty()) {
+                            launch {
+                                removerMensagensNaoLidasExpiradas(expiradas)
+                            }
+                        }
+
+                        trySend(validas)
+                    } else {
+                        trySend(emptyList())
+                    }
+                }
+
+            awaitClose {
+                registration.remove()
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao configurar observação de mensagens não lidas")
+            close(e)
+        }
+    }
+
+    suspend fun buscarMensagensAntigas(
+        conversaId: String,
+        limite: Int,
+        antesDe: JavaDate?
+    ): Result<List<MensagemChat>> {
+        return RetryHelper.withNetworkRetry {
+            try {
+                var query = mensagensChatCollection
+                    .whereEqualTo("conversaId", conversaId)
+                    .orderBy("enviadoEm", Query.Direction.DESCENDING)
+                    .limit(limite.toLong())
+
+                if (antesDe != null) {
+                    query = query.whereLessThan("enviadoEm", com.google.firebase.Timestamp(antesDe))
+                }
+
+                val snapshot = query.get().await()
+                val mensagens = snapshot.documents
+                    .mapNotNull { it.toMensagemChat() }
+                    .sortedBy { it.enviadoEm }
+
+                Result.success(mensagens)
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao buscar mensagens antigas para conversa $conversaId")
+                Result.failure(e)
+            }
+        }
+    }
+    
+    /**
      * Marca mensagens como lidas
+     * IMPORTANTE: Marca mensagens onde o usuário atual é o DESTINATÁRIO
      */
     suspend fun marcarMensagensComoLidas(
         remetenteId: String,
@@ -2224,10 +2645,11 @@ class FirestoreService @Inject constructor(
     ): Result<Unit> {
         return RetryHelper.withNetworkRetry {
             try {
-                // Buscar todas as mensagens não lidas onde o usuário atual é o destinatário
+                // O usuário atual (destinatarioId) está marcando como lidas as mensagens que ELE RECEBEU
+                // Então procuramos mensagens onde o remetente é o outro usuário e o destinatário é o usuário atual
                 val snapshot = mensagensChatCollection
-                    .whereEqualTo("remetenteId", remetenteId)
-                    .whereEqualTo("destinatarioId", destinatarioId)
+                    .whereEqualTo("remetenteId", remetenteId) // Mensagens enviadas pelo outro usuário
+                    .whereEqualTo("destinatarioId", destinatarioId) // Para o usuário atual
                     .whereEqualTo("lida", false)
                     .get()
                     .await()
@@ -2239,6 +2661,8 @@ class FirestoreService @Inject constructor(
                     }
                     batch.commit().await()
                     Timber.d("✅ ${snapshot.documents.size} mensagens marcadas como lidas")
+                } else {
+                    Timber.d("ℹ️ Nenhuma mensagem não lida encontrada")
                 }
                 
                 Result.success(Unit)
@@ -2250,7 +2674,9 @@ class FirestoreService @Inject constructor(
     }
     
     /**
-     * Deleta todas as mensagens de uma conversa
+     * Deleta todas as mensagens ENVIADAS PELO USUÁRIO para um destinatário específico
+     * IMPORTANTE: Deleta apenas mensagens onde remetenteId == usuarioIdAtual
+     * Não deleta mensagens recebidas do destinatário
      */
     suspend fun deletarMensagensConversa(
         remetenteId: String,
@@ -2258,56 +2684,213 @@ class FirestoreService @Inject constructor(
     ): Result<Unit> {
         return RetryHelper.withNetworkRetry {
             try {
-                // Buscar todas as mensagens da conversa (ambas as direções)
-                val snapshot1 = mensagensChatCollection
+                Timber.d("🗑️ Iniciando deleção de mensagens ENVIADAS: remetenteId=$remetenteId, destinatarioId=$destinatarioId")
+                
+                // Buscar apenas mensagens ENVIADAS pelo remetente para o destinatário
+                val snapshot = mensagensChatCollection
                     .whereEqualTo("remetenteId", remetenteId)
                     .whereEqualTo("destinatarioId", destinatarioId)
                     .get()
                     .await()
                 
-                val snapshot2 = mensagensChatCollection
-                    .whereEqualTo("remetenteId", destinatarioId)
-                    .whereEqualTo("destinatarioId", remetenteId)
-                    .get()
-                    .await()
+                val totalMensagens = snapshot.documents.size
+                Timber.d("📊 Total de mensagens ENVIADAS encontradas para deletar: $totalMensagens")
+                
+                if (totalMensagens == 0) {
+                    Timber.d("ℹ️ Nenhuma mensagem enviada encontrada para deletar")
+                    return@withNetworkRetry Result.success(Unit)
+                }
                 
                 val batch = firestore.batch()
-                snapshot1.documents.forEach { doc ->
+                snapshot.documents.forEach { doc ->
                     batch.delete(doc.reference)
-                }
-                snapshot2.documents.forEach { doc ->
-                    batch.delete(doc.reference)
+                    Timber.d("🗑️ Marcando mensagem para deleção: ${doc.id}")
                 }
                 
-                if (snapshot1.documents.isNotEmpty() || snapshot2.documents.isNotEmpty()) {
-                    batch.commit().await()
-                    Timber.d("✅ Mensagens da conversa deletadas")
-                }
+                // Commit do batch
+                batch.commit().await()
+                Timber.d("✅ $totalMensagens mensagens ENVIADAS deletadas com sucesso")
                 
                 Result.success(Unit)
             } catch (e: Exception) {
-                Timber.e(e, "❌ Erro ao deletar mensagens da conversa")
+                Timber.e(e, "❌ Erro ao deletar mensagens enviadas")
                 Result.failure(e)
             }
+        }
+    }
+    
+    private suspend fun removerMensagensNaoLidasExpiradas(mensagens: List<MensagemChat>) {
+        try {
+            val batch = firestore.batch()
+            mensagens.forEach { mensagem ->
+                batch.delete(mensagensChatCollection.document(mensagem.id))
+            }
+            batch.commit().await()
+            Timber.d("🗑️ ${mensagens.size} mensagens não lidas expiradas removidas do Firestore")
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao remover mensagens não lidas expiradas")
         }
     }
     
     /**
      * Helper para converter DocumentSnapshot para MensagemChat
      */
-    private fun com.google.firebase.firestore.DocumentSnapshot.toMensagemChat(): com.raizesvivas.app.domain.model.MensagemChat? {
+    private fun com.google.firebase.firestore.DocumentSnapshot.toMensagemChat(): MensagemChat? {
         val data = this.data ?: return null
         
-        return com.raizesvivas.app.domain.model.MensagemChat(
+        return MensagemChat(
             id = id,
             remetenteId = data["remetenteId"] as? String ?: "",
             remetenteNome = data["remetenteNome"] as? String ?: "",
             destinatarioId = data["destinatarioId"] as? String ?: "",
             destinatarioNome = data["destinatarioNome"] as? String ?: "",
             texto = data["texto"] as? String ?: "",
-            enviadoEm = (data["enviadoEm"] as? com.google.firebase.Timestamp)?.toDate() ?: java.util.Date(),
+            enviadoEm = (data["enviadoEm"] as? com.google.firebase.Timestamp)?.toDate() ?: JavaDate(),
             lida = data["lida"] as? Boolean ?: false
         )
+    }
+    
+    private fun gerarConversaId(id1: String, id2: String): String {
+        return if (id1 <= id2) {
+            "${id1}_${id2}"
+        } else {
+            "${id2}_${id1}"
+        }
+    }
+    
+    // ============================================
+    // RANKING DE GAMIFICAÇÃO
+    // ============================================
+    
+    /**
+     * Busca perfil de gamificação de um usuário específico
+     */
+    suspend fun buscarPerfilGamificacao(usuarioId: String): Result<com.raizesvivas.app.domain.model.PerfilGamificacao?> {
+        return try {
+            val snapshot = perfilGamificacaoCollection(usuarioId)
+                .document("perfil")
+                .get()
+                .await()
+            
+            if (!snapshot.exists()) {
+                return Result.success(null)
+            }
+            
+            val data = snapshot.data ?: return Result.success(null)
+            
+            // Calcular XP atual e próximo nível baseado no xpTotal
+            val xpTotal = (data["xpTotal"] as? Long)?.toInt() ?: 0
+            val nivel = (data["nivel"] as? Long)?.toInt() ?: 1
+            
+            // Calcular XP atual no nível atual
+            var xpAcumulado = 0
+            for (i in 1 until nivel) {
+                xpAcumulado += (500 + (i - 1) * 100) // Fórmula do XP por nível
+            }
+            val xpAtual = xpTotal - xpAcumulado
+            val xpProximoNivel = 500 + (nivel - 1) * 100
+            
+            val perfil = com.raizesvivas.app.domain.model.PerfilGamificacao(
+                usuarioId = usuarioId,
+                nivel = nivel,
+                xpAtual = xpAtual.coerceAtLeast(0),
+                xpProximoNivel = xpProximoNivel,
+                conquistasDesbloqueadas = (data["conquistasDesbloqueadas"] as? Long)?.toInt() ?: 0,
+                totalConquistas = (data["totalConquistas"] as? Long)?.toInt() ?: 0,
+                historicoXP = emptyList()
+            )
+            
+            Result.success(perfil)
+        } catch (e: com.google.firebase.firestore.FirebaseFirestoreException) {
+            when (e.code) {
+                com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED -> {
+                    Timber.w("⚠️ Permissão negada ao buscar perfil de gamificação (retornando null): $usuarioId")
+                    Result.success(null) // Retorna null em vez de erro para não interromper o fluxo
+                }
+                com.google.firebase.firestore.FirebaseFirestoreException.Code.NOT_FOUND -> {
+                    Timber.d("📋 Perfil de gamificação não encontrado: $usuarioId")
+                    Result.success(null)
+                }
+                else -> {
+                    Timber.e(e, "❌ Erro ao buscar perfil de gamificação")
+                    Result.failure(e)
+                }
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao buscar perfil de gamificação")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Atualiza a posição do usuário no ranking diretamente no documento `usuarios/{id}`
+     */
+    suspend fun atualizarPosicaoRanking(usuarioId: String, posicao: Int?): Result<Unit> {
+        return try {
+            val usuarioDoc = usuariosCollection.document(usuarioId)
+            if (posicao != null) {
+                usuarioDoc.update("posicaoRanking", posicao).await()
+            } else {
+                usuarioDoc.update("posicaoRanking", FieldValue.delete()).await()
+            }
+            Timber.d("✅ Posição de ranking atualizada para usuário $usuarioId: $posicao")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao atualizar posição de ranking do usuário $usuarioId")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Busca XP total de um usuário do Firestore
+     */
+    suspend fun buscarXPTotal(usuarioId: String): Int {
+        return try {
+            val snapshot = perfilGamificacaoCollection(usuarioId)
+                .document("perfil")
+                .get()
+                .await()
+            
+            if (!snapshot.exists()) {
+                return 0
+            }
+            
+            val data = snapshot.data ?: return 0
+            (data["xpTotal"] as? Long)?.toInt() ?: 0
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao buscar XP total")
+            0
+        }
+    }
+    
+    /**
+     * Salva perfil de gamificação no Firestore
+     */
+    suspend fun salvarPerfilGamificacao(perfil: com.raizesvivas.app.domain.model.PerfilGamificacao, xpTotal: Int): Result<Unit> {
+        return RetryHelper.withNetworkRetry {
+            try {
+                val data = hashMapOf(
+                    "nivel" to perfil.nivel,
+                    "xpTotal" to xpTotal,
+                    "xpAtual" to perfil.xpAtual,
+                    "xpProximoNivel" to perfil.xpProximoNivel,
+                    "conquistasDesbloqueadas" to perfil.conquistasDesbloqueadas,
+                    "totalConquistas" to perfil.totalConquistas,
+                    "atualizadoEm" to com.google.firebase.Timestamp(java.util.Date())
+                )
+                
+                perfilGamificacaoCollection(perfil.usuarioId)
+                    .document("perfil")
+                    .set(data)
+                    .await()
+                
+                Timber.d("✅ Perfil de gamificação salvo no Firestore: ${perfil.usuarioId}")
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao salvar perfil de gamificação")
+                Result.failure(e)
+            }
+        }
     }
 }
 
