@@ -17,10 +17,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.raizesvivas.app.BuildConfig
 import com.raizesvivas.app.domain.model.Pessoa
 import com.raizesvivas.app.presentation.screens.cadastro.PessoaSelector
 import kotlinx.coroutines.delay
 import timber.log.Timber
+import java.util.Calendar
 
 /**
  * Tela de Perfil do usuário
@@ -346,6 +348,17 @@ fun PerfilScreen(
                     }
                 }
                 
+                Spacer(modifier = Modifier.height(16.dp))
+
+                SobreSection(
+                    versionName = BuildConfig.VERSION_NAME,
+                    versionCode = BuildConfig.VERSION_CODE,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp)
+                        .padding(vertical = 2.dp)
+                )
+
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Modal de confirmação de vinculação (fora do scroll, mas dentro do Column principal)
@@ -1084,6 +1097,72 @@ fun PerfilScreen(
             }
 
             Spacer(modifier = Modifier.height(96.dp))
+        }
+    }
+}
+
+@Composable
+private fun SobreSection(
+    versionName: String,
+    versionCode: Int,
+    modifier: Modifier = Modifier
+) {
+    val currentYear = remember { Calendar.getInstance().get(Calendar.YEAR) }
+
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "Sobre",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            HorizontalDivider()
+
+            Column(
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    text = "Versão do app: $versionName ($versionCode)",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "Dev: Rob Gomez",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "Copyright © $currentYear Raízes Vivas. Todos os direitos reservados.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "Construído para preservar histórias e fortalecer conexões familiares.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
