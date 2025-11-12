@@ -4,21 +4,25 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.raizesvivas.app.data.repository.FamiliaPersonalizadaRepository
 import com.raizesvivas.app.data.repository.FamiliaZeroRepository
+import com.raizesvivas.app.data.repository.GamificacaoRepository
 import com.raizesvivas.app.data.repository.PessoaRepository
 import com.raizesvivas.app.data.repository.UsuarioRepository
 import com.raizesvivas.app.data.remote.firebase.AuthService
 import com.raizesvivas.app.domain.model.FamiliaPersonalizada
 import com.raizesvivas.app.domain.model.FamiliaZero
 import com.raizesvivas.app.domain.model.Pessoa
+import com.raizesvivas.app.domain.model.TipoAcao
 import com.raizesvivas.app.domain.model.Usuario
 import com.raizesvivas.app.presentation.components.FamiliaGrupo
 import com.raizesvivas.app.presentation.components.agruparPessoasPorFamilias
 import com.raizesvivas.app.presentation.components.TreeNodeData
 import com.raizesvivas.app.utils.TreeBuilder
+import com.raizesvivas.app.utils.ParentescoCalculator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -33,7 +37,8 @@ class FamiliaViewModel @Inject constructor(
     private val familiaZeroRepository: FamiliaZeroRepository,
     private val familiaPersonalizadaRepository: FamiliaPersonalizadaRepository,
     private val usuarioRepository: UsuarioRepository,
-    private val authService: AuthService
+    private val authService: AuthService,
+    private val gamificacaoRepository: GamificacaoRepository
 ) : ViewModel() {
 
     private val expandedFamilias = MutableStateFlow<Set<String>>(emptySet())
@@ -43,6 +48,33 @@ class FamiliaViewModel @Inject constructor(
 
     init {
         observarDados()
+        registrarVisualizacaoArvore()
+    }
+    
+    /**
+     * Registra a visualização da árvore genealógica pela primeira vez
+     * Verifica no banco de dados se já visualizou antes de registrar novamente
+     */
+    private fun registrarVisualizacaoArvore() {
+        viewModelScope.launch {
+            val usuarioId = authService.currentUser?.uid
+            if (usuarioId == null) return@launch
+            
+            try {
+                // Verificar se já existe progresso para a conquista "explorador_curioso"
+                val progressoAtual = gamificacaoRepository.observarProgressoConquista("explorador_curioso", usuarioId).first()
+                
+                // Se não tem progresso ou progresso é 0, registrar a visualização
+                if (progressoAtual == null || progressoAtual.progresso == 0) {
+                    gamificacaoRepository.registrarAcao(usuarioId, TipoAcao.EXPLORAR_ARVORE_PRIMEIRA_VEZ)
+                    Timber.d("🎯 Registrada visualização da árvore pela primeira vez")
+                } else {
+                    Timber.d("ℹ️ Árvore já foi visualizada anteriormente (progresso: ${progressoAtual.progresso})")
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao registrar visualização da árvore")
+            }
+        }
     }
 
     private fun observarDados() {
@@ -137,6 +169,7 @@ class FamiliaViewModel @Inject constructor(
                 modificadoEm = Date()
             )
             val resultado = pessoaRepository.atualizar(pessoaAtualizada, ehAdmin)
+            resultado.onSuccess { ParentescoCalculator.limparCache() }
 
             _state.update {
                 it.copy(
@@ -183,6 +216,7 @@ class FamiliaViewModel @Inject constructor(
                 modificadoEm = Date()
             )
             val resultado = pessoaRepository.atualizar(pessoaAtualizada, ehAdmin)
+            resultado.onSuccess { ParentescoCalculator.limparCache() }
 
             _state.update {
                 it.copy(

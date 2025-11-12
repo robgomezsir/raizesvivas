@@ -6,7 +6,9 @@ import com.raizesvivas.app.data.remote.firebase.AuthService
 import com.raizesvivas.app.data.repository.PessoaRepository
 import com.raizesvivas.app.data.repository.UsuarioRepository
 import com.raizesvivas.app.domain.usecase.DetectarDuplicatasUseCase
+import com.raizesvivas.app.domain.model.Pessoa
 import com.raizesvivas.app.utils.DuplicateDetector
+import com.raizesvivas.app.utils.ParentescoCalculator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -203,6 +205,7 @@ class ResolverDuplicatasViewModel @Inject constructor(
             
             if (precisaAtualizar) {
                 pessoaRepository.atualizar(pessoaAtualizada, ehAdmin = true)
+                    .onSuccess { ParentescoCalculator.limparCache() }
             }
         }
     }
