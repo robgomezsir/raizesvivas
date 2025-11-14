@@ -161,41 +161,74 @@ class EdicaoPendenteRepository @Inject constructor(
     private fun calcularCamposAlterados(
         pessoaOriginal: Pessoa,
         pessoaEditada: Pessoa
-    ): Map<String, Any> {
-        val camposAlterados = mutableMapOf<String, Any>()
+    ): Map<String, com.raizesvivas.app.domain.model.AlteracaoCampo> {
+        val camposAlterados = mutableMapOf<String, com.raizesvivas.app.domain.model.AlteracaoCampo>()
         
         if (pessoaOriginal.nome != pessoaEditada.nome) {
-            camposAlterados["nome"] = pessoaEditada.nome
+            camposAlterados["nome"] = com.raizesvivas.app.domain.model.AlteracaoCampo(
+                valorAnterior = pessoaOriginal.nome,
+                valorNovo = pessoaEditada.nome
+            )
         }
         if (pessoaOriginal.dataNascimento != pessoaEditada.dataNascimento) {
-            pessoaEditada.dataNascimento?.let { camposAlterados["dataNascimento"] = it }
+            camposAlterados["dataNascimento"] = com.raizesvivas.app.domain.model.AlteracaoCampo(
+                valorAnterior = pessoaOriginal.dataNascimento,
+                valorNovo = pessoaEditada.dataNascimento
+            )
         }
         if (pessoaOriginal.dataFalecimento != pessoaEditada.dataFalecimento) {
-            pessoaEditada.dataFalecimento?.let { camposAlterados["dataFalecimento"] = it }
+            camposAlterados["dataFalecimento"] = com.raizesvivas.app.domain.model.AlteracaoCampo(
+                valorAnterior = pessoaOriginal.dataFalecimento,
+                valorNovo = pessoaEditada.dataFalecimento
+            )
         }
         if (pessoaOriginal.localNascimento != pessoaEditada.localNascimento) {
-            pessoaEditada.localNascimento?.let { camposAlterados["localNascimento"] = it }
+            camposAlterados["localNascimento"] = com.raizesvivas.app.domain.model.AlteracaoCampo(
+                valorAnterior = pessoaOriginal.localNascimento,
+                valorNovo = pessoaEditada.localNascimento
+            )
         }
         if (pessoaOriginal.localResidencia != pessoaEditada.localResidencia) {
-            pessoaEditada.localResidencia?.let { camposAlterados["localResidencia"] = it }
+            camposAlterados["localResidencia"] = com.raizesvivas.app.domain.model.AlteracaoCampo(
+                valorAnterior = pessoaOriginal.localResidencia,
+                valorNovo = pessoaEditada.localResidencia
+            )
         }
         if (pessoaOriginal.profissao != pessoaEditada.profissao) {
-            pessoaEditada.profissao?.let { camposAlterados["profissao"] = it }
+            camposAlterados["profissao"] = com.raizesvivas.app.domain.model.AlteracaoCampo(
+                valorAnterior = pessoaOriginal.profissao,
+                valorNovo = pessoaEditada.profissao
+            )
         }
         if (pessoaOriginal.biografia != pessoaEditada.biografia) {
-            pessoaEditada.biografia?.let { camposAlterados["biografia"] = it }
+            camposAlterados["biografia"] = com.raizesvivas.app.domain.model.AlteracaoCampo(
+                valorAnterior = pessoaOriginal.biografia,
+                valorNovo = pessoaEditada.biografia
+            )
         }
         if (pessoaOriginal.pai != pessoaEditada.pai) {
-            pessoaEditada.pai?.let { camposAlterados["pai"] = it }
+            camposAlterados["pai"] = com.raizesvivas.app.domain.model.AlteracaoCampo(
+                valorAnterior = pessoaOriginal.pai,
+                valorNovo = pessoaEditada.pai
+            )
         }
         if (pessoaOriginal.mae != pessoaEditada.mae) {
-            pessoaEditada.mae?.let { camposAlterados["mae"] = it }
+            camposAlterados["mae"] = com.raizesvivas.app.domain.model.AlteracaoCampo(
+                valorAnterior = pessoaOriginal.mae,
+                valorNovo = pessoaEditada.mae
+            )
         }
         if (pessoaOriginal.conjugeAtual != pessoaEditada.conjugeAtual) {
-            pessoaEditada.conjugeAtual?.let { camposAlterados["conjugeAtual"] = it }
+            camposAlterados["conjugeAtual"] = com.raizesvivas.app.domain.model.AlteracaoCampo(
+                valorAnterior = pessoaOriginal.conjugeAtual,
+                valorNovo = pessoaEditada.conjugeAtual
+            )
         }
         if (pessoaOriginal.filhos != pessoaEditada.filhos) {
-            camposAlterados["filhos"] = pessoaEditada.filhos
+            camposAlterados["filhos"] = com.raizesvivas.app.domain.model.AlteracaoCampo(
+                valorAnterior = pessoaOriginal.filhos,
+                valorNovo = pessoaEditada.filhos
+            )
         }
         
         return camposAlterados

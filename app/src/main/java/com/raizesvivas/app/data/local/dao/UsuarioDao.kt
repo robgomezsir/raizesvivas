@@ -71,6 +71,12 @@ interface UsuarioDao {
     suspend fun deletar(usuario: UsuarioEntity)
     
     /**
+     * Deleta usuário por ID
+     */
+    @Query("DELETE FROM usuarios WHERE id = :userId")
+    suspend fun deletarPorId(userId: String)
+    
+    /**
      * Deleta todos os usuários (logout completo)
      */
     @Query("DELETE FROM usuarios")

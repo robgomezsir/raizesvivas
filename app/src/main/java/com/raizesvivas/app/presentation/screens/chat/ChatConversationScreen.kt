@@ -1,11 +1,13 @@
 package com.raizesvivas.app.presentation.screens.chat
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Chat
@@ -218,10 +220,53 @@ fun ChatConversationScreen(
                         key = { mensagem -> mensagem.id },
                         contentType = { "message" }
                     ) { mensagem ->
+                        var mostrarMenu by remember { mutableStateOf(false) }
+                        
                         MessageBubble(
                             mensagem = mensagem,
-                            isOwnMessage = mensagem.remetenteId == currentUserId
+                            isOwnMessage = mensagem.remetenteId == currentUserId,
+                            onLongPress = {
+                                mostrarMenu = true
+                            }
                         )
+                        
+                        // Menu de contexto para excluir mensagem
+                        if (mostrarMenu) {
+                            AlertDialog(
+                                onDismissRequest = { mostrarMenu = false },
+                                icon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                },
+                                title = {
+                                    Text("Excluir Mensagem")
+                                },
+                                text = {
+                                    Text("Tem certeza que deseja excluir esta mensagem? Esta ação não pode ser desfeita.")
+                                },
+                                confirmButton = {
+                                    Button(
+                                        onClick = {
+                                            viewModel.deletarMensagem(mensagem.id)
+                                            mostrarMenu = false
+                                        },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.error
+                                        )
+                                    ) {
+                                        Text("Excluir")
+                                    }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = { mostrarMenu = false }) {
+                                        Text("Cancelar")
+                                    }
+                                }
+                            )
+                        }
                     }
 
                     when {
@@ -384,7 +429,8 @@ private fun ModalLimparMensagens(
 @Composable
 private fun MessageBubble(
     mensagem: MensagemChat,
-    isOwnMessage: Boolean
+    isOwnMessage: Boolean,
+    onLongPress: () -> Unit = {}
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val dateFormat = remember { SimpleDateFormat("HH:mm", Locale("pt", "BR")) }
@@ -407,7 +453,12 @@ private fun MessageBubble(
                         colorScheme.surfaceVariant
                     }
                 )
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onLongPress = { onLongPress() }
+                    )
+                },
             horizontalAlignment = if (isOwnMessage) Alignment.End else Alignment.Start
         ) {
             if (!isOwnMessage) {

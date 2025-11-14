@@ -13,16 +13,24 @@ import com.raizesvivas.app.domain.model.FamiliaZero
 import com.raizesvivas.app.domain.usecase.GerarDadosTesteUseCase
 import com.raizesvivas.app.utils.ParentescoCalculator
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.*
+import java.util.Date
+import java.util.Locale
+import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import java.util.Date
-import javax.inject.Inject
-import kotlinx.coroutines.flow.distinctUntilChanged
 
 /**
  * ViewModel para a tela Home
@@ -308,10 +316,15 @@ class HomeViewModel @Inject constructor(
                     todasPessoas = todasPessoas,
                     pessoasMap = pessoasMap
                 )
+                val resultadoOrdenado = resultado.sortedWith(
+                    compareBy<Pair<Pessoa, ParentescoCalculator.ResultadoParentesco>> {
+                        it.first.getNomeExibicao().lowercase(Locale.getDefault())
+                    }.thenBy { it.first.id }
+                )
                 // Atualizar cache
-                parentescosCache = cacheKey to resultado
-                Timber.d("💾 Cache de parentescos atualizado (${resultado.size} parentes)")
-                resultado
+                parentescosCache = cacheKey to resultadoOrdenado
+                Timber.d("💾 Cache de parentescos atualizado (${resultadoOrdenado.size} parentes)")
+                resultadoOrdenado
             } else {
                 emptyList()
             }
@@ -375,18 +388,36 @@ class HomeViewModel @Inject constructor(
     
     /**
      * Observa pessoas em tempo real para atualizar estatísticas de gênero
+     * Exclui pai e mãe da família zero da contagem
      */
     private fun observarEstatisticasGenero() {
         viewModelScope.launch {
-            pessoaRepository.observarTodasPessoas()
+            combine(
+                pessoaRepository.observarTodasPessoas(),
+                familiaZeroRepository.observar()
+            ) { todasPessoas, familiaZero ->
+                // Obter IDs do pai e da mãe da família zero para excluir
+                val idsExcluir = mutableSetOf<String>()
+                familiaZero?.let { fz ->
+                    if (fz.pai.isNotBlank()) idsExcluir.add(fz.pai)
+                    if (fz.mae.isNotBlank()) idsExcluir.add(fz.mae)
+                }
+                
+                // Filtrar pessoas excluindo pai e mãe da família zero
+                val pessoasParaContar = todasPessoas.filter { pessoa ->
+                    !idsExcluir.contains(pessoa.id)
+                }
+                
+                val meninas = pessoasParaContar.count { it.genero == Genero.FEMININO }
+                val meninos = pessoasParaContar.count { it.genero == Genero.MASCULINO }
+                val outros = pessoasParaContar.count { it.genero == Genero.OUTRO }
+                
+                Triple(meninas, meninos, outros)
+            }
                 .catch { error ->
                     Timber.e(error, "Erro ao observar pessoas para estatísticas")
                 }
-                .collect { todasPessoas ->
-                    val meninas = todasPessoas.count { it.genero == Genero.FEMININO }
-                    val meninos = todasPessoas.count { it.genero == Genero.MASCULINO }
-                    val outros = todasPessoas.count { it.genero == Genero.OUTRO }
-                    
+                .collect { (meninas, meninos, outros) ->
                     _state.update {
                         it.copy(
                             meninas = meninas,
@@ -572,11 +603,12 @@ class HomeViewModel @Inject constructor(
                     _state.update { it.copy(mostrarOnboarding = true) }
                 }
                 
-                // Contar pessoas
-                val totalPessoas = pessoaRepository.contarPessoas()
+                // Contar pessoas (apenas aprovadas para evitar contar pendentes/duplicatas)
+                val totalPessoas = pessoaRepository.contarPessoasAprovadas()
                 
-                // Contar famílias
-                val totalFamilias = pessoaRepository.contarFamilias()
+                // Contar famílias e obter estatísticas detalhadas
+                val estatisticasFamilias = pessoaRepository.obterEstatisticasFamilias()
+                val totalFamilias = estatisticasFamilias.total
                 
                 // Contar pessoas até nascimento do usuário (ranking)
                 val pessoaVinculada = usuario?.pessoaVinculada
@@ -606,6 +638,8 @@ class HomeViewModel @Inject constructor(
                     it.copy(
                         totalPessoas = totalPessoas,
                         totalFamilias = totalFamilias,
+                        familiasMonoparentais = estatisticasFamilias.monoparentais,
+                        familiasHomoafetivas = estatisticasFamilias.homoafetivas,
                         rankingPessoas = rankingPessoas,
                         totalSobrinhos = totalSobrinhos
                         // meninas, meninos e outros são atualizados por observeEstatisticasGenero()
@@ -637,8 +671,10 @@ class HomeViewModel @Inject constructor(
     private fun atualizarEstatisticas() {
         viewModelScope.launch {
             try {
-                val totalPessoas = pessoaRepository.contarPessoas()
-                val totalFamilias = pessoaRepository.contarFamilias()
+                // Contar apenas pessoas aprovadas para evitar contar pendentes/duplicatas
+                val totalPessoas = pessoaRepository.contarPessoasAprovadas()
+                val estatisticasFamilias = pessoaRepository.obterEstatisticasFamilias()
+                val totalFamilias = estatisticasFamilias.total
                 
                 val usuario = _state.value.usuario
                 val pessoaVinculada = usuario?.pessoaVinculada
@@ -666,6 +702,8 @@ class HomeViewModel @Inject constructor(
                     it.copy(
                         totalPessoas = totalPessoas,
                         totalFamilias = totalFamilias,
+                        familiasMonoparentais = estatisticasFamilias.monoparentais,
+                        familiasHomoafetivas = estatisticasFamilias.homoafetivas,
                         rankingPessoas = rankingPessoas,
                         totalSobrinhos = totalSobrinhos
                         // meninas, meninos e outros são atualizados por observeEstatisticasGenero()
@@ -767,6 +805,8 @@ data class HomeState(
     val usuario: Usuario? = null,
     val totalPessoas: Int = 0,
     val totalFamilias: Int = 0,
+    val familiasMonoparentais: Int = 0,
+    val familiasHomoafetivas: Int = 0,
     val rankingPessoas: Int = 0,
     val totalSobrinhos: Int = 0,
     val familiaZeroExiste: Boolean = false,

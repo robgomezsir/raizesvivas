@@ -62,12 +62,12 @@ object TreeBuilder {
         // Coletar TODOS os filhos diretos e indiretos
         val filhosIds = mutableSetOf<String>()
         
-        // Filhos diretos da pessoa
-        pessoa.filhos.forEach { filhosIds.add(it) }
+        // Filhos diretos da pessoa (filtrar apenas IDs que existem no mapa)
+        pessoa.filhos.filter { it.isNotBlank() && it in pessoasMap }.forEach { filhosIds.add(it) }
         
-        // Se há cônjuge, incluir filhos do cônjuge também
+        // Se há cônjuge, incluir filhos do cônjuge também (filtrar apenas IDs que existem)
         conjuge?.let { c ->
-            c.filhos.forEach { filhosIds.add(it) }
+            c.filhos.filter { it.isNotBlank() && it in pessoasMap }.forEach { filhosIds.add(it) }
         }
         
         // Buscar filhos adicionais através do cônjuge (casos onde o cônjuge tem filhos de relacionamento anterior)
@@ -75,18 +75,22 @@ object TreeBuilder {
             // Se o cônjuge tem filhos que não estão na lista de filhos da pessoa atual
             // mas são filhos biológicos do cônjuge, incluir também
             pessoasMap.values.forEach { pessoaCadastrada ->
-                if (pessoaCadastrada.pai == c.id || pessoaCadastrada.mae == c.id) {
+                if ((pessoaCadastrada.pai == c.id || pessoaCadastrada.mae == c.id) && 
+                    pessoaCadastrada.id.isNotBlank() && 
+                    pessoaCadastrada.id in pessoasMap) {
                     filhosIds.add(pessoaCadastrada.id)
                 }
             }
         }
         
-        // Construir nós filhos recursivamente
+        // Construir nós filhos recursivamente (agora todos os IDs já foram validados)
         val children = filhosIds.mapNotNull { filhoId ->
             val filho = pessoasMap[filhoId]
             if (filho != null) {
                 // Encontrar cônjuge do filho se existir
-                val conjugeFilho = filho.conjugeAtual?.let { pessoasMap[it] }
+                val conjugeFilho = filho.conjugeAtual?.takeIf { 
+                    it.isNotBlank() && it in pessoasMap 
+                }?.let { pessoasMap[it] }
                 
                 // Verificar se já foi visitado neste ramo específico
                 val visitadosFilhos = if (filho.id in visitadosNesteRamo) {
@@ -106,7 +110,8 @@ object TreeBuilder {
                     caminhoAtual = novoCaminho.toMutableList()
                 )
             } else {
-                Timber.w("⚠️ Filho não encontrado: $filhoId")
+                // Este caso não deveria acontecer mais, mas mantemos como fallback
+                Timber.w("⚠️ Filho não encontrado após validação: $filhoId")
                 null
             }
         }

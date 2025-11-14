@@ -83,9 +83,9 @@ class FamiliaZeroIntegrationTest {
         try {
             val currentUser = authService.currentUser
             if (currentUser != null) {
-                val familiaZero = familiaZeroRepository.buscar()
                 // Nota: Deleção de Família Zero não está implementada (operações críticas)
                 // Em produção, isso seria um caso especial de administração
+                // familiaZeroRepository.buscar() // Busca não necessária para limpeza
             }
         } catch (e: Exception) {
             Timber.w(e, "Erro ao limpar dados de teste")

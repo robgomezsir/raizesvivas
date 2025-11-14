@@ -19,6 +19,10 @@ import com.raizesvivas.app.data.local.entities.*
  * Versão 5: Adiciona campos estadoCivil e genero na tabela pessoas
  * Versão 6: Conquistas agora são exclusivas por usuário (adiciona usuarioId à tabela progresso_conquistas)
  * Versão 7: Adiciona tabela de famílias personalizadas para nomes customizados
+ * Versão 8: Reestruturação da tabela pessoas (adiciona campo familias)
+ * Versão 9: Adiciona campo telefone na tabela pessoas
+ * Versão 10: Renomeia campos de conquistas (desbloqueada → concluida, progressoAtual → progresso) e adiciona nivel e pontuacaoTotal
+ * Versão 11: Adiciona coluna apelido na tabela pessoas
  */
 @Database(
     entities = [
@@ -32,7 +36,7 @@ import com.raizesvivas.app.data.local.entities.*
         PerfilGamificacaoEntity::class,
         FamiliaPersonalizadaEntity::class
     ],
-    version = 8,
+    version = 11,
     exportSchema = true,
     autoMigrations = []
 )

@@ -21,6 +21,16 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+        
+        // Configuração do Room schema location
+        // Isso evita warnings sobre opções não reconhecidas
+        javaCompileOptions {
+            annotationProcessorOptions {
+                arguments += mapOf(
+                    "room.schemaLocation" to "$projectDir/schemas"
+                )
+            }
+        }
     }
 
     buildTypes {
@@ -88,6 +98,13 @@ dependencies {
     // Hilt (Injeção de Dependência)
     implementation("com.google.dagger:hilt-android:2.48")
     kapt("com.google.dagger:hilt-android-compiler:2.48")
+    
+    // Hilt Work (para Workers com Hilt)
+    implementation("androidx.hilt:hilt-work:1.1.0")
+    kapt("androidx.hilt:hilt-compiler:1.1.0")
+    
+    // WorkManager
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
     kapt("com.google.dagger:hilt-compiler:2.48")
     implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
     
@@ -153,18 +170,22 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
 
-// Necessário para Hilt
+// Configuração do kapt para Hilt e Room
 kapt {
     correctErrorTypes = true
     
-    // Room schema export directory
-    arguments {
-        arg("room.schemaLocation", "$projectDir/schemas")
-        // Evitar passar opções não reconhecidas do Hilt
-        // O plugin do Hilt gerencia essas opções automaticamente
-    }
-    
     // Usar useBuildCache para melhor performance
     useBuildCache = true
+    
+    // Configurar javacOptions para evitar warnings
+    javacOptions {
+        option("-source", "17")
+        option("-target", "17")
+        // Suprimir warnings de processamento de anotações
+        // Isso evita warnings sobre opções não reconhecidas por processadores específicos
+        // (como room.schemaLocation que é específico do Room, não do Hilt)
+        option("-Xlint:-processing")
+    }
 }
+
 

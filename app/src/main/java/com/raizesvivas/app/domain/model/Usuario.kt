@@ -13,6 +13,7 @@ data class Usuario(
     val nome: String = "",
     val email: String = "",
     val fotoUrl: String? = null,
+    val posicaoRanking: Int? = null,
     
     // Vínculo com a árvore genealógica
     val pessoaVinculada: String? = null,  // ID da pessoa que representa este usuário

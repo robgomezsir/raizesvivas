@@ -180,6 +180,14 @@ fun DetalhesPessoaScreen(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
+
+                        pessoa.apelido?.takeIf { it.isNotBlank() }?.let { apelido ->
+                            Text(
+                                text = apelido,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f)
+                            )
+                        }
                         
                         if (pessoa.ehFamiliaZero) {
                             Surface(
@@ -218,12 +226,30 @@ fun DetalhesPessoaScreen(
                             value = pessoa.nome,
                             icon = Icons.Default.Person
                         )
+
+                        pessoa.apelido?.let { apelido ->
+                            if (apelido.isNotBlank()) {
+                                InfoRow(
+                                    label = "Apelido",
+                                    value = apelido,
+                                    icon = Icons.Default.Star
+                                )
+                            }
+                        }
                         
                         if (pessoa.genero != null) {
                             InfoRow(
                                 label = "Gênero",
                                 value = pessoa.genero.label,
                                 icon = Icons.Default.Person
+                            )
+                        }
+                        
+                        if (pessoa.estadoCivil != null) {
+                            InfoRow(
+                                label = "Estado Civil",
+                                value = pessoa.estadoCivil.label,
+                                icon = Icons.Default.Favorite
                             )
                         }
                         
@@ -269,6 +295,16 @@ fun DetalhesPessoaScreen(
                                     label = "Profissão",
                                     value = profissao,
                                     icon = Icons.Default.Work
+                                )
+                            }
+                        }
+                        
+                        pessoa.telefone?.let { telefone ->
+                            if (telefone.isNotBlank()) {
+                                InfoRow(
+                                    label = "Telefone/Celular",
+                                    value = telefone,
+                                    icon = Icons.Default.Phone
                                 )
                             }
                         }

@@ -19,6 +19,7 @@ import com.raizesvivas.app.presentation.screens.edicoes.GerenciarEdicoesScreen
 import com.raizesvivas.app.presentation.screens.detalhes.DetalhesPessoaScreen
 import com.raizesvivas.app.presentation.screens.duplicatas.ResolverDuplicatasScreen
 import com.raizesvivas.app.presentation.screens.onboarding.FamiliaZeroScreen
+import com.raizesvivas.app.presentation.screens.usuarios.GerenciarUsuariosScreen
 import timber.log.Timber
 
 /**
@@ -45,9 +46,10 @@ fun NavGraph(
                 currentRoute != Screen.Cadastro.route && 
                 currentRoute != Screen.RecuperarSenha.route) {
                 Timber.d("👋 Usuário deslogado, navegando para Login")
+                // Limpar toda a pilha de navegação e ir para login
                 navController.navigate(Screen.Login.route) {
-                    // Limpar toda a pilha de navegação e ir para login
-                    popUpTo(Screen.Login.route) { inclusive = false }
+                    // Limpar toda a pilha até a raiz (startDestination)
+                    popUpTo(navController.graph.startDestinationId) { inclusive = false }
                     launchSingleTop = true
                 }
             }
@@ -302,6 +304,24 @@ fun NavGraph(
             popExitTransition = { Transitions.popExitTransition() }
         ) {
             ResolverDuplicatasScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        // ============================================
+        // GERENCIAR USUÁRIOS (ADMIN)
+        // ============================================
+        
+        composable(
+            route = Screen.GerenciarUsuarios.route,
+            enterTransition = { Transitions.enterTransition() },
+            exitTransition = { Transitions.exitTransition() },
+            popEnterTransition = { Transitions.popEnterTransition() },
+            popExitTransition = { Transitions.popExitTransition() }
+        ) {
+            GerenciarUsuariosScreen(
                 onNavigateBack = {
                     navController.popBackStack()
                 }

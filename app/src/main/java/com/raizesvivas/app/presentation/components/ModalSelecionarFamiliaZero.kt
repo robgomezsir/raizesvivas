@@ -225,7 +225,13 @@ fun ModalSelecionarFamiliaZero(
                                 conjugue1 = pai,
                                 conjugue2 = mae,
                                 filhos = emptyList(),
-                                ehFamiliaZero = false
+                                ehFamiliaZero = false,
+                                ehFamiliaMonoparental = false,
+                                ehFamiliaReconstituida = false,
+                                conjugueAnterior = null,
+                                familiaAnteriorId = null,
+                                tipoNucleoFamiliar = com.raizesvivas.app.domain.model.TipoNucleoFamiliar.PARENTESCO,
+                                parentesColaterais = emptyMap()
                             )
                             val nomeFamilia = obterNomeFamilia(familiaGrupo)
                             

@@ -298,5 +298,29 @@ class UsuarioRepository @Inject constructor(
             false
         }
     }
+    
+    /**
+     * Deleta um usuário do sistema
+     * 
+     * ATENÇÃO: Isso deleta apenas do Firestore, não do Firebase Auth
+     * Para deletar completamente do Firebase Auth, é necessário usar Admin SDK ou Cloud Function
+     */
+    suspend fun deletarUsuario(userId: String): Result<Unit> {
+        return try {
+            val resultado = firestoreService.deletarUsuario(userId)
+            
+            resultado.onSuccess {
+                // Remover do cache local também
+                usuarioDao.deletarPorId(userId)
+                Timber.d("✅ Usuário deletado: $userId")
+            }
+            
+            resultado
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao deletar usuário")
+            Result.failure(e)
+        }
+    }
 }
 

@@ -1,349 +1,726 @@
-> Task :app:kaptDebugKotlin
-error: ModuleProcessingStep was unable to process 'com.raizesvivas.app.di.DatabaseModule' because 'ChatPreferences' could not be resolved.
-  
-  Dependency trace:
-      => element (CLASS): com.raizesvivas.app.di.DatabaseModule
-      => element (METHOD): provideChatPreferences(android.content.Context)
-      => type (ERROR return type): ChatPreferences
-  
-  If type 'ChatPreferences' is a generated type, check above for compilation errors that may have prevented the type from being generated. Otherwise, ensure that type 'ChatPreferences' is on your classpath.
-error: BindingMethodProcessingStep was unable to process 'provideDatabase(android.content.Context)' because 'ChatPreferences' could not be resolved.
-  
-  Dependency trace:
-      => element (CLASS): com.raizesvivas.app.di.DatabaseModule
-      => element (METHOD): provideChatPreferences(android.content.Context)
-      => type (ERROR return type): ChatPreferences
-  
-  If type 'ChatPreferences' is a generated type, check above for compilation errors that may have prevented the type from being generated. Otherwise, ensure that type 'ChatPreferences' is on your classpath.
-error: BindingMethodProcessingStep was unable to process 'providePessoaDao(com.raizesvivas.app.data.local.RaizesVivasDatabase)' because 'ChatPreferences' could not be resolved.
-  
-  Dependency trace:
-      => element (CLASS): com.raizesvivas.app.di.DatabaseModule
-      => element (METHOD): provideChatPreferences(android.content.Context)
-      => type (ERROR return type): ChatPreferences
-  
-  If type 'ChatPreferences' is a generated type, check above for compilation errors that may have prevented the type from being generated. Otherwise, ensure that type 'ChatPreferences' is on your classpath.
-error: BindingMethodProcessingStep was unable to process 'provideUsuarioDao(com.raizesvivas.app.data.local.RaizesVivasDatabase)' because 'ChatPreferences' could not be resolved.
-  
-  Dependency trace:
-      => element (CLASS): com.raizesvivas.app.di.DatabaseModule
-      => element (METHOD): provideChatPreferences(android.content.Context)
-      => type (ERROR return type): ChatPreferences
-  
-  If type 'ChatPreferences' is a generated type, check above for compilation errors that may have prevented the type from being generated. Otherwise, ensure that type 'ChatPreferences' is on your classpath.
-error: BindingMethodProcessingStep was unable to process 'provideSubfamiliaDao(com.raizesvivas.app.data.local.RaizesVivasDatabase)' because 'ChatPreferences' could not be resolved.
-  
-  Dependency trace:
-      => element (CLASS): com.raizesvivas.app.di.DatabaseModule
-      => element (METHOD): provideChatPreferences(android.content.Context)
-      => type (ERROR return type): ChatPreferences
-  
-  If type 'ChatPreferences' is a generated type, check above for compilation errors that may have prevented the type from being generated. Otherwise, ensure that type 'ChatPreferences' is on your classpath.
-error: BindingMethodProcessingStep was unable to process 'provideMembroFamiliaDao(com.raizesvivas.app.data.local.RaizesVivasDatabase)' because 'ChatPreferences' could not be resolved.
-  
-  Dependency trace:
-      => element (CLASS): com.raizesvivas.app.di.DatabaseModule
-      => element (METHOD): provideChatPreferences(android.content.Context)
-      => type (ERROR return type): ChatPreferences
-  
-  If type 'ChatPreferences' is a generated type, check above for compilation errors that may have prevented the type from being generated. Otherwise, ensure that type 'ChatPreferences' is on your classpath.
-error: BindingMethodProcessingStep was unable to process 'provideSugestaoSubfamiliaDao(com.raizesvivas.app.data.local.RaizesVivasDatabase)' because 'ChatPreferences' could not be resolved.
-  
-  Dependency trace:
-      => element (CLASS): com.raizesvivas.app.di.DatabaseModule
-      => element (METHOD): provideChatPreferences(android.content.Context)
-      => type (ERROR return type): ChatPreferences
-  
-  If type 'ChatPreferences' is a generated type, check above for compilation errors that may have prevented the type from being generated. Otherwise, ensure that type 'ChatPreferences' is on your classpath.
-error: BindingMethodProcessingStep was unable to process 'provideNotificacaoDao(com.raizesvivas.app.data.local.RaizesVivasDatabase)' because 'ChatPreferences' could not be resolved.
-  
-  Dependency trace:
-      => element (CLASS): com.raizesvivas.app.di.DatabaseModule
-      => element (METHOD): provideChatPreferences(android.content.Context)
-      => type (ERROR return type): ChatPreferences
-  
-  If type 'ChatPreferences' is a generated type, check above for compilation errors that may have prevented the type from being generated. Otherwise, ensure that type 'ChatPreferences' is on your classpath.
-error: BindingMethodProcessingStep was unable to process 'provideConquistaDao(com.raizesvivas.app.data.local.RaizesVivasDatabase)' because 'ChatPreferences' could not be resolved.
-  
-  Dependency trace:
-      => element (CLASS): com.raizesvivas.app.di.DatabaseModule
-      => element (METHOD): provideChatPreferences(android.content.Context)
-      => type (ERROR return type): ChatPreferences
-  
-  If type 'ChatPreferences' is a generated type, check above for compilation errors that may have prevented the type from being generated. Otherwise, ensure that type 'ChatPreferences' is on your classpath.
-error: BindingMethodProcessingStep was unable to process 'providePerfilGamificacaoDao(com.raizesvivas.app.data.local.RaizesVivasDatabase)' because 'ChatPreferences' could not be resolved.
-  
-  Dependency trace:
-      => element (CLASS): com.raizesvivas.app.di.DatabaseModule
-      => element (METHOD): provideChatPreferences(android.content.Context)
-      => type (ERROR return type): ChatPreferences
-  
-  If type 'ChatPreferences' is a generated type, check above for compilation errors that may have prevented the type from being generated. Otherwise, ensure that type 'ChatPreferences' is on your classpath.
-error: BindingMethodProcessingStep was unable to process 'provideFamiliaPersonalizadaDao(com.raizesvivas.app.data.local.RaizesVivasDatabase)' because 'ChatPreferences' could not be resolved.
-  
-  Dependency trace:
-      => element (CLASS): com.raizesvivas.app.di.DatabaseModule
-      => element (METHOD): provideChatPreferences(android.content.Context)
-      => type (ERROR return type): ChatPreferences
-  
-  If type 'ChatPreferences' is a generated type, check above for compilation errors that may have prevented the type from being generated. Otherwise, ensure that type 'ChatPreferences' is on your classpath.
-error: BindingMethodProcessingStep was unable to process 'provideBiometricService(android.content.Context)' because 'ChatPreferences' could not be resolved.
-  
-  Dependency trace:
-      => element (CLASS): com.raizesvivas.app.di.DatabaseModule
-      => element (METHOD): provideChatPreferences(android.content.Context)
-      => type (ERROR return type): ChatPreferences
-  
-  If type 'ChatPreferences' is a generated type, check above for compilation errors that may have prevented the type from being generated. Otherwise, ensure that type 'ChatPreferences' is on your classpath.
-error: BindingMethodProcessingStep was unable to process 'provideBiometricPreferences(android.content.Context)' because 'ChatPreferences' could not be resolved.
-  
-  Dependency trace:
-      => element (CLASS): com.raizesvivas.app.di.DatabaseModule
-      => element (METHOD): provideChatPreferences(android.content.Context)
-      => type (ERROR return type): ChatPreferences
-  
-  If type 'ChatPreferences' is a generated type, check above for compilation errors that may have prevented the type from being generated. Otherwise, ensure that type 'ChatPreferences' is on your classpath.
-error: BindingMethodProcessingStep was unable to process 'provideBiometricCrypto(android.content.Context)' because 'ChatPreferences' could not be resolved.
-  
-  Dependency trace:
-      => element (CLASS): com.raizesvivas.app.di.DatabaseModule
-      => element (METHOD): provideChatPreferences(android.content.Context)
-      => type (ERROR return type): ChatPreferences
-  
-  If type 'ChatPreferences' is a generated type, check above for compilation errors that may have prevented the type from being generated. Otherwise, ensure that type 'ChatPreferences' is on your classpath.
-error: BindingMethodProcessingStep was unable to process 'provideChatPreferences(android.content.Context)' because 'ChatPreferences' could not be resolved.
-  
-  Dependency trace:
-      => element (CLASS): com.raizesvivas.app.di.DatabaseModule
-      => element (METHOD): provideChatPreferences(android.content.Context)
-      => type (ERROR return type): ChatPreferences
-  
-  If type 'ChatPreferences' is a generated type, check above for compilation errors that may have prevented the type from being generated. Otherwise, ensure that type 'ChatPreferences' is on your classpath.
-
-> Task :app:kaptDebugKotlin FAILED
-
-[Incubating] Problems report is available at: file:///C:/Users/robgo/raizesvivas/build/reports/problems/problems-report.html
-
-FAILURE: Build failed with an exception.
-
-* What went wrong:
-Execution failed for task ':app:kaptDebugKotlin'.
-> A failure occurred while executing org.jetbrains.kotlin.gradle.internal.KaptWithoutKotlincTask$KaptExecutionWorkAction
-
-* Try:
-> Run with --info or --debug option to get more log output.
-> Run with --scan to get full insights.
-> Get more help at https://help.gradle.org.
-
-* Exception is:
-org.gradle.api.tasks.TaskExecutionException: Execution failed for task ':app:kaptDebugKotlin'.
-	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.lambda$executeIfValid$1(ExecuteActionsTaskExecuter.java:130)
-	at org.gradle.internal.Try$Failure.ifSuccessfulOrElse(Try.java:293)
-	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.executeIfValid(ExecuteActionsTaskExecuter.java:128)
-	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.execute(ExecuteActionsTaskExecuter.java:116)
-	at org.gradle.api.internal.tasks.execution.ProblemsTaskPathTrackingTaskExecuter.execute(ProblemsTaskPathTrackingTaskExecuter.java:40)
-	at org.gradle.api.internal.tasks.execution.FinalizePropertiesTaskExecuter.execute(FinalizePropertiesTaskExecuter.java:46)
-	at org.gradle.api.internal.tasks.execution.ResolveTaskExecutionModeExecuter.execute(ResolveTaskExecutionModeExecuter.java:51)
-	at org.gradle.api.internal.tasks.execution.SkipTaskWithNoActionsExecuter.execute(SkipTaskWithNoActionsExecuter.java:57)
-	at org.gradle.api.internal.tasks.execution.SkipOnlyIfTaskExecuter.execute(SkipOnlyIfTaskExecuter.java:74)
-	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
-	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.executeTask(EventFiringTaskExecuter.java:77)
-	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:55)
-	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:52)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:210)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:205)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:67)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:60)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:167)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:60)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:54)
-	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter.execute(EventFiringTaskExecuter.java:52)
-	at org.gradle.execution.plan.LocalTaskNodeExecutor.execute(LocalTaskNodeExecutor.java:42)
-	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:331)
-	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:318)
-	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.lambda$execute$0(DefaultTaskExecutionGraph.java:314)
-	at org.gradle.internal.operations.CurrentBuildOperationRef.with(CurrentBuildOperationRef.java:85)
-	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:314)
-	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:303)
-	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.execute(DefaultPlanExecutor.java:459)
-	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:376)
-	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
-	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
-Caused by: org.gradle.workers.internal.DefaultWorkerExecutor$WorkExecutionException: A failure occurred while executing org.jetbrains.kotlin.gradle.internal.KaptWithoutKotlincTask$KaptExecutionWorkAction
-	at org.gradle.workers.internal.DefaultWorkerExecutor$WorkItemExecution.waitForCompletion(DefaultWorkerExecutor.java:287)
-	at org.gradle.internal.work.DefaultAsyncWorkTracker.lambda$waitForItemsAndGatherFailures$2(DefaultAsyncWorkTracker.java:130)
-	at org.gradle.internal.Factories$1.create(Factories.java:31)
-	at org.gradle.internal.work.DefaultWorkerLeaseService.withoutLocks(DefaultWorkerLeaseService.java:335)
-	at org.gradle.internal.work.DefaultWorkerLeaseService.withoutLocks(DefaultWorkerLeaseService.java:318)
-	at org.gradle.internal.work.DefaultWorkerLeaseService.withoutLock(DefaultWorkerLeaseService.java:323)
-	at org.gradle.internal.work.DefaultAsyncWorkTracker.waitForItemsAndGatherFailures(DefaultAsyncWorkTracker.java:126)
-	at org.gradle.internal.work.DefaultAsyncWorkTracker.waitForItemsAndGatherFailures(DefaultAsyncWorkTracker.java:92)
-	at org.gradle.internal.work.DefaultAsyncWorkTracker.waitForAll(DefaultAsyncWorkTracker.java:78)
-	at org.gradle.internal.work.DefaultAsyncWorkTracker.waitForCompletion(DefaultAsyncWorkTracker.java:66)
-	at org.gradle.api.internal.tasks.execution.TaskExecution$3.run(TaskExecution.java:252)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$1.execute(DefaultBuildOperationRunner.java:30)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$1.execute(DefaultBuildOperationRunner.java:27)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:67)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:60)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:167)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:60)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.run(DefaultBuildOperationRunner.java:48)
-	at org.gradle.api.internal.tasks.execution.TaskExecution.executeAction(TaskExecution.java:229)
-	at org.gradle.api.internal.tasks.execution.TaskExecution.executeActions(TaskExecution.java:212)
-	at org.gradle.api.internal.tasks.execution.TaskExecution.executeWithPreviousOutputFiles(TaskExecution.java:195)
-	at org.gradle.api.internal.tasks.execution.TaskExecution.execute(TaskExecution.java:162)
-	at org.gradle.internal.execution.steps.ExecuteStep.executeInternal(ExecuteStep.java:105)
-	at org.gradle.internal.execution.steps.ExecuteStep.access$000(ExecuteStep.java:44)
-	at org.gradle.internal.execution.steps.ExecuteStep$1.call(ExecuteStep.java:59)
-	at org.gradle.internal.execution.steps.ExecuteStep$1.call(ExecuteStep.java:56)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:210)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:205)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:67)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:60)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:167)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:60)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:54)
-	at org.gradle.internal.execution.steps.ExecuteStep.execute(ExecuteStep.java:56)
-	at org.gradle.internal.execution.steps.ExecuteStep.execute(ExecuteStep.java:44)
-	at org.gradle.internal.execution.steps.CancelExecutionStep.execute(CancelExecutionStep.java:42)
-	at org.gradle.internal.execution.steps.TimeoutStep.executeWithoutTimeout(TimeoutStep.java:75)
-	at org.gradle.internal.execution.steps.TimeoutStep.execute(TimeoutStep.java:55)
-	at org.gradle.internal.execution.steps.PreCreateOutputParentsStep.execute(PreCreateOutputParentsStep.java:50)
-	at org.gradle.internal.execution.steps.PreCreateOutputParentsStep.execute(PreCreateOutputParentsStep.java:28)
-	at org.gradle.internal.execution.steps.RemovePreviousOutputsStep.execute(RemovePreviousOutputsStep.java:67)
-	at org.gradle.internal.execution.steps.RemovePreviousOutputsStep.execute(RemovePreviousOutputsStep.java:37)
-	at org.gradle.internal.execution.steps.BroadcastChangingOutputsStep.execute(BroadcastChangingOutputsStep.java:61)
-	at org.gradle.internal.execution.steps.BroadcastChangingOutputsStep.execute(BroadcastChangingOutputsStep.java:26)
-	at org.gradle.internal.execution.steps.CaptureOutputsAfterExecutionStep.execute(CaptureOutputsAfterExecutionStep.java:69)
-	at org.gradle.internal.execution.steps.CaptureOutputsAfterExecutionStep.execute(CaptureOutputsAfterExecutionStep.java:46)
-	at org.gradle.internal.execution.steps.ResolveInputChangesStep.execute(ResolveInputChangesStep.java:40)
-	at org.gradle.internal.execution.steps.ResolveInputChangesStep.execute(ResolveInputChangesStep.java:29)
-	at org.gradle.internal.execution.steps.BuildCacheStep.executeWithoutCache(BuildCacheStep.java:189)
-	at org.gradle.internal.execution.steps.BuildCacheStep.executeAndStoreInCache(BuildCacheStep.java:145)
-	at org.gradle.internal.execution.steps.BuildCacheStep.lambda$executeWithCache$4(BuildCacheStep.java:101)
-	at org.gradle.internal.execution.steps.BuildCacheStep.lambda$executeWithCache$5(BuildCacheStep.java:101)
-	at org.gradle.internal.Try$Success.map(Try.java:175)
-	at org.gradle.internal.execution.steps.BuildCacheStep.executeWithCache(BuildCacheStep.java:85)
-	at org.gradle.internal.execution.steps.BuildCacheStep.lambda$execute$0(BuildCacheStep.java:74)
-	at org.gradle.internal.Either$Left.fold(Either.java:115)
-	at org.gradle.internal.execution.caching.CachingState.fold(CachingState.java:62)
-	at org.gradle.internal.execution.steps.BuildCacheStep.execute(BuildCacheStep.java:73)
-	at org.gradle.internal.execution.steps.BuildCacheStep.execute(BuildCacheStep.java:48)
-	at org.gradle.internal.execution.steps.StoreExecutionStateStep.execute(StoreExecutionStateStep.java:46)
-	at org.gradle.internal.execution.steps.StoreExecutionStateStep.execute(StoreExecutionStateStep.java:35)
-	at org.gradle.internal.execution.steps.SkipUpToDateStep.executeBecause(SkipUpToDateStep.java:75)
-	at org.gradle.internal.execution.steps.SkipUpToDateStep.lambda$execute$2(SkipUpToDateStep.java:53)
-	at org.gradle.internal.execution.steps.SkipUpToDateStep.execute(SkipUpToDateStep.java:53)
-	at org.gradle.internal.execution.steps.SkipUpToDateStep.execute(SkipUpToDateStep.java:35)
-	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsFinishedStep.execute(MarkSnapshottingInputsFinishedStep.java:37)
-	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsFinishedStep.execute(MarkSnapshottingInputsFinishedStep.java:27)
-	at org.gradle.internal.execution.steps.ResolveIncrementalCachingStateStep.executeDelegate(ResolveIncrementalCachingStateStep.java:49)
-	at org.gradle.internal.execution.steps.ResolveIncrementalCachingStateStep.executeDelegate(ResolveIncrementalCachingStateStep.java:27)
-	at org.gradle.internal.execution.steps.AbstractResolveCachingStateStep.execute(AbstractResolveCachingStateStep.java:71)
-	at org.gradle.internal.execution.steps.AbstractResolveCachingStateStep.execute(AbstractResolveCachingStateStep.java:39)
-	at org.gradle.internal.execution.steps.ResolveChangesStep.execute(ResolveChangesStep.java:65)
-	at org.gradle.internal.execution.steps.ResolveChangesStep.execute(ResolveChangesStep.java:36)
-	at org.gradle.internal.execution.steps.ValidateStep.execute(ValidateStep.java:107)
-	at org.gradle.internal.execution.steps.ValidateStep.execute(ValidateStep.java:56)
-	at org.gradle.internal.execution.steps.AbstractCaptureStateBeforeExecutionStep.execute(AbstractCaptureStateBeforeExecutionStep.java:64)
-	at org.gradle.internal.execution.steps.AbstractCaptureStateBeforeExecutionStep.execute(AbstractCaptureStateBeforeExecutionStep.java:43)
-	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.executeWithNonEmptySources(AbstractSkipEmptyWorkStep.java:125)
-	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.execute(AbstractSkipEmptyWorkStep.java:56)
-	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.execute(AbstractSkipEmptyWorkStep.java:36)
-	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsStartedStep.execute(MarkSnapshottingInputsStartedStep.java:38)
-	at org.gradle.internal.execution.steps.LoadPreviousExecutionStateStep.execute(LoadPreviousExecutionStateStep.java:36)
-	at org.gradle.internal.execution.steps.LoadPreviousExecutionStateStep.execute(LoadPreviousExecutionStateStep.java:23)
-	at org.gradle.internal.execution.steps.HandleStaleOutputsStep.execute(HandleStaleOutputsStep.java:75)
-	at org.gradle.internal.execution.steps.HandleStaleOutputsStep.execute(HandleStaleOutputsStep.java:41)
-	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.lambda$execute$0(AssignMutableWorkspaceStep.java:35)
-	at org.gradle.api.internal.tasks.execution.TaskExecution$4.withWorkspace(TaskExecution.java:289)
-	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.execute(AssignMutableWorkspaceStep.java:31)
-	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.execute(AssignMutableWorkspaceStep.java:22)
-	at org.gradle.internal.execution.steps.ChoosePipelineStep.execute(ChoosePipelineStep.java:40)
-	at org.gradle.internal.execution.steps.ChoosePipelineStep.execute(ChoosePipelineStep.java:23)
-	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.lambda$execute$2(ExecuteWorkBuildOperationFiringStep.java:67)
-	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.execute(ExecuteWorkBuildOperationFiringStep.java:67)
-	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.execute(ExecuteWorkBuildOperationFiringStep.java:39)
-	at org.gradle.internal.execution.steps.IdentityCacheStep.execute(IdentityCacheStep.java:46)
-	at org.gradle.internal.execution.steps.IdentityCacheStep.execute(IdentityCacheStep.java:34)
-	at org.gradle.internal.execution.steps.IdentifyStep.execute(IdentifyStep.java:48)
-	at org.gradle.internal.execution.steps.IdentifyStep.execute(IdentifyStep.java:35)
-	at org.gradle.internal.execution.impl.DefaultExecutionEngine$1.execute(DefaultExecutionEngine.java:61)
-	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.executeIfValid(ExecuteActionsTaskExecuter.java:127)
-	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.execute(ExecuteActionsTaskExecuter.java:116)
-	at org.gradle.api.internal.tasks.execution.ProblemsTaskPathTrackingTaskExecuter.execute(ProblemsTaskPathTrackingTaskExecuter.java:40)
-	at org.gradle.api.internal.tasks.execution.FinalizePropertiesTaskExecuter.execute(FinalizePropertiesTaskExecuter.java:46)
-	at org.gradle.api.internal.tasks.execution.ResolveTaskExecutionModeExecuter.execute(ResolveTaskExecutionModeExecuter.java:51)
-	at org.gradle.api.internal.tasks.execution.SkipTaskWithNoActionsExecuter.execute(SkipTaskWithNoActionsExecuter.java:57)
-	at org.gradle.api.internal.tasks.execution.SkipOnlyIfTaskExecuter.execute(SkipOnlyIfTaskExecuter.java:74)
-	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
-	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.executeTask(EventFiringTaskExecuter.java:77)
-	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:55)
-	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:52)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:210)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:205)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:67)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:60)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:167)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:60)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:54)
-	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter.execute(EventFiringTaskExecuter.java:52)
-	at org.gradle.execution.plan.LocalTaskNodeExecutor.execute(LocalTaskNodeExecutor.java:42)
-	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:331)
-	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:318)
-	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.lambda$execute$0(DefaultTaskExecutionGraph.java:314)
-	at org.gradle.internal.operations.CurrentBuildOperationRef.with(CurrentBuildOperationRef.java:85)
-	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:314)
-	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:303)
-	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.execute(DefaultPlanExecutor.java:459)
-	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:376)
-	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
-	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
-Caused by: java.lang.reflect.InvocationTargetException
-	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
-	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
-	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
-	at org.jetbrains.kotlin.gradle.internal.KaptExecution.run(KaptWithoutKotlincTask.kt:313)
-	at org.jetbrains.kotlin.gradle.internal.KaptWithoutKotlincTask$KaptExecutionWorkAction.execute(KaptWithoutKotlincTask.kt:259)
-	at org.gradle.workers.internal.DefaultWorkerServer.execute(DefaultWorkerServer.java:63)
-	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:66)
-	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:62)
-	at org.gradle.internal.classloader.ClassLoaderUtils.executeInClassloader(ClassLoaderUtils.java:100)
-	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.lambda$execute$0(NoIsolationWorkerFactory.java:62)
-	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:44)
-	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:41)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:210)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:205)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:67)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:60)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:167)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:60)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:54)
-	at org.gradle.workers.internal.AbstractWorker.executeWrappedInBuildOperation(AbstractWorker.java:41)
-	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.execute(NoIsolationWorkerFactory.java:59)
-	at org.gradle.workers.internal.DefaultWorkerExecutor.lambda$submitWork$0(DefaultWorkerExecutor.java:174)
-	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runExecution(DefaultConditionalExecutionQueue.java:194)
-	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.access$700(DefaultConditionalExecutionQueue.java:127)
-	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner$1.run(DefaultConditionalExecutionQueue.java:169)
-	at org.gradle.internal.Factories$1.create(Factories.java:31)
-	at org.gradle.internal.work.DefaultWorkerLeaseService.withLocks(DefaultWorkerLeaseService.java:263)
-	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:127)
-	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:132)
-	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runBatch(DefaultConditionalExecutionQueue.java:164)
-	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.run(DefaultConditionalExecutionQueue.java:133)
-	... 2 more
-Caused by: org.jetbrains.kotlin.kapt3.base.util.KaptBaseError: Error while annotation processing
-	at org.jetbrains.kotlin.kapt3.base.AnnotationProcessingKt.doAnnotationProcessing(annotationProcessing.kt:138)
-	at org.jetbrains.kotlin.kapt3.base.AnnotationProcessingKt.doAnnotationProcessing$default(annotationProcessing.kt:33)
-	at org.jetbrains.kotlin.kapt3.base.Kapt.kapt(Kapt.kt:47)
-	... 33 more
-
-
-Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
-
-You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
-
-For more on this, please refer to https://docs.gradle.org/8.13/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
-
-BUILD FAILED in 1m
-30 actionable tasks: 2 executed, 28 up-to-date
+2025-11-13 23:08:12.452 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Clarisse Alves Dos Santos (ID: ef13f575-c1e5-4fda-b358-40171653c6af):
+2025-11-13 23:08:12.452 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: FEMININO
+2025-11-13 23:08:12.452 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: false (0 filhos)
+2025-11-13 23:08:12.453 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: false
+2025-11-13 23:08:12.453 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: false
+2025-11-13 23:08:12.453 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-11-13 23:08:12.453 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-11-13 23:08:12.453 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-11-13 23:08:12.453 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: não tem filhos
+2025-11-13 23:08:12.453 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Cássio Cruz da Silva (ID: 6fc75083-5117-405f-ad74-cd75a1048960) - já foi processada
+2025-11-13 23:08:12.453 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Elmira Purcina dos Santos (ID: 4d5939b2-03da-41bc-b0c8-06a31d955df7) - já foi processada
+2025-11-13 23:08:12.454 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa IONILDE FERREIRA GOMES (ID: c8da8e70-cd55-4619-a2dc-83f44953c5a4) - já foi processada
+2025-11-13 23:08:12.454 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Joana Gomes (ID: dec5dbb5-d5d9-4a92-91b3-df468ab70027) - já foi processada
+2025-11-13 23:08:12.454 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Kássia Liz Santos Silva (ID: 3c9c4319-0925-4c2d-803c-69650c636385) - já foi processada
+2025-11-13 23:08:12.454 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Lucineide Alves Dos Santos (ID: 320877d9-ea14-4165-8545-51aea7770f41) - já foi processada
+2025-11-13 23:08:12.454 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Lucília Santos Da Cruz (ID: 789158c5-2f73-4fa2-85f4-f965bf3507a6):
+2025-11-13 23:08:12.454 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: FEMININO
+2025-11-13 23:08:12.454 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: false (0 filhos)
+2025-11-13 23:08:12.454 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: false
+2025-11-13 23:08:12.454 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: false
+2025-11-13 23:08:12.455 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-11-13 23:08:12.455 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-11-13 23:08:12.455 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-11-13 23:08:12.455 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: não tem filhos
+2025-11-13 23:08:12.455 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Manuel Alves (ID: fd959a67-9993-411b-b58b-21b3526d2128) - já foi processada
+2025-11-13 23:08:12.455 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Manuel Bedal Ferreira (ID: 0e61ddbb-e7bf-42e0-97d0-db5cca3e319d) - já foi processada
+2025-11-13 23:08:12.455 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Marcos Lohan Santos Silva (ID: beedaf4b-c443-4c5f-91b9-ca98a21ae5cd) - já foi processada
+2025-11-13 23:08:12.455 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Nilma Santos Da Cruz (ID: 2bfdfd8e-46a5-46f6-9cb4-ba574c3fb080) - já foi processada
+2025-11-13 23:08:12.455 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Paulo Rodrigues Da Cruz (ID: 97454758-7d42-4538-92f2-ee422654ef12):
+2025-11-13 23:08:12.455 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: MASCULINO
+2025-11-13 23:08:12.456 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: true (3 filhos)
+2025-11-13 23:08:12.456 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: true
+2025-11-13 23:08:12.456 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: true
+2025-11-13 23:08:12.456 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: false (conjugeAtual: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-11-13 23:08:12.456 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-11-13 23:08:12.456 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-11-13 23:08:12.456 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: tem cônjuge (320877d9-ea14-4165-8545-51aea7770f41)
+2025-11-13 23:08:12.456 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Robério Gomes Dos Santos (ID: 5d97da0d-a20f-4202-bee7-1d92a019738f) - já foi processada
+2025-11-13 23:08:12.456 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Rosana Gomes dos Santos (ID: 067e3f2b-a8a8-4ed4-9786-9a3ac2400a58) - já foi processada
+2025-11-13 23:08:12.457 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Usuário Teste (ID: e05741ca-3463-42da-84b2-05a8815cd02c):
+2025-11-13 23:08:12.457 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: OUTRO
+2025-11-13 23:08:12.457 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: false (0 filhos)
+2025-11-13 23:08:12.457 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: false
+2025-11-13 23:08:12.457 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: false
+2025-11-13 23:08:12.457 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-11-13 23:08:12.457 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-11-13 23:08:12.457 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-11-13 23:08:12.457 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: não tem filhos
+2025-11-13 23:08:12.457 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Vanildo Alves Dos Santos (ID: e07745a9-4efd-44e8-a6e4-03239734f4a5) - já foi processada
+2025-11-13 23:08:12.458 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  📊 Resumo: 4 famílias criadas, 0 pendentes
+2025-11-13 23:08:12.552 11071-11071 HomeViewMo...regarDados com.raizesvivas.app                  D  🔄 Sincronizando pessoas do Firestore (totalPessoas: 14)
+2025-11-13 23:08:12.552 11071-11071 PessoaRepository        com.raizesvivas.app                  D  🔄 Sincronizando pessoas do Firestore...
+2025-11-13 23:08:12.552 11071-11071 FirestoreService        com.raizesvivas.app                  D  🔍 Buscando todas as pessoas no Firestore...
+2025-11-13 23:08:12.554 11071-12064 HomeViewMo...arentescos com.raizesvivas.app                  D  ✅ Usando cache de parentescos (11 parentes)
+2025-11-13 23:08:13.066 11071-11071 FirestoreService        com.raizesvivas.app                  D  📦 Firestore retornou 17 documentos
+2025-11-13 23:08:13.070 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Documento 0 convertido: Clarisse Alves Dos Santos (ID: ef13f575-c1e5-4fda-b358-40171653c6af)
+2025-11-13 23:08:13.072 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Documento 1 convertido: Cássio Cruz da Silva (ID: 6fc75083-5117-405f-ad74-cd75a1048960)
+2025-11-13 23:08:13.074 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Documento 2 convertido: Elmira Purcina dos Santos (ID: 4d5939b2-03da-41bc-b0c8-06a31d955df7)
+2025-11-13 23:08:13.075 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Documento 3 convertido: IONILDE FERREIRA GOMES (ID: c8da8e70-cd55-4619-a2dc-83f44953c5a4)
+2025-11-13 23:08:13.076 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Documento 4 convertido: Joana Gomes (ID: dec5dbb5-d5d9-4a92-91b3-df468ab70027)
+2025-11-13 23:08:13.077 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Documento 5 convertido: Kássia Liz Santos Silva (ID: 3c9c4319-0925-4c2d-803c-69650c636385)
+2025-11-13 23:08:13.078 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Documento 6 convertido: Lucineide Alves Dos Santos (ID: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-11-13 23:08:13.080 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Documento 7 convertido: Lucília Santos Da Cruz (ID: 789158c5-2f73-4fa2-85f4-f965bf3507a6)
+2025-11-13 23:08:13.081 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Documento 8 convertido: Manuel Alves (ID: fd959a67-9993-411b-b58b-21b3526d2128)
+2025-11-13 23:08:13.082 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Documento 9 convertido: Manuel Bedal Ferreira (ID: 0e61ddbb-e7bf-42e0-97d0-db5cca3e319d)
+2025-11-13 23:08:13.082 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Documento 10 convertido: Marcos Lohan Santos Silva (ID: beedaf4b-c443-4c5f-91b9-ca98a21ae5cd)
+2025-11-13 23:08:13.083 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Documento 11 convertido: Nilma Santos Da Cruz (ID: 2bfdfd8e-46a5-46f6-9cb4-ba574c3fb080)
+2025-11-13 23:08:13.084 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Documento 12 convertido: Paulo Rodrigues Da Cruz (ID: 97454758-7d42-4538-92f2-ee422654ef12)
+2025-11-13 23:08:13.085 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Documento 13 convertido: Robério Gomes Dos Santos (ID: 5d97da0d-a20f-4202-bee7-1d92a019738f)
+2025-11-13 23:08:13.086 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Documento 14 convertido: Rosana Gomes dos Santos (ID: 067e3f2b-a8a8-4ed4-9786-9a3ac2400a58)
+2025-11-13 23:08:13.087 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Documento 15 convertido: Usuário Teste (ID: e05741ca-3463-42da-84b2-05a8815cd02c)
+2025-11-13 23:08:13.088 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Documento 16 convertido: Vanildo Alves Dos Santos (ID: e07745a9-4efd-44e8-a6e4-03239734f4a5)
+2025-11-13 23:08:13.088 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ 17 pessoas convertidas do Firestore (de 17 documentos)
+2025-11-13 23:08:13.088 11071-11071 PessoaRepository        com.raizesvivas.app                  D  📥 Recebidas 17 pessoas do Firestore
+2025-11-13 23:08:13.089 11071-11071 PessoaRepository        com.raizesvivas.app                  D  📝 Convertida pessoa 0: Clarisse Alves Dos Santos (ID: ef13f575-c1e5-4fda-b358-40171653c6af)
+2025-11-13 23:08:13.089 11071-11071 PessoaRepository        com.raizesvivas.app                  D  📝 Convertida pessoa 1: Cássio Cruz da Silva (ID: 6fc75083-5117-405f-ad74-cd75a1048960)
+2025-11-13 23:08:13.089 11071-11071 PessoaRepository        com.raizesvivas.app                  D  📝 Convertida pessoa 2: Elmira Purcina dos Santos (ID: 4d5939b2-03da-41bc-b0c8-06a31d955df7)
+2025-11-13 23:08:13.089 11071-11071 PessoaRepository        com.raizesvivas.app                  D  📝 Convertida pessoa 3: IONILDE FERREIRA GOMES (ID: c8da8e70-cd55-4619-a2dc-83f44953c5a4)
+2025-11-13 23:08:13.089 11071-11071 PessoaRepository        com.raizesvivas.app                  D  📝 Convertida pessoa 4: Joana Gomes (ID: dec5dbb5-d5d9-4a92-91b3-df468ab70027)
+2025-11-13 23:08:13.089 11071-11071 PessoaRepository        com.raizesvivas.app                  D  📝 Convertida pessoa 5: Kássia Liz Santos Silva (ID: 3c9c4319-0925-4c2d-803c-69650c636385)
+2025-11-13 23:08:13.089 11071-11071 PessoaRepository        com.raizesvivas.app                  D  📝 Convertida pessoa 6: Lucineide Alves Dos Santos (ID: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-11-13 23:08:13.089 11071-11071 PessoaRepository        com.raizesvivas.app                  D  📝 Convertida pessoa 7: Lucília Santos Da Cruz (ID: 789158c5-2f73-4fa2-85f4-f965bf3507a6)
+2025-11-13 23:08:13.089 11071-11071 PessoaRepository        com.raizesvivas.app                  D  📝 Convertida pessoa 8: Manuel Alves (ID: fd959a67-9993-411b-b58b-21b3526d2128)
+2025-11-13 23:08:13.090 11071-11071 PessoaRepository        com.raizesvivas.app                  D  📝 Convertida pessoa 9: Manuel Bedal Ferreira (ID: 0e61ddbb-e7bf-42e0-97d0-db5cca3e319d)
+2025-11-13 23:08:13.090 11071-11071 PessoaRepository        com.raizesvivas.app                  D  📝 Convertida pessoa 10: Marcos Lohan Santos Silva (ID: beedaf4b-c443-4c5f-91b9-ca98a21ae5cd)
+2025-11-13 23:08:13.090 11071-11071 PessoaRepository        com.raizesvivas.app                  D  📝 Convertida pessoa 11: Nilma Santos Da Cruz (ID: 2bfdfd8e-46a5-46f6-9cb4-ba574c3fb080)
+2025-11-13 23:08:13.090 11071-11071 PessoaRepository        com.raizesvivas.app                  D  📝 Convertida pessoa 12: Paulo Rodrigues Da Cruz (ID: 97454758-7d42-4538-92f2-ee422654ef12)
+2025-11-13 23:08:13.090 11071-11071 PessoaRepository        com.raizesvivas.app                  D  📝 Convertida pessoa 13: Robério Gomes Dos Santos (ID: 5d97da0d-a20f-4202-bee7-1d92a019738f)
+2025-11-13 23:08:13.090 11071-11071 PessoaRepository        com.raizesvivas.app                  D  📝 Convertida pessoa 14: Rosana Gomes dos Santos (ID: 067e3f2b-a8a8-4ed4-9786-9a3ac2400a58)
+2025-11-13 23:08:13.090 11071-11071 PessoaRepository        com.raizesvivas.app                  D  📝 Convertida pessoa 15: Usuário Teste (ID: e05741ca-3463-42da-84b2-05a8815cd02c)
+2025-11-13 23:08:13.090 11071-11071 PessoaRepository        com.raizesvivas.app                  D  📝 Convertida pessoa 16: Vanildo Alves Dos Santos (ID: e07745a9-4efd-44e8-a6e4-03239734f4a5)
+2025-11-13 23:08:13.090 11071-11071 PessoaRepository        com.raizesvivas.app                  D  💾 Salvando 17 pessoas no cache local...
+2025-11-13 23:08:13.104 11071-11071 PessoaRepository        com.raizesvivas.app                  D  ✅ 17 pessoas sincronizadas. Total no cache: 17 (inseridas: 0)
+2025-11-13 23:08:13.105 11071-11071 PessoaRepository        com.raizesvivas.app                  W  ⚠️ Discrepância: 17 entidades tentaram inserir, mas apenas 0 foram inseridas
+2025-11-13 23:08:13.105 11071-11071 HomeViewMo...regarDados com.raizesvivas.app                  D  ✅ Sincronização concluída com sucesso
+2025-11-13 23:08:13.143 11071-12062 PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 17 entidades no cache local
+2025-11-13 23:08:13.143 11071-11071 PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 17 entidades no cache local
+2025-11-13 23:08:13.144 11071-12062 HomeViewMo...arentescos com.raizesvivas.app                  D  ✅ Usando cache de parentescos (11 parentes)
+2025-11-13 23:08:13.154 11071-12062 PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 17 entidades no cache local
+2025-11-13 23:08:13.154 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Clarisse Alves Dos Santos (ID: ef13f575-c1e5-4fda-b358-40171653c6af):
+2025-11-13 23:08:13.155 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: FEMININO
+2025-11-13 23:08:13.155 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: false (0 filhos)
+2025-11-13 23:08:13.155 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: false
+2025-11-13 23:08:13.155 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: false
+2025-11-13 23:08:13.155 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-11-13 23:08:13.155 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-11-13 23:08:13.155 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-11-13 23:08:13.155 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: não tem filhos
+2025-11-13 23:08:13.156 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Cássio Cruz da Silva (ID: 6fc75083-5117-405f-ad74-cd75a1048960) - já foi processada
+2025-11-13 23:08:13.156 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Elmira Purcina dos Santos (ID: 4d5939b2-03da-41bc-b0c8-06a31d955df7) - já foi processada
+2025-11-13 23:08:13.156 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa IONILDE FERREIRA GOMES (ID: c8da8e70-cd55-4619-a2dc-83f44953c5a4) - já foi processada
+2025-11-13 23:08:13.156 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Joana Gomes (ID: dec5dbb5-d5d9-4a92-91b3-df468ab70027) - já foi processada
+2025-11-13 23:08:13.156 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Kássia Liz Santos Silva (ID: 3c9c4319-0925-4c2d-803c-69650c636385) - já foi processada
+2025-11-13 23:08:13.156 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Lucineide Alves Dos Santos (ID: 320877d9-ea14-4165-8545-51aea7770f41) - já foi processada
+2025-11-13 23:08:13.156 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Lucília Santos Da Cruz (ID: 789158c5-2f73-4fa2-85f4-f965bf3507a6):
+2025-11-13 23:08:13.156 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: FEMININO
+2025-11-13 23:08:13.157 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: false (0 filhos)
+2025-11-13 23:08:13.157 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: false
+2025-11-13 23:08:13.157 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: false
+2025-11-13 23:08:13.157 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-11-13 23:08:13.157 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-11-13 23:08:13.157 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-11-13 23:08:13.157 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: não tem filhos
+2025-11-13 23:08:13.157 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Manuel Alves (ID: fd959a67-9993-411b-b58b-21b3526d2128) - já foi processada
+2025-11-13 23:08:13.157 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Manuel Bedal Ferreira (ID: 0e61ddbb-e7bf-42e0-97d0-db5cca3e319d) - já foi processada
+2025-11-13 23:08:13.158 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Marcos Lohan Santos Silva (ID: beedaf4b-c443-4c5f-91b9-ca98a21ae5cd) - já foi processada
+2025-11-13 23:08:13.158 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Nilma Santos Da Cruz (ID: 2bfdfd8e-46a5-46f6-9cb4-ba574c3fb080) - já foi processada
+2025-11-13 23:08:13.158 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Paulo Rodrigues Da Cruz (ID: 97454758-7d42-4538-92f2-ee422654ef12):
+2025-11-13 23:08:13.158 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: MASCULINO
+2025-11-13 23:08:13.158 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: true (3 filhos)
+2025-11-13 23:08:13.158 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: true
+2025-11-13 23:08:13.158 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: true
+2025-11-13 23:08:13.158 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: false (conjugeAtual: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-11-13 23:08:13.158 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-11-13 23:08:13.159 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-11-13 23:08:13.159 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: tem cônjuge (320877d9-ea14-4165-8545-51aea7770f41)
+2025-11-13 23:08:13.159 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Robério Gomes Dos Santos (ID: 5d97da0d-a20f-4202-bee7-1d92a019738f) - já foi processada
+2025-11-13 23:08:13.159 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Rosana Gomes dos Santos (ID: 067e3f2b-a8a8-4ed4-9786-9a3ac2400a58) - já foi processada
+2025-11-13 23:08:13.159 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Usuário Teste (ID: e05741ca-3463-42da-84b2-05a8815cd02c):
+2025-11-13 23:08:13.159 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: OUTRO
+2025-11-13 23:08:13.159 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: false (0 filhos)
+2025-11-13 23:08:13.159 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: false
+2025-11-13 23:08:13.159 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: false
+2025-11-13 23:08:13.159 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-11-13 23:08:13.160 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-11-13 23:08:13.160 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-11-13 23:08:13.160 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: não tem filhos
+2025-11-13 23:08:13.160 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Vanildo Alves Dos Santos (ID: e07745a9-4efd-44e8-a6e4-03239734f4a5) - já foi processada
+2025-11-13 23:08:13.160 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  📊 Resumo: 4 famílias criadas, 0 pendentes
+2025-11-13 23:08:15.542 11071-11071 raizesvivas.app         com.raizesvivas.app                  W  Unable to open libdolphin.so: dlopen failed: library "libdolphin.so" not found.
+2025-11-13 23:08:19.630 11071-11071 FamiliaVie...Rejeitadas com.raizesvivas.app                  D  📋 Carregadas 1 famílias monoparentais rejeitadas
+2025-11-13 23:08:19.741 11071-11071 PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 17 entidades no cache local
+2025-11-13 23:08:19.742 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Clarisse Alves Dos Santos (ID: ef13f575-c1e5-4fda-b358-40171653c6af):
+2025-11-13 23:08:19.742 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: FEMININO
+2025-11-13 23:08:19.743 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: false (0 filhos)
+2025-11-13 23:08:19.743 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: false
+2025-11-13 23:08:19.743 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: false
+2025-11-13 23:08:19.743 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-11-13 23:08:19.743 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-11-13 23:08:19.743 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-11-13 23:08:19.743 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: não tem filhos
+2025-11-13 23:08:19.743 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Cássio Cruz da Silva (ID: 6fc75083-5117-405f-ad74-cd75a1048960) - já foi processada
+2025-11-13 23:08:19.744 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Elmira Purcina dos Santos (ID: 4d5939b2-03da-41bc-b0c8-06a31d955df7) - já foi processada
+2025-11-13 23:08:19.744 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa IONILDE FERREIRA GOMES (ID: c8da8e70-cd55-4619-a2dc-83f44953c5a4) - já foi processada
+2025-11-13 23:08:19.744 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Joana Gomes (ID: dec5dbb5-d5d9-4a92-91b3-df468ab70027) - já foi processada
+2025-11-13 23:08:19.744 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Kássia Liz Santos Silva (ID: 3c9c4319-0925-4c2d-803c-69650c636385) - já foi processada
+2025-11-13 23:08:19.744 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Lucineide Alves Dos Santos (ID: 320877d9-ea14-4165-8545-51aea7770f41) - já foi processada
+2025-11-13 23:08:19.744 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Lucília Santos Da Cruz (ID: 789158c5-2f73-4fa2-85f4-f965bf3507a6):
+2025-11-13 23:08:19.744 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: FEMININO
+2025-11-13 23:08:19.744 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: false (0 filhos)
+2025-11-13 23:08:19.745 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: false
+2025-11-13 23:08:19.745 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: false
+2025-11-13 23:08:19.745 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-11-13 23:08:19.745 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-11-13 23:08:19.745 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-11-13 23:08:19.745 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: não tem filhos
+2025-11-13 23:08:19.745 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Manuel Alves (ID: fd959a67-9993-411b-b58b-21b3526d2128) - já foi processada
+2025-11-13 23:08:19.746 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Manuel Bedal Ferreira (ID: 0e61ddbb-e7bf-42e0-97d0-db5cca3e319d) - já foi processada
+2025-11-13 23:08:19.746 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Marcos Lohan Santos Silva (ID: beedaf4b-c443-4c5f-91b9-ca98a21ae5cd) - já foi processada
+2025-11-13 23:08:19.746 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Nilma Santos Da Cruz (ID: 2bfdfd8e-46a5-46f6-9cb4-ba574c3fb080) - já foi processada
+2025-11-13 23:08:19.746 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Paulo Rodrigues Da Cruz (ID: 97454758-7d42-4538-92f2-ee422654ef12):
+2025-11-13 23:08:19.746 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: MASCULINO
+2025-11-13 23:08:19.746 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: true (3 filhos)
+2025-11-13 23:08:19.746 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: true
+2025-11-13 23:08:19.746 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: true
+2025-11-13 23:08:19.747 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: false (conjugeAtual: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-11-13 23:08:19.747 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-11-13 23:08:19.747 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-11-13 23:08:19.747 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: tem cônjuge (320877d9-ea14-4165-8545-51aea7770f41)
+2025-11-13 23:08:19.747 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Robério Gomes Dos Santos (ID: 5d97da0d-a20f-4202-bee7-1d92a019738f) - já foi processada
+2025-11-13 23:08:19.747 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Rosana Gomes dos Santos (ID: 067e3f2b-a8a8-4ed4-9786-9a3ac2400a58) - já foi processada
+2025-11-13 23:08:19.747 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Usuário Teste (ID: e05741ca-3463-42da-84b2-05a8815cd02c):
+2025-11-13 23:08:19.748 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: OUTRO
+2025-11-13 23:08:19.748 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: false (0 filhos)
+2025-11-13 23:08:19.748 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: false
+2025-11-13 23:08:19.748 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: false
+2025-11-13 23:08:19.748 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-11-13 23:08:19.748 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-11-13 23:08:19.748 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-11-13 23:08:19.748 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: não tem filhos
+2025-11-13 23:08:19.749 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Vanildo Alves Dos Santos (ID: e07745a9-4efd-44e8-a6e4-03239734f4a5) - já foi processada
+2025-11-13 23:08:19.749 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  📊 Resumo: 4 famílias criadas, 0 pendentes
+2025-11-13 23:08:19.766 11071-11071 FamiliaVie...acaoArvore com.raizesvivas.app                  D  ℹ️ Árvore já foi visualizada anteriormente (progresso: 1)
+2025-11-13 23:08:20.085 11071-11071 Choreographer           com.raizesvivas.app                  I  Skipped 36 frames!  The application may be doing too much work on its main thread.
+2025-11-13 23:08:39.780 11071-11071 WindowOnBackDispatcher  com.raizesvivas.app                  W  sendCancelIfRunning: isInProgress=false callback=androidx.activity.OnBackPressedDispatcher$Api34Impl$createOnBackAnimationCallback$1@ae33d00
+2025-11-13 23:08:39.990 11071-11080 raizesvivas.app         com.raizesvivas.app                  I  Compiler allocated 5566KB to compile void com.raizesvivas.app.presentation.screens.familia.FamiliaScreenKt$FamiliaCard$1.invoke(androidx.compose.foundation.layout.ColumnScope, androidx.compose.runtime.Composer, int)
+2025-11-13 23:08:43.581 11071-11071 Choreographer           com.raizesvivas.app                  I  Skipped 72 frames!  The application may be doing too much work on its main thread.
+2025-11-13 23:08:43.751 11071-11095 HWUI                    com.raizesvivas.app                  I  Davey! duration=771ms; Flags=0, FrameTimelineVsyncId=101309683, IntendedVsync=212589729605343, Vsync=212590329593943, InputEventId=0, HandleInputStart=212590336336818, AnimationStart=212590336338433, PerformTraversalsStart=212590476319735, DrawStart=212590476358641, FrameDeadline=212589743272009, FrameInterval=212590335723798, FrameStartTime=8333787, SyncQueued=212590498247287, SyncStart=212590498334839, IssueDrawCommandsStart=212590498479162, SwapBuffers=212590499283797, FrameCompleted=212590500919527, DequeueBufferDuration=12604, QueueBufferDuration=211562, GpuCompleted=212590500919527, SwapBuffersCompleted=212590499736141, DisplayPresentTime=212587178491299, CommandSubmissionCompleted=212590499283797, 
+2025-11-13 23:08:43.755 11071-11071 PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 17 entidades no cache local
+2025-11-13 23:08:47.595 11071-11071 Compose Focus           com.raizesvivas.app                  D  Owner FocusChanged(true)
+2025-11-13 23:08:47.790 11071-11071 raizesvivas.app         com.raizesvivas.app                  W  type=1400 audit(0.0:420005): avc:  denied  { read } for  name="u:object_r:vendor_display_prop:s0" dev="tmpfs" ino=13417 scontext=u:r:untrusted_app:s0:c156,c258,c512,c768 tcontext=u:object_r:vendor_display_prop:s0 tclass=file permissive=0 app=com.raizesvivas.app
+2025-11-13 23:08:47.796 11071-11071 libc                    com.raizesvivas.app                  W  Access denied finding property "vendor.display.enable_optimal_refresh_rate"
+2025-11-13 23:08:50.026 11071-11157 Surface                 com.raizesvivas.app                  D  Surface::disconnect
+2025-11-13 23:08:50.026 11071-11157 BufferQueueProducer     com.raizesvivas.app                  D  [Janela pop-up#38142(BLAST Consumer)pid:11071](id:2b3f00000001,api:1,p:11071,c:11071) disconnect: api 1
+2025-11-13 23:08:50.026 11071-11157 HWUI                    com.raizesvivas.app                  D  endAllActiveAnimators on 0xb400006e941d4400 (UnprojectedRipple) with handle 0xb400006ee93edb80
+2025-11-13 23:08:52.203 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Pessoa salva: Lucília Santos Da Cruz
+2025-11-13 23:08:52.207 11071-11071 CadastroPessoaViewModel com.raizesvivas.app                  D  ✅ Pessoa atualizada: Lucília Santos Da Cruz
+2025-11-13 23:08:52.258 11071-11071 PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 17 entidades no cache local
+2025-11-13 23:08:52.260 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Clarisse Alves Dos Santos (ID: ef13f575-c1e5-4fda-b358-40171653c6af):
+2025-11-13 23:08:52.260 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: FEMININO
+2025-11-13 23:08:52.261 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: false (0 filhos)
+2025-11-13 23:08:52.261 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: false
+2025-11-13 23:08:52.261 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: false
+2025-11-13 23:08:52.261 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-11-13 23:08:52.261 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-11-13 23:08:52.261 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-11-13 23:08:52.262 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: não tem filhos
+2025-11-13 23:08:52.262 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Cássio Cruz da Silva (ID: 6fc75083-5117-405f-ad74-cd75a1048960) - já foi processada
+2025-11-13 23:08:52.262 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Elmira Purcina dos Santos (ID: 4d5939b2-03da-41bc-b0c8-06a31d955df7) - já foi processada
+2025-11-13 23:08:52.262 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa IONILDE FERREIRA GOMES (ID: c8da8e70-cd55-4619-a2dc-83f44953c5a4) - já foi processada
+2025-11-13 23:08:52.262 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Joana Gomes (ID: dec5dbb5-d5d9-4a92-91b3-df468ab70027) - já foi processada
+2025-11-13 23:08:52.262 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Kássia Liz Santos Silva (ID: 3c9c4319-0925-4c2d-803c-69650c636385) - já foi processada
+2025-11-13 23:08:52.262 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Lucineide Alves Dos Santos (ID: 320877d9-ea14-4165-8545-51aea7770f41) - já foi processada
+2025-11-13 23:08:52.263 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Lucília Santos Da Cruz (ID: 789158c5-2f73-4fa2-85f4-f965bf3507a6):
+2025-11-13 23:08:52.263 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: FEMININO
+2025-11-13 23:08:52.263 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: false (0 filhos)
+2025-11-13 23:08:52.263 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: false
+2025-11-13 23:08:52.263 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: false
+2025-11-13 23:08:52.263 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-11-13 23:08:52.264 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-11-13 23:08:52.264 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-11-13 23:08:52.264 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: não tem filhos
+2025-11-13 23:08:52.264 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Manuel Alves (ID: fd959a67-9993-411b-b58b-21b3526d2128) - já foi processada
+2025-11-13 23:08:52.264 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Manuel Bedal Ferreira (ID: 0e61ddbb-e7bf-42e0-97d0-db5cca3e319d) - já foi processada
+2025-11-13 23:08:52.264 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Marcos Lohan Santos Silva (ID: beedaf4b-c443-4c5f-91b9-ca98a21ae5cd) - já foi processada
+2025-11-13 23:08:52.264 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Nilma Santos Da Cruz (ID: 2bfdfd8e-46a5-46f6-9cb4-ba574c3fb080) - já foi processada
+2025-11-13 23:08:52.264 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Paulo Rodrigues Da Cruz (ID: 97454758-7d42-4538-92f2-ee422654ef12):
+2025-11-13 23:08:52.265 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: MASCULINO
+2025-11-13 23:08:52.265 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: true (3 filhos)
+2025-11-13 23:08:52.265 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: true
+2025-11-13 23:08:52.265 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: true
+2025-11-13 23:08:52.265 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: false (conjugeAtual: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-11-13 23:08:52.265 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-11-13 23:08:52.266 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-11-13 23:08:52.266 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: tem cônjuge (320877d9-ea14-4165-8545-51aea7770f41)
+2025-11-13 23:08:52.266 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Robério Gomes Dos Santos (ID: 5d97da0d-a20f-4202-bee7-1d92a019738f) - já foi processada
+2025-11-13 23:08:52.266 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Rosana Gomes dos Santos (ID: 067e3f2b-a8a8-4ed4-9786-9a3ac2400a58) - já foi processada
+2025-11-13 23:08:52.266 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Usuário Teste (ID: e05741ca-3463-42da-84b2-05a8815cd02c):
+2025-11-13 23:08:52.266 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: OUTRO
+2025-11-13 23:08:52.267 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: false (0 filhos)
+2025-11-13 23:08:52.267 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: false
+2025-11-13 23:08:52.267 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: false
+2025-11-13 23:08:52.267 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-11-13 23:08:52.267 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-11-13 23:08:52.267 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-11-13 23:08:52.267 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: não tem filhos
+2025-11-13 23:08:52.268 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Vanildo Alves Dos Santos (ID: e07745a9-4efd-44e8-a6e4-03239734f4a5) - já foi processada
+2025-11-13 23:08:52.268 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  📊 Resumo: 4 famílias criadas, 0 pendentes
+2025-11-13 23:08:52.277 11071-11071 PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 17 entidades no cache local
+2025-11-13 23:08:52.283 11071-11071 PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 17 entidades no cache local
+2025-11-13 23:08:52.450 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Pessoa salva: Paulo Rodrigues Da Cruz
+2025-11-13 23:08:52.456 11071-11071 CadastroPessoaViewModel com.raizesvivas.app                  D  🔗 Adicionado relacionamento: Paulo Rodrigues Da Cruz é pai de Lucília Santos Da Cruz
+2025-11-13 23:08:52.500 11071-11071 PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 17 entidades no cache local
+2025-11-13 23:08:52.509 11071-11071 PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 17 entidades no cache local
+2025-11-13 23:08:52.594 11071-11071 PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 17 entidades no cache local
+2025-11-13 23:08:52.595 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Clarisse Alves Dos Santos (ID: ef13f575-c1e5-4fda-b358-40171653c6af):
+2025-11-13 23:08:52.595 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: FEMININO
+2025-11-13 23:08:52.596 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: false (0 filhos)
+2025-11-13 23:08:52.596 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: false
+2025-11-13 23:08:52.596 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: false
+2025-11-13 23:08:52.596 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-11-13 23:08:52.596 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-11-13 23:08:52.596 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-11-13 23:08:52.596 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: não tem filhos
+2025-11-13 23:08:52.597 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Cássio Cruz da Silva (ID: 6fc75083-5117-405f-ad74-cd75a1048960) - já foi processada
+2025-11-13 23:08:52.597 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Elmira Purcina dos Santos (ID: 4d5939b2-03da-41bc-b0c8-06a31d955df7) - já foi processada
+2025-11-13 23:08:52.597 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa IONILDE FERREIRA GOMES (ID: c8da8e70-cd55-4619-a2dc-83f44953c5a4) - já foi processada
+2025-11-13 23:08:52.597 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Joana Gomes (ID: dec5dbb5-d5d9-4a92-91b3-df468ab70027) - já foi processada
+2025-11-13 23:08:52.597 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Kássia Liz Santos Silva (ID: 3c9c4319-0925-4c2d-803c-69650c636385) - já foi processada
+2025-11-13 23:08:52.597 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Lucineide Alves Dos Santos (ID: 320877d9-ea14-4165-8545-51aea7770f41) - já foi processada
+2025-11-13 23:08:52.598 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Lucília Santos Da Cruz (ID: 789158c5-2f73-4fa2-85f4-f965bf3507a6):
+2025-11-13 23:08:52.598 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: FEMININO
+2025-11-13 23:08:52.598 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: false (0 filhos)
+2025-11-13 23:08:52.598 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: false
+2025-11-13 23:08:52.598 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: false
+2025-11-13 23:08:52.598 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-11-13 23:08:52.598 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-11-13 23:08:52.598 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-11-13 23:08:52.599 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: não tem filhos
+2025-11-13 23:08:52.599 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Manuel Alves (ID: fd959a67-9993-411b-b58b-21b3526d2128) - já foi processada
+2025-11-13 23:08:52.599 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Manuel Bedal Ferreira (ID: 0e61ddbb-e7bf-42e0-97d0-db5cca3e319d) - já foi processada
+2025-11-13 23:08:52.599 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Marcos Lohan Santos Silva (ID: beedaf4b-c443-4c5f-91b9-ca98a21ae5cd) - já foi processada
+2025-11-13 23:08:52.599 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Nilma Santos Da Cruz (ID: 2bfdfd8e-46a5-46f6-9cb4-ba574c3fb080) - já foi processada
+2025-11-13 23:08:52.599 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Paulo Rodrigues Da Cruz (ID: 97454758-7d42-4538-92f2-ee422654ef12):
+2025-11-13 23:08:52.599 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: MASCULINO
+2025-11-13 23:08:52.600 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: true (3 filhos)
+2025-11-13 23:08:52.600 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: true
+2025-11-13 23:08:52.600 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: true
+2025-11-13 23:08:52.600 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: false (conjugeAtual: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-11-13 23:08:52.600 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-11-13 23:08:52.600 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-11-13 23:08:52.601 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: tem cônjuge (320877d9-ea14-4165-8545-51aea7770f41)
+2025-11-13 23:08:52.601 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Robério Gomes Dos Santos (ID: 5d97da0d-a20f-4202-bee7-1d92a019738f) - já foi processada
+2025-11-13 23:08:52.601 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Rosana Gomes dos Santos (ID: 067e3f2b-a8a8-4ed4-9786-9a3ac2400a58) - já foi processada
+2025-11-13 23:08:52.601 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Usuário Teste (ID: e05741ca-3463-42da-84b2-05a8815cd02c):
+2025-11-13 23:08:52.601 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: OUTRO
+2025-11-13 23:08:52.601 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: false (0 filhos)
+2025-11-13 23:08:52.601 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: false
+2025-11-13 23:08:52.602 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: false
+2025-11-13 23:08:52.602 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-11-13 23:08:52.602 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-11-13 23:08:52.602 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-11-13 23:08:52.602 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: não tem filhos
+2025-11-13 23:08:52.602 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Vanildo Alves Dos Santos (ID: e07745a9-4efd-44e8-a6e4-03239734f4a5) - já foi processada
+2025-11-13 23:08:52.602 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  📊 Resumo: 4 famílias criadas, 0 pendentes
+2025-11-13 23:08:52.621 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Pessoa salva: Lucineide Alves Dos Santos
+2025-11-13 23:08:52.629 11071-11071 CadastroPessoaViewModel com.raizesvivas.app                  D  🔗 Adicionado relacionamento: Lucineide Alves Dos Santos é mãe de Lucília Santos Da Cruz
+2025-11-13 23:08:52.629 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  🔍 Inicializando perfil para usuarioId: ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:52.631 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  🔄 Perfil existente encontrado para usuarioId: ER7EdvnmzJN7froVWGSQ2uTqlLK2, sincronizando do Firestore
+2025-11-13 23:08:52.664 11071-11071 PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 17 entidades no cache local
+2025-11-13 23:08:52.665 11071-11071 PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 17 entidades no cache local
+2025-11-13 23:08:52.667 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  📥 Sincronizando conquistas do Firestore para usuarioId: ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:52.667 11071-11071 FirestoreService        com.raizesvivas.app                  D  🔍 Buscando conquistas do Firestore para usuarioId: ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:52.669 11071-11071 PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 17 entidades no cache local
+2025-11-13 23:08:52.670 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Clarisse Alves Dos Santos (ID: ef13f575-c1e5-4fda-b358-40171653c6af):
+2025-11-13 23:08:52.670 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: FEMININO
+2025-11-13 23:08:52.671 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: false (0 filhos)
+2025-11-13 23:08:52.671 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: false
+2025-11-13 23:08:52.671 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: false
+2025-11-13 23:08:52.671 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-11-13 23:08:52.671 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-11-13 23:08:52.672 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-11-13 23:08:52.672 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: não tem filhos
+2025-11-13 23:08:52.672 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Cássio Cruz da Silva (ID: 6fc75083-5117-405f-ad74-cd75a1048960) - já foi processada
+2025-11-13 23:08:52.672 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Elmira Purcina dos Santos (ID: 4d5939b2-03da-41bc-b0c8-06a31d955df7) - já foi processada
+2025-11-13 23:08:52.672 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa IONILDE FERREIRA GOMES (ID: c8da8e70-cd55-4619-a2dc-83f44953c5a4) - já foi processada
+2025-11-13 23:08:52.673 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Joana Gomes (ID: dec5dbb5-d5d9-4a92-91b3-df468ab70027) - já foi processada
+2025-11-13 23:08:52.673 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Kássia Liz Santos Silva (ID: 3c9c4319-0925-4c2d-803c-69650c636385) - já foi processada
+2025-11-13 23:08:52.673 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Lucineide Alves Dos Santos (ID: 320877d9-ea14-4165-8545-51aea7770f41) - já foi processada
+2025-11-13 23:08:52.673 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Lucília Santos Da Cruz (ID: 789158c5-2f73-4fa2-85f4-f965bf3507a6):
+2025-11-13 23:08:52.673 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: FEMININO
+2025-11-13 23:08:52.674 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: false (0 filhos)
+2025-11-13 23:08:52.674 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: false
+2025-11-13 23:08:52.674 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: false
+2025-11-13 23:08:52.674 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-11-13 23:08:52.674 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-11-13 23:08:52.674 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-11-13 23:08:52.675 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: não tem filhos
+2025-11-13 23:08:52.675 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Manuel Alves (ID: fd959a67-9993-411b-b58b-21b3526d2128) - já foi processada
+2025-11-13 23:08:52.675 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Manuel Bedal Ferreira (ID: 0e61ddbb-e7bf-42e0-97d0-db5cca3e319d) - já foi processada
+2025-11-13 23:08:52.675 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Marcos Lohan Santos Silva (ID: beedaf4b-c443-4c5f-91b9-ca98a21ae5cd) - já foi processada
+2025-11-13 23:08:52.675 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Nilma Santos Da Cruz (ID: 2bfdfd8e-46a5-46f6-9cb4-ba574c3fb080) - já foi processada
+2025-11-13 23:08:52.675 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Paulo Rodrigues Da Cruz (ID: 97454758-7d42-4538-92f2-ee422654ef12):
+2025-11-13 23:08:52.675 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: MASCULINO
+2025-11-13 23:08:52.676 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: true (3 filhos)
+2025-11-13 23:08:52.676 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: true
+2025-11-13 23:08:52.676 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: true
+2025-11-13 23:08:52.676 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: false (conjugeAtual: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-11-13 23:08:52.676 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-11-13 23:08:52.676 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-11-13 23:08:52.676 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: tem cônjuge (320877d9-ea14-4165-8545-51aea7770f41)
+2025-11-13 23:08:52.677 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Robério Gomes Dos Santos (ID: 5d97da0d-a20f-4202-bee7-1d92a019738f) - já foi processada
+2025-11-13 23:08:52.677 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Rosana Gomes dos Santos (ID: 067e3f2b-a8a8-4ed4-9786-9a3ac2400a58) - já foi processada
+2025-11-13 23:08:52.677 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Usuário Teste (ID: e05741ca-3463-42da-84b2-05a8815cd02c):
+2025-11-13 23:08:52.677 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: OUTRO
+2025-11-13 23:08:52.677 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: false (0 filhos)
+2025-11-13 23:08:52.677 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: false
+2025-11-13 23:08:52.678 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: false
+2025-11-13 23:08:52.678 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-11-13 23:08:52.678 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-11-13 23:08:52.678 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-11-13 23:08:52.678 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: não tem filhos
+2025-11-13 23:08:52.678 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Vanildo Alves Dos Santos (ID: e07745a9-4efd-44e8-a6e4-03239734f4a5) - já foi processada
+2025-11-13 23:08:52.678 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  📊 Resumo: 4 famílias criadas, 0 pendentes
+2025-11-13 23:08:52.942 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ 64 conquistas carregadas do Firestore para usuarioId: ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:52.942 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  📥 Encontradas 64 conquistas no Firestore para usuarioId: ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:52.974 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Conquistas sincronizadas do Firestore para usuarioId: ER7EdvnmzJN7froVWGSQ2uTqlLK2 (64 conquistas)
+2025-11-13 23:08:53.091 11071-11071 FirestoreS...amificacao com.raizesvivas.app                  D  ✅ Perfil de gamificação salvo no Firestore: ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:53.091 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ XP do perfil recalculado: 380 XP, nível 1, 10/66 conquistas
+2025-11-13 23:08:53.091 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Perfil existente sincronizado para usuarioId: ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:53.207 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: primeiro_passo para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:53.221 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: primeiro_passo para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/1
+2025-11-13 23:08:53.308 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: tutorial_completo para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:53.315 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: tutorial_completo para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/1
+2025-11-13 23:08:53.408 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: primeira_visita_semanal para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:53.414 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: primeira_visita_semanal para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/3
+2025-11-13 23:08:53.427 11071-11071 PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 17 entidades no cache local
+2025-11-13 23:08:53.528 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: duas_geracoes para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:53.531 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: duas_geracoes para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 1/2
+2025-11-13 23:08:53.544 11071-11071 PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 17 entidades no cache local
+2025-11-13 23:08:53.670 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: tres_geracoes para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:53.678 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: tres_geracoes para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 1/3
+2025-11-13 23:08:53.689 11071-11071 PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 17 entidades no cache local
+2025-11-13 23:08:53.788 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: arvore_crescendo para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:53.794 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: arvore_crescendo para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 17/25
+2025-11-13 23:08:53.806 11071-11071 PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 17 entidades no cache local
+2025-11-13 23:08:53.896 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: construtor_avancado para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:53.898 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: construtor_avancado para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 17/50
+2025-11-13 23:08:53.912 11071-11071 PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 17 entidades no cache local
+2025-11-13 23:08:54.012 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: quatro_geracoes para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:54.015 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: quatro_geracoes para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 1/4
+2025-11-13 23:08:54.028 11071-11071 PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 17 entidades no cache local
+2025-11-13 23:08:54.119 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: construtor_mestre para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:54.128 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: construtor_mestre para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 17/100
+2025-11-13 23:08:54.141 11071-11071 PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 17 entidades no cache local
+2025-11-13 23:08:54.287 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: cinco_geracoes para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:54.291 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: cinco_geracoes para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 1/5
+2025-11-13 23:08:54.298 11071-11071 Subfamilia...nlined$map com.raizesvivas.app                  D  🌳 Observando subfamílias: 0 no cache local
+2025-11-13 23:08:54.372 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: raizes_plantadas para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:54.378 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: raizes_plantadas para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/1
+2025-11-13 23:08:54.390 11071-11071 PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 17 entidades no cache local
+2025-11-13 23:08:54.486 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: primeira_foto para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:54.495 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: primeira_foto para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/1
+2025-11-13 23:08:54.505 11071-11071 PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 17 entidades no cache local
+2025-11-13 23:08:54.584 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: historiador_iniciante para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:54.596 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: historiador_iniciante para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/5
+2025-11-13 23:08:54.606 11071-11071 PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 17 entidades no cache local
+2025-11-13 23:08:54.681 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: fotografo_familiar para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:54.692 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: fotografo_familiar para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/5
+2025-11-13 23:08:54.704 11071-11071 PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 17 entidades no cache local
+2025-11-13 23:08:54.779 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: colecionador_memorias para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:54.787 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: colecionador_memorias para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/15
+2025-11-13 23:08:54.798 11071-11071 PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 17 entidades no cache local
+2025-11-13 23:08:54.891 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: biografo para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:54.897 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: biografo para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 2/5
+2025-11-13 23:08:54.911 11071-11071 PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 17 entidades no cache local
+2025-11-13 23:08:55.013 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: historiador_avancado para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:55.020 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: historiador_avancado para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/50
+2025-11-13 23:08:55.031 11071-11071 PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 17 entidades no cache local
+2025-11-13 23:08:55.122 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: escritor_familiar para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:55.129 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: escritor_familiar para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 2/15
+2025-11-13 23:08:55.141 11071-11071 PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 17 entidades no cache local
+2025-11-13 23:08:55.232 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: arquivista_mestre para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:55.240 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: arquivista_mestre para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/100
+2025-11-13 23:08:55.253 11071-11071 PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 17 entidades no cache local
+2025-11-13 23:08:55.345 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: cronista_familiar para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:55.353 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: cronista_familiar para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/25
+2025-11-13 23:08:55.446 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: primeira_mensagem para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:55.453 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: primeira_mensagem para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/1
+2025-11-13 23:08:55.546 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: sociavel para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:55.555 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: sociavel para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/3
+2025-11-13 23:08:55.642 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: primeiro_recado para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:55.649 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: primeiro_recado para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/1
+2025-11-13 23:08:55.740 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: conector_iniciante para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:55.760 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: conector_iniciante para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/10
+2025-11-13 23:08:55.849 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: apoiador para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:55.856 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: apoiador para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/5
+2025-11-13 23:08:55.950 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: comunicador para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:55.956 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: comunicador para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/50
+2025-11-13 23:08:56.032 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: publicador para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:56.039 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: publicador para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/10
+2025-11-13 23:08:56.139 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: rede_social para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:56.146 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: rede_social para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/10
+2025-11-13 23:08:56.248 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: conector_avancado para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:56.252 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: conector_avancado para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/200
+2025-11-13 23:08:56.363 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: influencer_familiar para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:56.370 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: influencer_familiar para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/50
+2025-11-13 23:08:56.456 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: conector_mestre para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:56.463 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: conector_mestre para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/1000
+2025-11-13 23:08:56.583 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: celebridade_familiar para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:56.595 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: celebridade_familiar para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/200
+2025-11-13 23:08:56.665 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: primeira_exploracao para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:56.674 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: primeira_exploracao para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/5
+2025-11-13 23:08:56.741 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: curioso para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:56.746 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: curioso para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/10
+2025-11-13 23:08:56.832 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: explorador_ativo para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:56.839 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: explorador_ativo para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/25
+2025-11-13 23:08:56.914 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: navegador para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:56.925 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: navegador para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/50
+2025-11-13 23:08:57.001 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: conhecedor_familia para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:57.008 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: conhecedor_familia para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/50
+2025-11-13 23:08:57.096 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: explorador_mestre para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:57.105 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: explorador_mestre para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/200
+2025-11-13 23:08:57.174 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: primeira_semana para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:57.181 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: primeira_semana para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/7
+2025-11-13 23:08:57.251 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: madrugador para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:57.257 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: madrugador para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/1
+2025-11-13 23:08:57.346 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: noturno para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:57.353 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: noturno para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/1
+2025-11-13 23:08:57.420 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: usuario_mensal para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:57.425 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: usuario_mensal para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/30
+2025-11-13 23:08:57.513 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: fim_de_semana para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:57.519 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: fim_de_semana para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/10
+2025-11-13 23:08:57.588 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: veterano para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:57.591 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: veterano para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/100
+2025-11-13 23:08:57.655 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: lenda para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:57.661 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: lenda para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/365
+2025-11-13 23:08:57.754 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: aniversariante para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:57.759 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: aniversariante para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/1
+2025-11-13 23:08:57.829 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: natal_familiar para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:57.845 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: natal_familiar para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/1
+2025-11-13 23:08:57.913 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: ano_novo para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:57.917 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: ano_novo para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/1
+2025-11-13 23:08:57.995 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: dia_das_maes para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:57.999 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: dia_das_maes para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/1
+2025-11-13 23:08:58.070 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: dia_dos_pais para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:58.076 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: dia_dos_pais para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/1
+2025-11-13 23:08:58.087 11071-11071 PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 17 entidades no cache local
+2025-11-13 23:08:58.165 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: perfeccionista para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:58.170 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: perfeccionista para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/50
+2025-11-13 23:08:58.239 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: genealogista_profissional para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:58.242 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: genealogista_profissional para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/1
+2025-11-13 23:08:58.313 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: historiador_mestre_epico para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:58.321 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: historiador_mestre_epico para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/1
+2025-11-13 23:08:58.325 11071-11071 Subfamilia...nlined$map com.raizesvivas.app                  D  🌳 Observando subfamílias: 0 no cache local
+2025-11-13 23:08:58.392 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: unificador_familiar para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:58.400 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: unificador_familiar para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/10
+2025-11-13 23:08:58.490 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: lenda_viva para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:58.498 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: lenda_viva para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/50
+2025-11-13 23:08:58.590 11071-11071 FirestoreS...rConquista com.raizesvivas.app                  D  ✅ Conquista salva no Firestore: colecionador_supremo para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2
+2025-11-13 23:08:58.597 11071-11071 GamificacaoRepository   com.raizesvivas.app                  D  ✅ Progresso atualizado: colecionador_supremo para usuário ER7EdvnmzJN7froVWGSQ2uTqlLK2 - 0/1
+2025-11-13 23:09:02.192 11071-11071 WindowOnBackDispatcher  com.raizesvivas.app                  W  sendCancelIfRunning: isInProgress=false callback=androidx.activity.OnBackPressedDispatcher$Api34Impl$createOnBackAnimationCallback$1@ae33d00
+2025-11-13 23:09:02.471 11071-11071 Choreographer           com.raizesvivas.app                  I  Skipped 33 frames!  The application may be doing too much work on its main thread.
+2025-11-13 23:09:08.007 11071-11071 PessoaRepository        com.raizesvivas.app                  D  🔄 Recarregando pessoas do Firestore (substituindo cache)...
+2025-11-13 23:09:08.007 11071-11071 FirestoreService        com.raizesvivas.app                  D  🔍 Buscando todas as pessoas no Firestore...
+2025-11-13 23:09:08.323 11071-11071 FirestoreService        com.raizesvivas.app                  D  📦 Firestore retornou 17 documentos
+2025-11-13 23:09:08.324 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Documento 0 convertido: Clarisse Alves Dos Santos (ID: ef13f575-c1e5-4fda-b358-40171653c6af)
+2025-11-13 23:09:08.326 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Documento 1 convertido: Cássio Cruz da Silva (ID: 6fc75083-5117-405f-ad74-cd75a1048960)
+2025-11-13 23:09:08.327 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Documento 2 convertido: Elmira Purcina dos Santos (ID: 4d5939b2-03da-41bc-b0c8-06a31d955df7)
+2025-11-13 23:09:08.328 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Documento 3 convertido: IONILDE FERREIRA GOMES (ID: c8da8e70-cd55-4619-a2dc-83f44953c5a4)
+2025-11-13 23:09:08.329 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Documento 4 convertido: Joana Gomes (ID: dec5dbb5-d5d9-4a92-91b3-df468ab70027)
+2025-11-13 23:09:08.330 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Documento 5 convertido: Kássia Liz Santos Silva (ID: 3c9c4319-0925-4c2d-803c-69650c636385)
+2025-11-13 23:09:08.331 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Documento 6 convertido: Lucineide Alves Dos Santos (ID: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-11-13 23:09:08.332 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Documento 7 convertido: Lucília Santos Da Cruz (ID: 789158c5-2f73-4fa2-85f4-f965bf3507a6)
+2025-11-13 23:09:08.333 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Documento 8 convertido: Manuel Alves (ID: fd959a67-9993-411b-b58b-21b3526d2128)
+2025-11-13 23:09:08.335 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Documento 9 convertido: Manuel Bedal Ferreira (ID: 0e61ddbb-e7bf-42e0-97d0-db5cca3e319d)
+2025-11-13 23:09:08.335 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Documento 10 convertido: Marcos Lohan Santos Silva (ID: beedaf4b-c443-4c5f-91b9-ca98a21ae5cd)
+2025-11-13 23:09:08.336 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Documento 11 convertido: Nilma Santos Da Cruz (ID: 2bfdfd8e-46a5-46f6-9cb4-ba574c3fb080)
+2025-11-13 23:09:08.337 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Documento 12 convertido: Paulo Rodrigues Da Cruz (ID: 97454758-7d42-4538-92f2-ee422654ef12)
+2025-11-13 23:09:08.338 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Documento 13 convertido: Robério Gomes Dos Santos (ID: 5d97da0d-a20f-4202-bee7-1d92a019738f)
+2025-11-13 23:09:08.339 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Documento 14 convertido: Rosana Gomes dos Santos (ID: 067e3f2b-a8a8-4ed4-9786-9a3ac2400a58)
+2025-11-13 23:09:08.340 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Documento 15 convertido: Usuário Teste (ID: e05741ca-3463-42da-84b2-05a8815cd02c)
+2025-11-13 23:09:08.341 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ Documento 16 convertido: Vanildo Alves Dos Santos (ID: e07745a9-4efd-44e8-a6e4-03239734f4a5)
+2025-11-13 23:09:08.341 11071-11071 FirestoreService        com.raizesvivas.app                  D  ✅ 17 pessoas convertidas do Firestore (de 17 documentos)
+2025-11-13 23:09:08.341 11071-11071 PessoaRepository        com.raizesvivas.app                  D  📥 Recebidas 17 pessoas do Firestore para recarregar
+2025-11-13 23:09:08.345 11071-11071 PessoaRepository        com.raizesvivas.app                  D  🗑️ Cache local limpo
+2025-11-13 23:09:08.345 11071-11071 PessoaRepository        com.raizesvivas.app                  D  📝 Convertida pessoa 0: Clarisse Alves Dos Santos (ID: ef13f575-c1e5-4fda-b358-40171653c6af)
+2025-11-13 23:09:08.345 11071-11071 PessoaRepository        com.raizesvivas.app                  D  📝 Convertida pessoa 1: Cássio Cruz da Silva (ID: 6fc75083-5117-405f-ad74-cd75a1048960)
+2025-11-13 23:09:08.345 11071-11071 PessoaRepository        com.raizesvivas.app                  D  📝 Convertida pessoa 2: Elmira Purcina dos Santos (ID: 4d5939b2-03da-41bc-b0c8-06a31d955df7)
+2025-11-13 23:09:08.345 11071-11071 PessoaRepository        com.raizesvivas.app                  D  📝 Convertida pessoa 3: IONILDE FERREIRA GOMES (ID: c8da8e70-cd55-4619-a2dc-83f44953c5a4)
+2025-11-13 23:09:08.346 11071-11071 PessoaRepository        com.raizesvivas.app                  D  📝 Convertida pessoa 4: Joana Gomes (ID: dec5dbb5-d5d9-4a92-91b3-df468ab70027)
+2025-11-13 23:09:08.346 11071-11071 PessoaRepository        com.raizesvivas.app                  D  📝 Convertida pessoa 5: Kássia Liz Santos Silva (ID: 3c9c4319-0925-4c2d-803c-69650c636385)
+2025-11-13 23:09:08.346 11071-11071 PessoaRepository        com.raizesvivas.app                  D  📝 Convertida pessoa 6: Lucineide Alves Dos Santos (ID: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-11-13 23:09:08.346 11071-11071 PessoaRepository        com.raizesvivas.app                  D  📝 Convertida pessoa 7: Lucília Santos Da Cruz (ID: 789158c5-2f73-4fa2-85f4-f965bf3507a6)
+2025-11-13 23:09:08.346 11071-11071 PessoaRepository        com.raizesvivas.app                  D  📝 Convertida pessoa 8: Manuel Alves (ID: fd959a67-9993-411b-b58b-21b3526d2128)
+2025-11-13 23:09:08.346 11071-11071 PessoaRepository        com.raizesvivas.app                  D  📝 Convertida pessoa 9: Manuel Bedal Ferreira (ID: 0e61ddbb-e7bf-42e0-97d0-db5cca3e319d)
+2025-11-13 23:09:08.346 11071-11071 PessoaRepository        com.raizesvivas.app                  D  📝 Convertida pessoa 10: Marcos Lohan Santos Silva (ID: beedaf4b-c443-4c5f-91b9-ca98a21ae5cd)
+2025-11-13 23:09:08.346 11071-11071 PessoaRepository        com.raizesvivas.app                  D  📝 Convertida pessoa 11: Nilma Santos Da Cruz (ID: 2bfdfd8e-46a5-46f6-9cb4-ba574c3fb080)
+2025-11-13 23:09:08.347 11071-11071 PessoaRepository        com.raizesvivas.app                  D  📝 Convertida pessoa 12: Paulo Rodrigues Da Cruz (ID: 97454758-7d42-4538-92f2-ee422654ef12)
+2025-11-13 23:09:08.347 11071-11071 PessoaRepository        com.raizesvivas.app                  D  📝 Convertida pessoa 13: Robério Gomes Dos Santos (ID: 5d97da0d-a20f-4202-bee7-1d92a019738f)
+2025-11-13 23:09:08.347 11071-11071 PessoaRepository        com.raizesvivas.app                  D  📝 Convertida pessoa 14: Rosana Gomes dos Santos (ID: 067e3f2b-a8a8-4ed4-9786-9a3ac2400a58)
+2025-11-13 23:09:08.347 11071-11071 PessoaRepository        com.raizesvivas.app                  D  📝 Convertida pessoa 15: Usuário Teste (ID: e05741ca-3463-42da-84b2-05a8815cd02c)
+2025-11-13 23:09:08.347 11071-11071 PessoaRepository        com.raizesvivas.app                  D  📝 Convertida pessoa 16: Vanildo Alves Dos Santos (ID: e07745a9-4efd-44e8-a6e4-03239734f4a5)
+2025-11-13 23:09:08.347 11071-11071 PessoaRepository        com.raizesvivas.app                  D  💾 Inserindo 17 pessoas no cache local...
+2025-11-13 23:09:08.348 11071-11071 PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 0 entidades no cache local
+2025-11-13 23:09:08.349 11071-11071 PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 0 entidades no cache local
+2025-11-13 23:09:08.410 11071-11071 PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 17 entidades no cache local
+2025-11-13 23:09:08.412 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Clarisse Alves Dos Santos (ID: ef13f575-c1e5-4fda-b358-40171653c6af):
+2025-11-13 23:09:08.412 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: FEMININO
+2025-11-13 23:09:08.412 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: false (0 filhos)
+2025-11-13 23:09:08.412 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: false
+2025-11-13 23:09:08.412 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: false
+2025-11-13 23:09:08.413 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-11-13 23:09:08.413 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-11-13 23:09:08.413 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-11-13 23:09:08.413 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: não tem filhos
+2025-11-13 23:09:08.413 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Cássio Cruz da Silva (ID: 6fc75083-5117-405f-ad74-cd75a1048960) - já foi processada
+2025-11-13 23:09:08.414 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Elmira Purcina dos Santos (ID: 4d5939b2-03da-41bc-b0c8-06a31d955df7) - já foi processada
+2025-11-13 23:09:08.414 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa IONILDE FERREIRA GOMES (ID: c8da8e70-cd55-4619-a2dc-83f44953c5a4) - já foi processada
+2025-11-13 23:09:08.414 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Joana Gomes (ID: dec5dbb5-d5d9-4a92-91b3-df468ab70027) - já foi processada
+2025-11-13 23:09:08.414 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Kássia Liz Santos Silva (ID: 3c9c4319-0925-4c2d-803c-69650c636385) - já foi processada
+2025-11-13 23:09:08.414 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Lucineide Alves Dos Santos (ID: 320877d9-ea14-4165-8545-51aea7770f41) - já foi processada
+2025-11-13 23:09:08.414 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Lucília Santos Da Cruz (ID: 789158c5-2f73-4fa2-85f4-f965bf3507a6):
+2025-11-13 23:09:08.414 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: FEMININO
+2025-11-13 23:09:08.415 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: false (0 filhos)
+2025-11-13 23:09:08.415 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: false
+2025-11-13 23:09:08.415 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: false
+2025-11-13 23:09:08.415 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-11-13 23:09:08.415 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-11-13 23:09:08.415 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-11-13 23:09:08.415 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: não tem filhos
+2025-11-13 23:09:08.416 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Manuel Alves (ID: fd959a67-9993-411b-b58b-21b3526d2128) - já foi processada
+2025-11-13 23:09:08.416 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Manuel Bedal Ferreira (ID: 0e61ddbb-e7bf-42e0-97d0-db5cca3e319d) - já foi processada
+2025-11-13 23:09:08.416 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Marcos Lohan Santos Silva (ID: beedaf4b-c443-4c5f-91b9-ca98a21ae5cd) - já foi processada
+2025-11-13 23:09:08.416 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Nilma Santos Da Cruz (ID: 2bfdfd8e-46a5-46f6-9cb4-ba574c3fb080) - já foi processada
+2025-11-13 23:09:08.416 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Paulo Rodrigues Da Cruz (ID: 97454758-7d42-4538-92f2-ee422654ef12):
+2025-11-13 23:09:08.416 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: MASCULINO
+2025-11-13 23:09:08.416 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: true (3 filhos)
+2025-11-13 23:09:08.416 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: true
+2025-11-13 23:09:08.417 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: true
+2025-11-13 23:09:08.417 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: false (conjugeAtual: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-11-13 23:09:08.417 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-11-13 23:09:08.417 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-11-13 23:09:08.417 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: tem cônjuge (320877d9-ea14-4165-8545-51aea7770f41)
+2025-11-13 23:09:08.417 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Robério Gomes Dos Santos (ID: 5d97da0d-a20f-4202-bee7-1d92a019738f) - já foi processada
+2025-11-13 23:09:08.418 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Rosana Gomes dos Santos (ID: 067e3f2b-a8a8-4ed4-9786-9a3ac2400a58) - já foi processada
+2025-11-13 23:09:08.418 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Usuário Teste (ID: e05741ca-3463-42da-84b2-05a8815cd02c):
+2025-11-13 23:09:08.418 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: OUTRO
+2025-11-13 23:09:08.418 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: false (0 filhos)
+2025-11-13 23:09:08.418 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: false
+2025-11-13 23:09:08.418 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: false
+2025-11-13 23:09:08.418 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-11-13 23:09:08.418 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-11-13 23:09:08.419 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-11-13 23:09:08.419 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: não tem filhos
+2025-11-13 23:09:08.419 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Vanildo Alves Dos Santos (ID: e07745a9-4efd-44e8-a6e4-03239734f4a5) - já foi processada
+2025-11-13 23:09:08.419 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  📊 Resumo: 4 famílias criadas, 0 pendentes
+2025-11-13 23:09:08.425 11071-11071 PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 17 entidades no cache local
+2025-11-13 23:09:08.426 11071-11071 PessoaRepository        com.raizesvivas.app                  D  ✅ 17 pessoas recarregadas do Firestore. Total no cache: 17
+2025-11-13 23:09:08.633 11071-11071 FirestoreS...onalizadas com.raizesvivas.app                  D  📚 Encontradas 3 famílias personalizadas
+2025-11-13 23:09:08.638 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Clarisse Alves Dos Santos (ID: ef13f575-c1e5-4fda-b358-40171653c6af):
+2025-11-13 23:09:08.639 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: FEMININO
+2025-11-13 23:09:08.639 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: false (0 filhos)
+2025-11-13 23:09:08.639 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: false
+2025-11-13 23:09:08.639 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: false
+2025-11-13 23:09:08.639 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-11-13 23:09:08.640 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-11-13 23:09:08.640 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-11-13 23:09:08.640 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: não tem filhos
+2025-11-13 23:09:08.640 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Cássio Cruz da Silva (ID: 6fc75083-5117-405f-ad74-cd75a1048960) - já foi processada
+2025-11-13 23:09:08.640 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Elmira Purcina dos Santos (ID: 4d5939b2-03da-41bc-b0c8-06a31d955df7) - já foi processada
+2025-11-13 23:09:08.640 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa IONILDE FERREIRA GOMES (ID: c8da8e70-cd55-4619-a2dc-83f44953c5a4) - já foi processada
+2025-11-13 23:09:08.641 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Joana Gomes (ID: dec5dbb5-d5d9-4a92-91b3-df468ab70027) - já foi processada
+2025-11-13 23:09:08.641 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Kássia Liz Santos Silva (ID: 3c9c4319-0925-4c2d-803c-69650c636385) - já foi processada
+2025-11-13 23:09:08.641 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Lucineide Alves Dos Santos (ID: 320877d9-ea14-4165-8545-51aea7770f41) - já foi processada
+2025-11-13 23:09:08.641 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Lucília Santos Da Cruz (ID: 789158c5-2f73-4fa2-85f4-f965bf3507a6):
+2025-11-13 23:09:08.641 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: FEMININO
+2025-11-13 23:09:08.641 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: false (0 filhos)
+2025-11-13 23:09:08.642 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: false
+2025-11-13 23:09:08.642 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: false
+2025-11-13 23:09:08.642 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-11-13 23:09:08.642 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-11-13 23:09:08.642 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-11-13 23:09:08.642 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: não tem filhos
+2025-11-13 23:09:08.643 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Manuel Alves (ID: fd959a67-9993-411b-b58b-21b3526d2128) - já foi processada
+2025-11-13 23:09:08.643 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Manuel Bedal Ferreira (ID: 0e61ddbb-e7bf-42e0-97d0-db5cca3e319d) - já foi processada
+2025-11-13 23:09:08.643 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Marcos Lohan Santos Silva (ID: beedaf4b-c443-4c5f-91b9-ca98a21ae5cd) - já foi processada
+2025-11-13 23:09:08.643 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Nilma Santos Da Cruz (ID: 2bfdfd8e-46a5-46f6-9cb4-ba574c3fb080) - já foi processada
+2025-11-13 23:09:08.643 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Paulo Rodrigues Da Cruz (ID: 97454758-7d42-4538-92f2-ee422654ef12):
+2025-11-13 23:09:08.643 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: MASCULINO
+2025-11-13 23:09:08.643 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: true (3 filhos)
+2025-11-13 23:09:08.643 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: true
+2025-11-13 23:09:08.644 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: true
+2025-11-13 23:09:08.644 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: false (conjugeAtual: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-11-13 23:09:08.644 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-11-13 23:09:08.644 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-11-13 23:09:08.644 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: tem cônjuge (320877d9-ea14-4165-8545-51aea7770f41)
+2025-11-13 23:09:08.644 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Robério Gomes Dos Santos (ID: 5d97da0d-a20f-4202-bee7-1d92a019738f) - já foi processada
+2025-11-13 23:09:08.644 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Rosana Gomes dos Santos (ID: 067e3f2b-a8a8-4ed4-9786-9a3ac2400a58) - já foi processada
+2025-11-13 23:09:08.645 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Usuário Teste (ID: e05741ca-3463-42da-84b2-05a8815cd02c):
+2025-11-13 23:09:08.645 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: OUTRO
+2025-11-13 23:09:08.645 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: false (0 filhos)
+2025-11-13 23:09:08.645 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: false
+2025-11-13 23:09:08.645 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: false
+2025-11-13 23:09:08.645 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-11-13 23:09:08.645 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-11-13 23:09:08.646 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-11-13 23:09:08.646 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: não tem filhos
+2025-11-13 23:09:08.646 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Vanildo Alves Dos Santos (ID: e07745a9-4efd-44e8-a6e4-03239734f4a5) - já foi processada
+2025-11-13 23:09:08.646 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  📊 Resumo: 4 famílias criadas, 0 pendentes
+2025-11-13 23:09:08.652 11071-11071 FamiliaPer...Repository com.raizesvivas.app                  D  ✅ Sincronizadas 3 famílias personalizadas
+2025-11-13 23:09:08.694 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Clarisse Alves Dos Santos (ID: ef13f575-c1e5-4fda-b358-40171653c6af):
+2025-11-13 23:09:08.694 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: FEMININO
+2025-11-13 23:09:08.694 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: false (0 filhos)
+2025-11-13 23:09:08.695 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: false
+2025-11-13 23:09:08.695 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: false
+2025-11-13 23:09:08.695 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-11-13 23:09:08.695 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-11-13 23:09:08.695 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-11-13 23:09:08.696 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: não tem filhos
+2025-11-13 23:09:08.696 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Cássio Cruz da Silva (ID: 6fc75083-5117-405f-ad74-cd75a1048960) - já foi processada
+2025-11-13 23:09:08.696 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Elmira Purcina dos Santos (ID: 4d5939b2-03da-41bc-b0c8-06a31d955df7) - já foi processada
+2025-11-13 23:09:08.696 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa IONILDE FERREIRA GOMES (ID: c8da8e70-cd55-4619-a2dc-83f44953c5a4) - já foi processada
+2025-11-13 23:09:08.696 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Joana Gomes (ID: dec5dbb5-d5d9-4a92-91b3-df468ab70027) - já foi processada
+2025-11-13 23:09:08.696 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Kássia Liz Santos Silva (ID: 3c9c4319-0925-4c2d-803c-69650c636385) - já foi processada
+2025-11-13 23:09:08.696 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Lucineide Alves Dos Santos (ID: 320877d9-ea14-4165-8545-51aea7770f41) - já foi processada
+2025-11-13 23:09:08.697 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Lucília Santos Da Cruz (ID: 789158c5-2f73-4fa2-85f4-f965bf3507a6):
+2025-11-13 23:09:08.697 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: FEMININO
+2025-11-13 23:09:08.697 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: false (0 filhos)
+2025-11-13 23:09:08.697 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: false
+2025-11-13 23:09:08.697 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: false
+2025-11-13 23:09:08.697 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-11-13 23:09:08.698 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-11-13 23:09:08.698 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-11-13 23:09:08.698 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: não tem filhos
+2025-11-13 23:09:08.698 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Manuel Alves (ID: fd959a67-9993-411b-b58b-21b3526d2128) - já foi processada
+2025-11-13 23:09:08.698 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Manuel Bedal Ferreira (ID: 0e61ddbb-e7bf-42e0-97d0-db5cca3e319d) - já foi processada
+2025-11-13 23:09:08.699 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Marcos Lohan Santos Silva (ID: beedaf4b-c443-4c5f-91b9-ca98a21ae5cd) - já foi processada
+2025-11-13 23:09:08.699 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Nilma Santos Da Cruz (ID: 2bfdfd8e-46a5-46f6-9cb4-ba574c3fb080) - já foi processada
+2025-11-13 23:09:08.699 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Paulo Rodrigues Da Cruz (ID: 97454758-7d42-4538-92f2-ee422654ef12):
+2025-11-13 23:09:08.699 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: MASCULINO
+2025-11-13 23:09:08.699 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: true (3 filhos)
+2025-11-13 23:09:08.699 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: true
+2025-11-13 23:09:08.699 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: true
+2025-11-13 23:09:08.700 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: false (conjugeAtual: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-11-13 23:09:08.700 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-11-13 23:09:08.700 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-11-13 23:09:08.700 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: tem cônjuge (320877d9-ea14-4165-8545-51aea7770f41)
+2025-11-13 23:09:08.700 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Robério Gomes Dos Santos (ID: 5d97da0d-a20f-4202-bee7-1d92a019738f) - já foi processada
+2025-11-13 23:09:08.700 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Rosana Gomes dos Santos (ID: 067e3f2b-a8a8-4ed4-9786-9a3ac2400a58) - já foi processada
+2025-11-13 23:09:08.700 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Usuário Teste (ID: e05741ca-3463-42da-84b2-05a8815cd02c):
+2025-11-13 23:09:08.701 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: OUTRO
+2025-11-13 23:09:08.701 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: false (0 filhos)
+2025-11-13 23:09:08.701 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: false
+2025-11-13 23:09:08.701 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: false
+2025-11-13 23:09:08.701 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-11-13 23:09:08.701 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-11-13 23:09:08.702 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-11-13 23:09:08.702 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: não tem filhos
+2025-11-13 23:09:08.702 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Vanildo Alves Dos Santos (ID: e07745a9-4efd-44e8-a6e4-03239734f4a5) - já foi processada
+2025-11-13 23:09:08.702 11071-11071 ListaHiera...caArvoreKt com.raizesvivas.app                  D  📊 Resumo: 4 famílias criadas, 0 pendentes
+2025-11-13 23:09:20.482 11071-11071 VRI[MainActivity]       com.raizesvivas.app                  D  visibilityChanged oldVisibility=true newVisibility=false
+2025-11-13 23:09:20.511 11071-11157 Surface                 com.raizesvivas.app                  D  Surface::disconnect
+2025-11-13 23:09:20.511 11071-11157 BufferQueueProducer     com.raizesvivas.app                  D  [com.raizesvivas.app/com.raizesvivas.app.MainActivity#38118(BLAST Consumer)pid:11071](id:2b3f00000000,api:1,p:11071,c:11071) disconnect: api 1
+2025-11-13 23:09:20.537 11071-11071 WindowOnBackDispatcher  com.raizesvivas.app                  W  sendCancelIfRunning: isInProgress=false callback=androidx.activity.OnBackPressedDispatcher$Api34Impl$createOnBackAnimationCallback$1@ae33d00
+2025-11-13 23:09:22.603 11071-12200 FA                      com.raizesvivas.app                  I  Application backgrounded at: timestamp_millis: 1763086160599

@@ -38,11 +38,12 @@ class RecadoRepository @Inject constructor(
             usuarioRepository.observarPorId(currentUser.uid)
                 .flatMapLatest { usuario ->
                     val pessoaVinculadaId = usuario?.pessoaVinculada
+                    val usuarioEhAdmin = usuario?.ehAdministrador == true
                     // Se o usuário tem pessoa vinculada, usar o ID da pessoa para filtrar
                     // Caso contrário, usar o userId como fallback
                     val filtroId = pessoaVinculadaId ?: currentUser.uid
                     Timber.d("👀 Observando recados com filtroId: $filtroId (pessoaVinculada: $pessoaVinculadaId), userId: ${currentUser.uid}")
-                    firestoreService.observarRecados(filtroId, currentUser.uid)
+                    firestoreService.observarRecados(filtroId, currentUser.uid, usuarioEhAdmin)
                 }
                 .catch { error: Throwable ->
                     Timber.e(error, "❌ Erro no fluxo de observação de recados: %s", error.message)
@@ -64,11 +65,12 @@ class RecadoRepository @Inject constructor(
                 // Buscar pessoa vinculada do usuário para filtrar recados direcionados
                 val usuario = usuarioRepository.buscarPorId(currentUser.uid)
                 val pessoaVinculadaId = usuario?.pessoaVinculada
+                val usuarioEhAdmin = usuario?.ehAdministrador == true
                 
                 // Se o usuário tem pessoa vinculada, usar o ID da pessoa para filtrar
                 // Caso contrário, apenas mostrar recados gerais
                 val filtroId = pessoaVinculadaId ?: currentUser.uid
-                firestoreService.buscarRecados(filtroId, currentUser.uid)
+                firestoreService.buscarRecados(filtroId, currentUser.uid, usuarioEhAdmin)
             } else {
                 Result.success(emptyList())
             }

@@ -119,26 +119,62 @@ class GamificacaoViewModel @Inject constructor(
     
     /**
      * Combina conquistas do sistema com progressos do usuário
+     * IMPORTANTE: Mostra TODAS as conquistas disponíveis, criando progressos zerados para as que não existem
+     * Cada usuário vê todas as conquistas, mas com progresso individual
      */
     private fun atualizarConquistasComProgresso(progressos: List<ProgressoConquista>) {
         val conquistas = SistemaConquistas.obterTodas()
+        
+        // Criar um mapa de progressos por conquistaId para acesso rápido
+        val progressosMap = progressos.associateBy { it.conquistaId }
+        
+        // Combinar TODAS as conquistas com seus progressos (ou criar progresso zerado se não existir)
         val conquistasComProgresso = conquistas.map { conquista ->
-            val progresso = progressos.find { it.conquistaId == conquista.id }
-                ?: ProgressoConquista(
-                    conquistaId = conquista.id,
-                    desbloqueada = false,
-                    desbloqueadaEm = null,
-                    progressoAtual = 0,
-                    progressoTotal = conquista.condicao.valor
-                )
+            val progresso = progressosMap[conquista.id] ?: ProgressoConquista(
+                conquistaId = conquista.id,
+                concluida = false,
+                desbloqueadaEm = null,
+                progresso = 0,
+                progressoTotal = conquista.condicao.valor,
+                nivel = 1,
+                pontuacaoTotal = 0
+            )
             
             ConquistaComProgresso(
                 conquista = conquista,
                 progresso = progresso
             )
         }
+            .sortedBy { it.conquista.ordem } // Ordenar pela ordem definida no sistema
         
         _conquistasComProgresso.value = conquistasComProgresso
+        Timber.d("📊 ${conquistasComProgresso.size} conquistas disponíveis (${progressos.size} com progresso)")
+    }
+    
+    /**
+     * Registra ação do usuário e atualiza progresso das conquistas relacionadas
+     * 
+     * NOVO: Sistema de rastreamento de ações em tempo real
+     * 
+     * @param usuarioId ID do usuário que realizou a ação
+     * @param tipoAcao Tipo da ação realizada
+     */
+    fun registrarAcao(usuarioId: String, tipoAcao: TipoAcao) {
+        viewModelScope.launch {
+            try {
+                Timber.d("🎯 Registrando ação: $tipoAcao para usuário: $usuarioId")
+                gamificacaoRepository.registrarAcao(usuarioId, tipoAcao)
+                
+                // Após registrar ação, verificar se alguma conquista foi desbloqueada
+                // Isso garante que o progresso seja atualizado imediatamente
+                verificarConquistas(usuarioId)
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao registrar ação: $tipoAcao")
+                _state.value = _state.value.copy(
+                    error = e.message ?: "Erro ao registrar ação"
+                )
+            }
+        }
     }
     
     /**
@@ -161,6 +197,25 @@ class GamificacaoViewModel @Inject constructor(
                 )
             }
         }
+    }
+    
+    /**
+     * Busca ranking de usuários
+     */
+    suspend fun buscarRanking(usuarioIdAtual: String): Result<List<com.raizesvivas.app.domain.model.RankingUsuario>> {
+        return try {
+            gamificacaoRepository.buscarRanking(usuarioIdAtual)
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao buscar ranking")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Obtém o ID do usuário atual
+     */
+    fun obterUsuarioIdAtual(): String? {
+        return authService.currentUser?.uid
     }
 }
 

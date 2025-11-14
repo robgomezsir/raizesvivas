@@ -17,6 +17,7 @@ import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.ModalNavigationDrawer
@@ -62,7 +63,8 @@ fun HomeScreen(
     onNavigateToAceitarConvites: () -> Unit = {},
     onNavigateToGerenciarConvites: () -> Unit = {},
     onNavigateToGerenciarEdicoes: () -> Unit = {},
-    onNavigateToResolverDuplicatas: () -> Unit = {}
+    onNavigateToResolverDuplicatas: () -> Unit = {},
+    onNavigateToGerenciarUsuarios: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
     val pessoas by viewModel.pessoas.collectAsState()
@@ -149,18 +151,6 @@ fun HomeScreen(
                         mostrarModalNotificacoes = true
                     }
                 },
-                onAdicionarPessoa = {
-                    scope.launch {
-                        drawerState.close()
-                        onNavigateToCadastroPessoa()
-                    }
-                },
-                onConvitesPendentes = {
-                    scope.launch {
-                        drawerState.close()
-                        onNavigateToAceitarConvites()
-                    }
-                },
                 onGerenciarConvites = {
                     scope.launch {
                         drawerState.close()
@@ -177,6 +167,12 @@ fun HomeScreen(
                     scope.launch {
                         drawerState.close()
                         onNavigateToResolverDuplicatas()
+                    }
+                },
+                onGerenciarUsuarios = {
+                    scope.launch {
+                        drawerState.close()
+                        onNavigateToGerenciarUsuarios()
                     }
                 },
                 onSair = {
@@ -442,12 +438,64 @@ fun HomeScreen(
                         modifier = Modifier.weight(1f)
                     )
                     
-                    StatCard(
-                        title = "Famílias",
-                        value = state.totalFamilias.toString(),
-                        icon = Icons.Default.Home,
-                        modifier = Modifier.weight(1f)
-                    )
+                    // Card de Famílias com informações expandidas
+                    Card(
+                        modifier = Modifier.weight(1f),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Home,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(32.dp)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = state.totalFamilias.toString(),
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Famílias",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                textAlign = TextAlign.Center
+                            )
+                            // Mostrar detalhes se houver famílias especiais
+                            if (state.familiasMonoparentais > 0 || state.familiasHomoafetivas > 0) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                HorizontalDivider(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.3f)
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                if (state.familiasMonoparentais > 0) {
+                                    Text(
+                                        text = "${state.familiasMonoparentais} monoparental${if (state.familiasMonoparentais != 1) "is" else ""}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                                if (state.familiasHomoafetivas > 0) {
+                                    Text(
+                                        text = "${state.familiasHomoafetivas} homoafetiva${if (state.familiasHomoafetivas != 1) "s" else ""}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
                 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -487,7 +535,7 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     StatCard(
-                        title = "Ranking",
+                        title = "Posição",
                         value = if (state.rankingPessoas > 0) "#${state.rankingPessoas + 1}" else "-",
                         icon = Icons.Default.Star,
                         modifier = Modifier.weight(1f)
@@ -746,11 +794,10 @@ private fun HomeDrawerContent(
     notificacoesNaoLidas: Int,
     onClose: () -> Unit,
     onOpenNotificacoes: () -> Unit,
-    onAdicionarPessoa: () -> Unit,
-    onConvitesPendentes: () -> Unit,
     onGerenciarConvites: () -> Unit,
     onGerenciarEdicoes: () -> Unit,
     onResolverDuplicatas: () -> Unit,
+    onGerenciarUsuarios: () -> Unit,
     onSair: () -> Unit,
     themeMode: ThemeMode,
     onThemeModeChange: (ThemeMode) -> Unit
@@ -788,22 +835,6 @@ private fun HomeDrawerContent(
 
             DrawerSectionTitle("Ações rápidas")
 
-            NavigationDrawerItem(
-                label = { Text("Adicionar Pessoa") },
-                selected = false,
-                onClick = onAdicionarPessoa,
-                icon = { Icon(Icons.Default.PersonAdd, contentDescription = null) },
-                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-            )
-
-            NavigationDrawerItem(
-                label = { Text("Convites pendentes") },
-                selected = false,
-                onClick = onConvitesPendentes,
-                icon = { Icon(Icons.Default.Mail, contentDescription = null) },
-                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-            )
-
             if (isAdmin) {
                 NavigationDrawerItem(
                     label = { Text("Gerenciar convites") },
@@ -826,6 +857,14 @@ private fun HomeDrawerContent(
                     selected = false,
                     onClick = onResolverDuplicatas,
                     icon = { Icon(Icons.Default.CopyAll, contentDescription = null) },
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                )
+                
+                NavigationDrawerItem(
+                    label = { Text("Gerenciar usuários") },
+                    selected = false,
+                    onClick = onGerenciarUsuarios,
+                    icon = { Icon(Icons.Default.People, contentDescription = null) },
                     modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                 )
             }

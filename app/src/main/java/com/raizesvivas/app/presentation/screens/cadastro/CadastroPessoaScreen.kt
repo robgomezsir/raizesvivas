@@ -9,6 +9,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Warning
+import androidx.compose.material.icons.outlined.Error
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -99,6 +102,19 @@ fun CadastroPessoaScreen(
                 initialDate = state.dataFalecimento
             )
         }
+        
+        // Diálogo de Duplicatas
+        if (state.mostrarDialogDuplicata) {
+            DialogDuplicatas(
+                duplicatas = state.duplicatasEncontradas,
+                mensagem = state.erro ?: state.avisoDuplicatas,
+                isBloqueio = state.erro != null, // Se tem erro, é bloqueio crítico
+                onConfirmar = { viewModel.confirmarContinuarComDuplicata() },
+                onCancelar = { viewModel.cancelarPorDuplicata() },
+                onDismiss = { viewModel.fecharDialogDuplicata() }
+            )
+        }
+        
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -172,6 +188,26 @@ fun CadastroPessoaScreen(
                 modifier = Modifier.fillMaxWidth()
             )
             
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = state.apelido,
+                onValueChange = { viewModel.onApelidoChanged(it) },
+                label = { Text("Apelido") },
+                leadingIcon = {
+                    Icon(Icons.Default.Star, contentDescription = null)
+                },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+
             Spacer(modifier = Modifier.height(16.dp))
             
             // Data de Nascimento
@@ -305,6 +341,27 @@ fun CadastroPessoaScreen(
             Spacer(modifier = Modifier.height(16.dp))
             
             OutlinedTextField(
+                value = state.telefone,
+                onValueChange = { viewModel.onTelefoneChanged(it) },
+                label = { Text("Telefone/Celular") },
+                placeholder = { Text("(00) 00000-0000") },
+                leadingIcon = {
+                    Icon(Icons.Default.Phone, contentDescription = null)
+                },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Phone,
+                    imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            OutlinedTextField(
                 value = state.biografia,
                 onValueChange = { viewModel.onBiografiaChanged(it) },
                 label = { Text("Biografia") },
@@ -366,8 +423,11 @@ fun CadastroPessoaScreen(
                     
                     HorizontalDivider()
                     
-                    // Lista de gêneros
-                    Genero.values().forEach { genero ->
+                    val generosOrdenados = remember {
+                        Genero.values()
+                            .sortedBy { it.label.lowercase(Locale.getDefault()) }
+                    }
+                    generosOrdenados.forEach { genero ->
                         DropdownMenuItem(
                             text = { Text(genero.label) },
                             onClick = {
@@ -421,8 +481,11 @@ fun CadastroPessoaScreen(
                     
                     HorizontalDivider()
                     
-                    // Lista de estados civis
-                    EstadoCivil.values().forEach { estadoCivil ->
+                    val estadosCivisOrdenados = remember {
+                        EstadoCivil.values()
+                            .sortedBy { it.label.lowercase(Locale.getDefault()) }
+                    }
+                    estadosCivisOrdenados.forEach { estadoCivil ->
                         DropdownMenuItem(
                             text = { Text(estadoCivil.label) },
                             onClick = {
@@ -526,6 +589,12 @@ fun PessoaSelector(
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val pessoasOrdenadas = remember(pessoasDisponiveis) {
+        pessoasDisponiveis.sortedWith(
+            compareBy<Pessoa> { it.getNomeExibicao().lowercase(Locale.getDefault()) }
+                .thenBy { it.id }
+        )
+    }
     val pessoaSelecionada = pessoasDisponiveis.find { it.id == pessoaId }
     
     ExposedDropdownMenuBox(
@@ -565,7 +634,7 @@ fun PessoaSelector(
             HorizontalDivider()
             
             // Lista de pessoas
-            pessoasDisponiveis.forEach { pessoa ->
+            pessoasOrdenadas.forEach { pessoa ->
                 DropdownMenuItem(
                     text = { Text(pessoa.getNomeExibicao()) },
                     onClick = {
@@ -600,5 +669,246 @@ fun PessoaSelector(
             }
         }
     }
+}
+
+/**
+ * Diálogo para exibir duplicatas encontradas
+ */
+@Composable
+fun DialogDuplicatas(
+    duplicatas: List<DuplicataInfo>,
+    mensagem: String?,
+    isBloqueio: Boolean,
+    onConfirmar: () -> Unit,
+    onCancelar: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val dateFormatter = remember { SimpleDateFormat("dd/MM/yyyy", Locale("pt", "BR")) }
+    
+    AlertDialog(
+        onDismissRequest = {
+            if (!isBloqueio) {
+                onDismiss()
+            }
+        },
+        icon = {
+            Icon(
+                imageVector = when {
+                    isBloqueio -> Icons.Outlined.Error
+                    else -> Icons.Outlined.Warning
+                },
+                contentDescription = null,
+                tint = when {
+                    isBloqueio -> MaterialTheme.colorScheme.error
+                    else -> MaterialTheme.colorScheme.primary
+                }
+            )
+        },
+        title = {
+            Text(
+                text = when {
+                    isBloqueio -> "Duplicata Encontrada"
+                    else -> "Possível Duplicata"
+                },
+                style = MaterialTheme.typography.headlineSmall
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Mensagem principal
+                mensagem?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (isBloqueio) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        }
+                    )
+                }
+                
+                if (duplicatas.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    Text(
+                        text = "Pessoa(s) similar(es) encontrada(s):",
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                    
+                    // Lista de duplicatas
+                    duplicatas.forEachIndexed { index, duplicata ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = when (duplicata.nivel) {
+                                    "CRITICO" -> MaterialTheme.colorScheme.errorContainer
+                                    "ALTO" -> MaterialTheme.colorScheme.tertiaryContainer
+                                    else -> MaterialTheme.colorScheme.surfaceVariant
+                                }
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                // Nome e nível
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = duplicata.nome,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    
+                                    // Badge do nível
+                                    AssistChip(
+                                        onClick = { },
+                                        label = {
+                                            Text(
+                                                text = when (duplicata.nivel) {
+                                                    "CRITICO" -> "Crítico"
+                                                    "ALTO" -> "Alto"
+                                                    else -> "Médio"
+                                                },
+                                                style = MaterialTheme.typography.labelSmall
+                                            )
+                                        },
+                                        colors = AssistChipDefaults.assistChipColors(
+                                            containerColor = when (duplicata.nivel) {
+                                                "CRITICO" -> MaterialTheme.colorScheme.error
+                                                "ALTO" -> MaterialTheme.colorScheme.tertiary
+                                                else -> MaterialTheme.colorScheme.secondary
+                                            }
+                                        )
+                                    )
+                                }
+                                
+                                // Data de nascimento
+                                duplicata.dataNascimento?.let { data ->
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.DateRange,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(14.dp),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Text(
+                                            text = "Nascimento: ${dateFormatter.format(data)}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                                
+                                // Razões da similaridade
+                                if (duplicata.razoes.isNotEmpty()) {
+                                    Column(
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Text(
+                                            text = "Razões:",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        duplicata.razoes.forEach { razao ->
+                                            Row(
+                                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.CheckCircle,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(12.dp),
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                                Text(
+                                                    text = razao,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                // Score de similaridade
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Similaridade:",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    LinearProgressIndicator(
+                                        progress = duplicata.scoreSimilaridade,
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(6.dp)
+                                            .padding(horizontal = 8.dp),
+                                        color = when (duplicata.nivel) {
+                                            "CRITICO" -> MaterialTheme.colorScheme.error
+                                            "ALTO" -> MaterialTheme.colorScheme.tertiary
+                                            else -> MaterialTheme.colorScheme.secondary
+                                        }
+                                    )
+                                    Text(
+                                        text = "${(duplicata.scoreSimilaridade * 100).toInt()}%",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                        
+                        if (index < duplicatas.size - 1) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            if (isBloqueio) {
+                // Em caso de bloqueio, apenas botão "Entendi"
+                TextButton(onClick = onCancelar) {
+                    Text("Entendi")
+                }
+            } else {
+                // Em caso de aviso, botão "Continuar mesmo assim"
+                Button(onClick = onConfirmar) {
+                    Text("Continuar mesmo assim")
+                }
+            }
+        },
+        dismissButton = {
+            if (isBloqueio) {
+                // Em caso de bloqueio, não há dismiss (só "Entendi")
+                null
+            } else {
+                // Em caso de aviso, botão "Cancelar"
+                TextButton(onClick = onCancelar) {
+                    Text("Cancelar")
+                }
+            }
+        }
+    )
 }
 

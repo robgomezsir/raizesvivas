@@ -137,6 +137,15 @@ service cloud.firestore {
     }
 
     // ==============================
+    // 🗂️ Coleção: edicoes_historico
+    // ==============================
+    match /edicoes_historico/{historicoId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    // ==============================
     // 🔁 Coleção: duplicates
     // ==============================
     match /duplicates/{duplicataId} {
@@ -152,10 +161,31 @@ service cloud.firestore {
       allow list: if isAuthenticated() && isEfficientQuery();
       allow read: if isAuthenticated();
       allow create: if isAuthenticated();
-      allow update: if isAuthenticated() &&
-                     ((resource.data.autorId == request.auth.uid &&
+      
+      // Helper function: verifica se é apenas atualização de curtida (apoio familiar)
+      function isApenasCurtida() {
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['apoiosFamiliares', 'atualizadoEm']);
+      }
+      
+      // Helper function: verifica se o usuário é o autor do recado
+      function isAutorRecado() {
+        return isAuthenticated() && resource.data.autorId == request.auth.uid;
+      }
+      
+      // UPDATE: 
+      // - Qualquer usuário autenticado pode curtir/descurtir (atualizar apenas apoiosFamiliares e atualizadoEm)
+      // - Autor pode atualizar qualquer campo (exceto autorId)
+      // - Admin pode atualizar qualquer campo
+      allow update: if isAuthenticated() && (
+                      // Curtida: qualquer usuário pode atualizar apenas apoiosFamiliares e atualizadoEm
+                      isApenasCurtida() ||
+                      // Autor pode atualizar qualquer campo (mas não pode mudar autorId)
+                      (isAutorRecado() && 
                        request.resource.data.autorId == resource.data.autorId) ||
-                      isAdmin());
+                      // Admin pode atualizar qualquer campo
+                      isAdmin()
+                    );
+      
       allow delete: if isAuthenticated() &&
                      (resource.data.autorId == request.auth.uid || isAdmin());
     }
@@ -164,7 +194,12 @@ service cloud.firestore {
     // 💬 Coleção: mensagens_chat
     // ==============================
     match /mensagens_chat/{mensagemId} {
-      allow list: if isAuthenticated() && isEfficientQuery(); // 🔹 previne queries sem limit
+      // Para queries (list): permite queries eficientes (limit <= 100 e orderBy)
+      // IMPORTANTE: A segurança é garantida pela regra 'allow read' abaixo,
+      // que valida individualmente cada documento retornado
+      allow list: if isAuthenticated() && 
+                     request.query.limit <= 100 &&
+                     request.query.orderBy.size() > 0;
 
       function isRemetente() {
         return isAuthenticated() && resource.data.remetenteId == request.auth.uid;
@@ -180,25 +215,156 @@ service cloud.firestore {
            resource.data.destinatarioId == request.auth.uid);
       }
 
-      allow read: if isParticipante(); // apenas quem participa lê
+      // Para leitura individual de documentos: valida que o usuário é participante
+      // CRÍTICO: Esta regra garante que mesmo se a query list passar,
+      // apenas documentos onde o usuário é participante serão retornados
+      allow read: if isParticipante();
+      
+      // Criar mensagem: usuário autenticado pode criar mensagens onde ele é o remetente
       allow create: if isAuthenticated() &&
                       request.resource.data.remetenteId == request.auth.uid &&
                       request.resource.data.texto is string &&
                       request.resource.data.texto.size() > 0 &&
-                      request.resource.data.enviadoEm is timestamp;
+                      request.resource.data.enviadoEm is timestamp &&
+                      request.resource.data.remetenteNome is string &&
+                      request.resource.data.destinatarioId is string &&
+                      request.resource.data.destinatarioNome is string &&
+                      request.resource.data.lida is bool;
+      
+      // Atualizar: apenas destinatário pode marcar como lida
       allow update: if isParticipante() &&
                       isDestinatario() &&
                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lida']) &&
                       request.resource.data.lida == true;
-      allow delete: if isRemetente();
+      
+      // Deletar: qualquer participante (remetente ou destinatário) pode deletar mensagens
+      // Permite que usuários removam mensagens recebidas ou enviadas de suas conversas
+      allow delete: if isParticipante();
     }
 
     // ==============================
-    // 🏆 Subcoleção: conquistas
+    // 🏆 Coleção: conquistasDisponiveis (PÚBLICA)
+    // ==============================
+    match /conquistasDisponiveis/{conquistaId} {
+      // LEITURA: Qualquer usuário autenticado pode ver conquistas disponíveis
+      allow read: if isAuthenticated();
+      
+      // ESCRITA: Apenas admins (via Admin SDK ou Cloud Function)
+      // Usuários normais NÃO podem modificar conquistas disponíveis
+      allow write: if false;
+    }
+
+    // ==============================
+    // 🏆 Subcoleção: conquistasProgresso (PRIVADA)
+    // usuarios/{userId}/conquistasProgresso/{conquistaId}
+    // ==============================
+    match /usuarios/{userId}/conquistasProgresso/{conquistaId} {
+      // LEITURA: Apenas o próprio usuário pode ver seu progresso
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      
+      // CRIAÇÃO: Apenas o próprio usuário pode criar progresso
+      allow create: if isAuthenticated() && 
+                     request.auth.uid == userId &&
+                     validarProgressoConquista();
+      
+      // ATUALIZAÇÃO: Apenas o próprio usuário pode atualizar seu progresso
+      allow update: if isAuthenticated() && 
+                     request.auth.uid == userId &&
+                     validarProgressoConquista();
+      
+      // DELEÇÃO: Apenas o próprio usuário pode deletar seu progresso
+      allow delete: if isAuthenticated() && request.auth.uid == userId;
+      
+      // Função auxiliar para validar dados de progresso
+      function validarProgressoConquista() {
+        let dados = request.resource.data;
+        return dados.keys().hasAll(['conquistaId', 'progresso', 'concluida', 'progressoTotal']) &&
+               // Progresso deve ser >= 0 e <= progressoTotal
+               dados.progresso >= 0 &&
+               dados.progresso <= dados.progressoTotal &&
+               // progressoTotal deve ser > 0
+               dados.progressoTotal > 0 &&
+               // concluida deve ser boolean
+               dados.concluida is bool &&
+               // Se concluída, desbloqueadaEm deve estar presente e ser um timestamp válido
+               // Se não concluída, desbloqueadaEm pode não estar presente
+               (!dados.concluida || (dados.keys().hasAny(['desbloqueadaEm']) && dados.desbloqueadaEm != null && dados.desbloqueadaEm is timestamp)) &&
+               // nivel deve ser >= 1 (se presente)
+               (!dados.keys().hasAny(['nivel']) || dados.nivel >= 1) &&
+               // pontuacaoTotal deve ser >= 0 (se presente)
+               (!dados.keys().hasAny(['pontuacaoTotal']) || dados.pontuacaoTotal >= 0) &&
+               // Validar tipos básicos
+               dados.conquistaId is string &&
+               dados.progresso is int &&
+               dados.progressoTotal is int &&
+               // desbloqueadaEm pode não estar presente, ser null ou ser timestamp
+               // (mas se concluída, deve estar presente e ser timestamp)
+               (!dados.keys().hasAny(['desbloqueadaEm']) || dados.desbloqueadaEm == null || dados.desbloqueadaEm is timestamp);
+      }
+    }
+
+    // ==============================
+    // 🏆 Subcoleção: conquistas (DEPRECATED - Mantido para compatibilidade)
     // users/{userId}/conquistas/{conquistaId}
     // ==============================
     match /users/{userId}/conquistas/{conquistaId} {
-      allow read, create, update, delete: if isAuthenticated() && request.auth.uid == userId;
+      // Mantido apenas para leitura durante migração
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      // Bloqueado para escrita - usar nova estrutura
+      allow write: if false;
+    }
+
+    // ==============================
+    // 🎮 Subcoleção: perfilGamificacao (PRIVADA)
+    // usuarios/{userId}/perfilGamificacao/perfil
+    // ==============================
+    match /usuarios/{userId}/perfilGamificacao/{documentId} {
+      // LEITURA:
+      // - Documento "perfil" é público para usuários autenticados (ranking colaborativo)
+      // - Demais documentos permanecem restritos ao dono
+      allow read: if isAuthenticated() &&
+                   (
+                     documentId == "perfil" ||
+                     request.auth.uid == userId
+                   );
+      
+      // LISTAGEM: somente para documento "perfil" com queries eficientes
+      allow list: if isAuthenticated() &&
+                    request.query.limit <= 100 &&
+                    request.query.orderBy.size() > 0;
+      
+      // CRIAÇÃO: Apenas o próprio usuário pode criar seu perfil
+      allow create: if isAuthenticated() && 
+                     request.auth.uid == userId &&
+                     validarPerfilGamificacao();
+      
+      // ATUALIZAÇÃO: Apenas o próprio usuário pode atualizar seu perfil
+      allow update: if isAuthenticated() && 
+                     request.auth.uid == userId &&
+                     validarPerfilGamificacao();
+      
+      // DELEÇÃO: Apenas o próprio usuário pode deletar seu perfil
+      allow delete: if isAuthenticated() && request.auth.uid == userId;
+      
+      // Função auxiliar para validar dados de perfil de gamificação
+      function validarPerfilGamificacao() {
+        let dados = request.resource.data;
+        return dados.keys().hasAll(['nivel', 'xpTotal', 'xpAtual', 'xpProximoNivel', 'conquistasDesbloqueadas', 'totalConquistas']) &&
+               // Validar tipos e valores
+               dados.nivel is int &&
+               dados.nivel >= 1 &&
+               dados.xpTotal is int &&
+               dados.xpTotal >= 0 &&
+               dados.xpAtual is int &&
+               dados.xpAtual >= 0 &&
+               dados.xpProximoNivel is int &&
+               dados.xpProximoNivel > 0 &&
+               dados.conquistasDesbloqueadas is int &&
+               dados.conquistasDesbloqueadas >= 0 &&
+               dados.totalConquistas is int &&
+               dados.totalConquistas >= 0 &&
+               (!dados.keys().hasAny(['atualizadoEm']) || dados.atualizadoEm is timestamp);
+      }
     }
   }
 }

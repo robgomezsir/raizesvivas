@@ -157,7 +157,8 @@ class PessoaDaoTest {
         id: String,
         nome: String,
         pai: String? = null,
-        mae: String? = null
+        mae: String? = null,
+        telefone: String? = null
     ) = PessoaEntity(
         id = id,
         nome = nome,
@@ -174,7 +175,9 @@ class PessoaDaoTest {
         conjugeAtual = null,
         exConjuges = emptyList(),
         filhos = emptyList(),
+        familias = emptyList(),
         fotoUrl = null,
+        telefone = telefone,
         criadoPor = "teste",
         criadoEm = Date(),
         modificadoPor = "teste",

@@ -10,6 +10,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,7 +36,9 @@ fun ChatContactsScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val usuarios by viewModel.usuarios.collectAsState()
+    val mensagensNaoLidas by viewModel.mensagensNaoLidas.collectAsState()
     val colorScheme = MaterialTheme.colorScheme
+    val pullToRefreshState = rememberPullToRefreshState()
 
     val backgroundBrush = remember(colorScheme) {
         Brush.verticalGradient(
@@ -54,6 +58,18 @@ fun ChatContactsScreen(
                 duration = SnackbarDuration.Long
             )
             viewModel.limparErro()
+        }
+    }
+
+    LaunchedEffect(pullToRefreshState.isRefreshing) {
+        if (pullToRefreshState.isRefreshing && !state.isLoading) {
+            viewModel.recarregarUsuarios()
+        }
+    }
+
+    LaunchedEffect(state.isLoading) {
+        if (!state.isLoading && pullToRefreshState.isRefreshing) {
+            pullToRefreshState.endRefresh()
         }
     }
 
@@ -158,10 +174,12 @@ fun ChatContactsScreen(
                     ) {
                         items(
                             items = usuarios,
-                            key = { it.id }
+                            key = { it.id },
+                            contentType = { "contact" }
                         ) { usuario ->
                             ContactItem(
                                 usuario = usuario,
+                                unreadCount = mensagensNaoLidas[usuario.id] ?: 0,
                                 onClick = {
                                     onOpenConversation(
                                         usuario.id,
@@ -173,6 +191,11 @@ fun ChatContactsScreen(
                     }
                 }
             }
+
+            PullToRefreshContainer(
+                state = pullToRefreshState,
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
         }
     }
 }
@@ -183,6 +206,7 @@ fun ChatContactsScreen(
 @Composable
 private fun ContactItem(
     usuario: Usuario,
+    unreadCount: Int,
     onClick: () -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
@@ -240,6 +264,18 @@ private fun ContactItem(
                         color = colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+            
+            if (unreadCount > 0) {
+                Badge(
+                    containerColor = colorScheme.primary,
+                    contentColor = colorScheme.onPrimary
+                ) {
+                    Text(
+                        text = unreadCount.toString(),
+                        style = MaterialTheme.typography.labelSmall
                     )
                 }
             }

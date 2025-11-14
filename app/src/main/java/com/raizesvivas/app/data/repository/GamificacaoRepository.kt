@@ -6,7 +6,9 @@ import com.raizesvivas.app.data.local.entities.ConquistaEntity
 import com.raizesvivas.app.data.local.entities.PerfilGamificacaoEntity
 import com.raizesvivas.app.domain.model.PerfilGamificacao
 import com.raizesvivas.app.domain.model.ProgressoConquista
+import com.raizesvivas.app.domain.model.RankingUsuario
 import com.raizesvivas.app.domain.model.SistemaConquistas
+import com.raizesvivas.app.domain.model.TipoAcao
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -21,7 +23,9 @@ import javax.inject.Singleton
 class GamificacaoRepository @Inject constructor(
     private val conquistaDao: ConquistaDao,
     private val perfilGamificacaoDao: PerfilGamificacaoDao,
-    private val firestoreService: com.raizesvivas.app.data.remote.firebase.FirestoreService
+    private val firestoreService: com.raizesvivas.app.data.remote.firebase.FirestoreService,
+    private val conquistasRepository: ConquistasRepository,
+    private val usuarioRepository: com.raizesvivas.app.data.repository.UsuarioRepository
 ) {
     
     /**
@@ -167,40 +171,16 @@ class GamificacaoRepository @Inject constructor(
             Timber.d("🆕 Inicializando perfil completamente NOVO (sem dados no Firestore) para usuarioId: $usuarioId")
             
             // Inicializar perfil com valores zerados
+            // IMPORTANTE: Não criar conquistas zeradas - cada usuário só terá conquistas quando começar a fazer progresso
             val totalConquistas = SistemaConquistas.obterTodas().size
             val timestamp = System.currentTimeMillis()
             perfilGamificacaoDao.inicializarPerfil(usuarioId, totalConquistas, timestamp)
             
-            // Inicializar progresso de todas as conquistas zeradas
-            val conquistas = SistemaConquistas.obterTodas()
-            val progressos = conquistas.map { conquista ->
-                ConquistaEntity.fromDomain(
-                    progresso = ProgressoConquista(
-                        conquistaId = conquista.id,
-                        desbloqueada = false,
-                        desbloqueadaEm = null,
-                        progressoAtual = 0,
-                        progressoTotal = conquista.condicao.valor
-                    ),
-                    usuarioId = usuarioId, // GARANTIR que usuarioId está correto
-                    precisaSincronizar = true // Marcar para sincronizar com Firestore
-                )
-            }
-            conquistaDao.inserirTodas(progressos)
+            // NÃO criar conquistas zeradas automaticamente
+            // As conquistas serão criadas apenas quando o usuário começar a fazer progresso nelas
+            // Isso garante que cada usuário tenha apenas suas próprias conquistas pessoais
             
-            // VALIDAÇÃO FINAL: Verificar se as conquistas foram salvas corretamente
-            val progressosVerificacao = conquistaDao.observarTodasConquistas(usuarioId).first()
-            val progressosIncorretosFinal = progressosVerificacao.any { it.usuarioId != usuarioId }
-            if (progressosIncorretosFinal) {
-                Timber.e("❌ ERRO CRÍTICO: Progressos salvos com usuarioId incorreto após inicialização!")
-            } else {
-                Timber.d("✅ Validação: Todos os progressos pertencem ao usuarioId correto: $usuarioId")
-            }
-            
-            // Sincronizar com Firestore em background (para salvar estado inicial)
-            sincronizarConquistasParaFirestore(usuarioId)
-            
-            Timber.d("✅ Novo perfil de gamificação inicializado (nível 1, XP 0, sem conquistas): $usuarioId")
+            Timber.d("✅ Novo perfil de gamificação inicializado (nível 1, XP 0, sem conquistas iniciais): $usuarioId")
         } catch (e: Exception) {
             Timber.e(e, "❌ Erro ao inicializar perfil de gamificação para usuarioId: $usuarioId")
         }
@@ -214,13 +194,14 @@ class GamificacaoRepository @Inject constructor(
         try {
             val progressos = conquistaDao.observarTodasConquistas(usuarioId).first()
             val conquistas = SistemaConquistas.obterTodas()
+            val totalConquistas = conquistas.size // Sempre usar o total dinâmico
             
             // Calcular XP total baseado nas conquistas desbloqueadas
             var xpTotal = 0
             var conquistasDesbloqueadas = 0
             
             progressos.forEach { progresso ->
-                if (progresso.desbloqueada) {
+                if (progresso.concluida) {
                     val conquista = conquistas.find { it.id == progresso.conquistaId }
                     if (conquista != null) {
                         xpTotal += conquista.recompensaXP
@@ -235,15 +216,21 @@ class GamificacaoRepository @Inject constructor(
             // Atualizar perfil
             val perfilAtual = perfilGamificacaoDao.buscarPorUsuarioId(usuarioId)
             if (perfilAtual != null) {
-                // Atualizar XP, nível e contador
+                // Atualizar XP, nível e contador (sempre atualizar totalConquistas para refletir o total real)
                 val perfilAtualizado = perfilAtual.copy(
                     xpTotal = xpTotal,
                     nivel = novoNivel,
                     conquistasDesbloqueadas = conquistasDesbloqueadas,
+                    totalConquistas = totalConquistas, // Sempre usar o total dinâmico
                     precisaSincronizar = true
                 )
                 perfilGamificacaoDao.inserirOuAtualizar(perfilAtualizado)
-                Timber.d("✅ XP do perfil recalculado: $xpTotal XP, nível $novoNivel, $conquistasDesbloqueadas conquistas")
+                
+                // Salvar perfil no Firestore para ranking
+                val perfilDomain = perfilAtualizado.toDomain()
+                firestoreService.salvarPerfilGamificacao(perfilDomain, xpTotal)
+                
+                Timber.d("✅ XP do perfil recalculado: $xpTotal XP, nível $novoNivel, $conquistasDesbloqueadas/$totalConquistas conquistas")
             }
         } catch (e: Exception) {
             Timber.e(e, "❌ Erro ao recalcular XP do perfil")
@@ -313,9 +300,9 @@ class GamificacaoRepository @Inject constructor(
                     } else {
                         // Usar o que tiver mais progresso ou estiver desbloqueado
                         when {
-                            progressoFirestore.desbloqueada && !progressoLocal.desbloqueada -> progressoFirestore
-                            progressoLocal.desbloqueada && !progressoFirestore.desbloqueada -> progressoLocal.toDomain()
-                            progressoFirestore.progressoAtual > progressoLocal.progressoAtual -> progressoFirestore
+                            progressoFirestore.concluida && !progressoLocal.concluida -> progressoFirestore
+                            progressoLocal.concluida && !progressoFirestore.concluida -> progressoLocal.toDomain()
+                            progressoFirestore.progresso > progressoLocal.progresso -> progressoFirestore
                             else -> progressoLocal.toDomain()
                         }
                     }
@@ -332,29 +319,9 @@ class GamificacaoRepository @Inject constructor(
                 )
             }
             
-            // Garantir que todas as conquistas do sistema estejam presentes
-            val conquistasSistema = SistemaConquistas.obterTodas()
-            conquistasSistema.forEach { conquista ->
-                val existe = progressosAtualizados.any { 
-                    it.conquistaId == conquista.id && it.usuarioId == usuarioId 
-                }
-                if (!existe) {
-                    // Adicionar conquista que não existe no Firestore nem localmente
-                    progressosAtualizados.add(
-                        ConquistaEntity.fromDomain(
-                            progresso = ProgressoConquista(
-                                conquistaId = conquista.id,
-                                desbloqueada = false,
-                                desbloqueadaEm = null,
-                                progressoAtual = 0,
-                                progressoTotal = conquista.condicao.valor
-                            ),
-                            usuarioId = usuarioId, // SEMPRE usar o usuarioId correto
-                            precisaSincronizar = false
-                        )
-                    )
-                }
-            }
+            // IMPORTANTE: NÃO criar conquistas zeradas automaticamente
+            // Apenas manter conquistas que o usuário realmente possui (com progresso)
+            // As conquistas serão criadas apenas quando o usuário começar a fazer progresso nelas
             
             // VALIDAÇÃO FINAL: Verificar se todos os progressos têm usuarioId correto antes de salvar
             val progressosComUsuarioIdIncorreto = progressosAtualizados.any { it.usuarioId != usuarioId }
@@ -465,44 +432,71 @@ class GamificacaoRepository @Inject constructor(
     /**
      * Atualiza progresso de uma conquista do usuário
      * Marca como precisaSincronizar e sincroniza com Firestore
+     * IMPORTANTE: Cria a conquista se não existir (quando usuário começa a fazer progresso)
+     * ATUALIZADO: Usa novos campos (concluida, progresso)
      */
     suspend fun atualizarProgressoConquista(
         conquistaId: String,
         usuarioId: String,
-        progressoAtual: Int,
-        desbloqueada: Boolean = false
+        progresso: Int,
+        concluida: Boolean = false
     ) {
         try {
-            val timestamp = if (desbloqueada) System.currentTimeMillis() else null
+            val timestamp = if (concluida) System.currentTimeMillis() else null
             
             // Buscar progresso atual para pegar progressoTotal
             // Se não encontrar localmente, buscar da definição do sistema
             val entityAtual = conquistaDao.buscarPorId(conquistaId, usuarioId)
-            val progressoTotal = if (entityAtual != null) {
-                entityAtual.progressoTotal
-            } else {
-                // Buscar da definição do sistema
-                SistemaConquistas.obterTodas()
-                    .find { it.id == conquistaId }
-                    ?.condicao?.valor ?: 0
+            val conquistaSistema = SistemaConquistas.obterTodas()
+                .find { it.id == conquistaId }
+            
+            if (conquistaSistema == null) {
+                Timber.e("❌ Conquista não encontrada no sistema: $conquistaId")
+                return
             }
             
-            // Atualizar no banco local (já marca precisaSincronizar = true)
-            conquistaDao.atualizarProgresso(
-                conquistaId = conquistaId,
-                usuarioId = usuarioId,
-                progressoAtual = progressoAtual,
-                desbloqueada = desbloqueada,
-                desbloqueadaEm = timestamp
-            )
+            val progressoTotal = entityAtual?.progressoTotal ?: conquistaSistema.condicao.valor
+            
+            // Se a conquista não existe, criar ela (usuário começou a fazer progresso)
+            if (entityAtual == null) {
+                Timber.d("🆕 Criando nova conquista para usuário: $conquistaId (progresso: $progresso)")
+                val novaEntity = ConquistaEntity.fromDomain(
+                    progresso = ProgressoConquista(
+                        conquistaId = conquistaId,
+                        concluida = concluida,
+                        desbloqueadaEm = timestamp?.let { java.util.Date(it) },
+                        progresso = progresso,
+                        progressoTotal = progressoTotal
+                    ),
+                    usuarioId = usuarioId,
+                    precisaSincronizar = true
+                )
+                conquistaDao.inserirOuAtualizar(novaEntity)
+            } else {
+                // Atualizar no banco local (já marca precisaSincronizar = true)
+                conquistaDao.atualizarProgresso(
+                    conquistaId = conquistaId,
+                    usuarioId = usuarioId,
+                    progresso = progresso,
+                    concluida = concluida,
+                    desbloqueadaEm = timestamp
+                )
+            }
             
             // Sincronizar com Firestore em background
+            // Garantir que desbloqueadaEm seja enviado quando concluída
+            val desbloqueadaEmParaFirestore = if (concluida && timestamp == null) {
+                System.currentTimeMillis()
+            } else {
+                timestamp
+            }
+            
             firestoreService.salvarConquista(
                 usuarioId = usuarioId,
                 conquistaId = conquistaId,
-                desbloqueada = desbloqueada,
-                desbloqueadaEm = timestamp,
-                progressoAtual = progressoAtual,
+                concluida = concluida,
+                desbloqueadaEm = desbloqueadaEmParaFirestore,
+                progresso = progresso,
                 progressoTotal = progressoTotal
             ).onSuccess {
                 // Marcar como sincronizado
@@ -519,7 +513,7 @@ class GamificacaoRepository @Inject constructor(
                 Timber.w("⚠️ Falha ao sincronizar progresso, será sincronizado depois: $conquistaId")
             }
             
-            Timber.d("✅ Progresso atualizado: $conquistaId para usuário $usuarioId - $progressoAtual/$progressoTotal")
+            Timber.d("✅ Progresso atualizado: $conquistaId para usuário $usuarioId - $progresso/$progressoTotal")
         } catch (e: Exception) {
             Timber.e(e, "❌ Erro ao atualizar progresso de conquista")
         }
@@ -528,26 +522,56 @@ class GamificacaoRepository @Inject constructor(
     /**
      * Desbloqueia uma conquista do usuário e adiciona XP
      * Sincroniza com Firestore automaticamente
+     * IMPORTANTE: Cria a conquista se não existir (quando usuário desbloqueia pela primeira vez)
+     * ATUALIZADO: Usa novos campos (concluida, progresso)
      */
     suspend fun desbloquearConquista(conquistaId: String, usuarioId: String, xp: Int) {
         try {
             val timestamp = System.currentTimeMillis()
             
             // Buscar progresso atual
-            val entity = conquistaDao.buscarPorId(conquistaId, usuarioId)
+            var entity = conquistaDao.buscarPorId(conquistaId, usuarioId)
+            
+            // Se não existe, criar a conquista (usuário desbloqueou pela primeira vez)
             if (entity == null) {
-                Timber.e("❌ Conquista não encontrada: $conquistaId")
-                return
+                val conquistaSistema = SistemaConquistas.obterTodas()
+                    .find { it.id == conquistaId }
+                
+                if (conquistaSistema == null) {
+                    Timber.e("❌ Conquista não encontrada no sistema: $conquistaId")
+                    return
+                }
+                
+                Timber.d("🆕 Criando nova conquista desbloqueada para usuário: $conquistaId")
+                entity = ConquistaEntity.fromDomain(
+                    progresso = ProgressoConquista(
+                        conquistaId = conquistaId,
+                        concluida = true,
+                        desbloqueadaEm = java.util.Date(timestamp),
+                        progresso = conquistaSistema.condicao.valor,
+                        progressoTotal = conquistaSistema.condicao.valor
+                    ),
+                    usuarioId = usuarioId,
+                    precisaSincronizar = true
+                )
+                conquistaDao.inserirOuAtualizar(entity)
+            } else {
+                // Verificar se já está concluída (evitar duplicação de XP)
+                if (entity.concluida) {
+                    Timber.d("ℹ️ Conquista já estava concluída: $conquistaId")
+                    return
+                }
             }
             
-            // Verificar se já está desbloqueada (evitar duplicação de XP)
-            if (entity.desbloqueada) {
-                Timber.d("ℹ️ Conquista já estava desbloqueada: $conquistaId")
-                return
-            }
-            
-            // Marcar como desbloqueada para o usuário específico
+            // Marcar como concluída para o usuário específico
             conquistaDao.marcarComoDesbloqueada(conquistaId, usuarioId, timestamp)
+            
+            // Atualizar entity local para refletir mudanças (progresso deve ser igual ao total quando concluída)
+            entity = entity.copy(
+                concluida = true,
+                progresso = entity.progressoTotal, // Quando concluída, progresso = progressoTotal
+                desbloqueadaEm = timestamp
+            )
             
             // Atualizar perfil com XP
             val perfilAtual = perfilGamificacaoDao.buscarPorUsuarioId(usuarioId)
@@ -566,14 +590,15 @@ class GamificacaoRepository @Inject constructor(
             firestoreService.salvarConquista(
                 usuarioId = usuarioId,
                 conquistaId = conquistaId,
-                desbloqueada = true,
+                concluida = true,
                 desbloqueadaEm = timestamp,
-                progressoAtual = entity.progressoTotal,
+                progresso = entity.progressoTotal,
                 progressoTotal = entity.progressoTotal
             ).onSuccess {
                 // Marcar como sincronizado
                 val entityAtualizada = entity.copy(
-                    desbloqueada = true,
+                    concluida = true,
+                    progresso = entity.progressoTotal, // Progresso deve ser igual ao total quando concluída
                     desbloqueadaEm = timestamp,
                     precisaSincronizar = false,
                     sincronizadoEm = System.currentTimeMillis()
@@ -583,7 +608,8 @@ class GamificacaoRepository @Inject constructor(
             }.onFailure {
                 // Marcar como precisa sincronizar para tentar depois
                 val entityAtualizada = entity.copy(
-                    desbloqueada = true,
+                    concluida = true,
+                    progresso = entity.progressoTotal, // Progresso deve ser igual ao total quando concluída
                     desbloqueadaEm = timestamp,
                     precisaSincronizar = true
                 )
@@ -613,6 +639,137 @@ class GamificacaoRepository @Inject constructor(
         } catch (e: Exception) {
             Timber.e(e, "❌ Erro ao atualizar contador de conquistas")
         }
+    }
+    
+    /**
+     * Registra ação do usuário e atualiza progresso das conquistas relacionadas
+     * 
+     * NOVO: Sistema de rastreamento de ações em tempo real
+     * 
+     * @param usuarioId ID do usuário que realizou a ação
+     * @param tipoAcao Tipo da ação realizada
+     */
+    suspend fun registrarAcao(usuarioId: String, tipoAcao: TipoAcao) {
+        if (usuarioId.isBlank()) {
+            Timber.e("❌ registrarAcao: usuarioId está vazio!")
+            return
+        }
+        
+        try {
+            conquistasRepository.registrarAcao(usuarioId, tipoAcao)
+            
+            // Aguardar um pouco para garantir que o progresso foi salvo no banco
+            kotlinx.coroutines.delay(100)
+            
+            // Após registrar ação, verificar se alguma conquista foi desbloqueada
+            // e atualizar XP do perfil se necessário
+            // Usar Flow.first() para garantir que pegamos os dados mais recentes do banco
+            val progressos = conquistaDao.observarTodasConquistas(usuarioId).first()
+            val conquistasDesbloqueadas = progressos.filter { it.concluida }
+            
+            Timber.d("📊 Progressos após registrar ação: ${progressos.size} total, ${conquistasDesbloqueadas.size} desbloqueadas")
+            
+            // Recalcular XP baseado nas conquistas desbloqueadas
+            recalcularXPDoPerfil(usuarioId)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            // Re-throw cancellation exceptions para não mascarar cancelamentos legítimos
+            throw e
+        } catch (e: Exception) {
+            // Log do erro mas não interrompe o fluxo
+            when {
+                e is com.google.firebase.firestore.FirebaseFirestoreException && 
+                e.code == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED -> {
+                    Timber.w("⚠️ Permissão negada ao registrar ação (pode ser temporário): $tipoAcao")
+                }
+                else -> {
+                    Timber.e(e, "❌ Erro ao registrar ação: $tipoAcao")
+                }
+            }
+            // Não re-throw para não cancelar o job pai
+        }
+    }
+    
+    /**
+     * Busca ranking de usuários ordenado por XP total
+     * Retorna lista de usuários com suas posições no ranking
+     * IMPORTANTE: Sempre busca do Firestore para garantir consistência entre dispositivos
+     */
+    suspend fun buscarRanking(usuarioIdAtual: String): Result<List<RankingUsuario>> {
+        return try {
+            // Buscar todos os usuários
+            val usuariosResult = usuarioRepository.buscarTodosUsuarios()
+            if (usuariosResult.isFailure) {
+                return Result.failure(usuariosResult.exceptionOrNull() ?: Exception("Erro ao buscar usuários"))
+            }
+            
+            val usuarios = usuariosResult.getOrNull() ?: emptyList()
+            
+            // Buscar perfis de gamificação de todos os usuários APENAS DO FIRESTORE
+            // Não usar dados locais para garantir consistência entre dispositivos
+            val ranking = mutableListOf<RankingUsuario>()
+            
+            usuarios.forEach { usuario ->
+                // SEMPRE buscar do Firestore primeiro
+                val perfilResult = firestoreService.buscarPerfilGamificacao(usuario.id)
+                val perfilFirestore = perfilResult.getOrNull()
+                
+                // Buscar xpTotal diretamente do Firestore (mesmo se não houver perfil ainda)
+                val xpTotal = firestoreService.buscarXPTotal(usuario.id)
+                
+                ranking.add(
+                    RankingUsuario(
+                        usuarioId = usuario.id,
+                        nome = usuario.nome,
+                        fotoUrl = usuario.fotoUrl,
+                        xpTotal = xpTotal,
+                        nivel = perfilFirestore?.nivel ?: 1,
+                        conquistasDesbloqueadas = perfilFirestore?.conquistasDesbloqueadas ?: 0,
+                        posicao = 0 // Será calculado após ordenação
+                    )
+                )
+            }
+            
+            // Ordenar APENAS por XP total (decrescente) - classificação única baseada na pontuação
+            val rankingOrdenado = ranking.sortedByDescending { it.xpTotal }
+            
+            // Atribuir posições baseadas na ordem final
+            // Usuários com a mesma pontuação terão a mesma posição (empate)
+            // A próxima posição pula o número de usuários empatados
+            var posicaoAtual = 1
+            var xpAnterior: Int? = null
+            val rankingComPosicoes = rankingOrdenado.mapIndexed { index, usuario ->
+                // Se a pontuação é diferente da anterior, atualiza a posição
+                // Primeiro usuário sempre será posição 1
+                if (xpAnterior == null || usuario.xpTotal < xpAnterior!!) {
+                    posicaoAtual = index + 1
+                    xpAnterior = usuario.xpTotal
+                }
+                // Se a pontuação é igual à anterior, mantém a mesma posição (empate)
+                usuario.copy(posicao = posicaoAtual)
+            }
+
+            // Atualizar a posição de ranking diretamente na coleção `usuarios`
+            rankingComPosicoes.forEach { usuarioRanking ->
+                firestoreService.atualizarPosicaoRanking(usuarioRanking.usuarioId, usuarioRanking.posicao)
+                    .onFailure { erro ->
+                        Timber.w(erro, "⚠️ Não foi possível atualizar a posição no ranking para o usuário ${usuarioRanking.usuarioId}")
+                    }
+            }
+            
+            Timber.d("📊 Ranking gerado do Firestore: ${rankingComPosicoes.size} usuários")
+            Result.success(rankingComPosicoes)
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao buscar ranking")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Calcula XP necessário para um nível específico
+     */
+    private fun calcularXPDoNivel(nivel: Int): Int {
+        return 500 + (nivel - 1) * 100
     }
 }
 

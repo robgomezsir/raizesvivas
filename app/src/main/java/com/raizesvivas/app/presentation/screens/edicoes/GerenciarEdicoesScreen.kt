@@ -18,6 +18,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.raizesvivas.app.domain.model.EdicaoPendente
 import java.text.SimpleDateFormat
 import java.util.*
+import com.raizesvivas.app.domain.model.AlteracaoCampo
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -251,8 +252,94 @@ private fun EdicaoPendenteCard(
                 style = MaterialTheme.typography.bodyMedium
             )
             
+            // Exibir DE/PARA para cada campo alterado
+            edicao.camposAlterados.forEach { (campo, alteracao) ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = obterNomeCampo(campo),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            // Valor Anterior (DE)
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = "DE (Anterior):",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                )
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
+                                ) {
+                                    Text(
+                                        text = formatarValor(alteracao.valorAnterior) ?: "(vazio)",
+                                        modifier = Modifier.padding(8.dp),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onErrorContainer
+                                    )
+                                }
+                            }
+                            
+                            // Seta
+                            Icon(
+                                imageVector = Icons.Default.ArrowForward,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier
+                                    .align(Alignment.CenterVertically)
+                                    .size(24.dp)
+                            )
+                            
+                            // Valor Novo (PARA)
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = "PARA (Novo):",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                )
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                                ) {
+                                    Text(
+                                        text = formatarValor(alteracao.valorNovo) ?: "(vazio)",
+                                        modifier = Modifier.padding(8.dp),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
             Text(
-                text = "Campos alterados: ${edicao.camposAlterados.keys.joinToString(", ")}",
+                text = "Campos alterados: ${edicao.camposAlterados.size}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -302,6 +389,46 @@ private fun EdicaoPendenteCard(
                 }
             }
         }
+    }
+}
+
+/**
+ * Obtém o nome amigável de um campo
+ */
+private fun obterNomeCampo(campo: String): String {
+    return when (campo) {
+        "nome" -> "Nome"
+        "dataNascimento" -> "Data de Nascimento"
+        "dataFalecimento" -> "Data de Falecimento"
+        "localNascimento" -> "Local de Nascimento"
+        "localResidencia" -> "Local de Residência"
+        "profissao" -> "Profissão"
+        "biografia" -> "Biografia"
+        "pai" -> "Pai"
+        "mae" -> "Mãe"
+        "conjugeAtual" -> "Cônjuge Atual"
+        "filhos" -> "Filhos"
+        else -> campo.replaceFirstChar { it.uppercaseChar() }
+    }
+}
+
+/**
+ * Formata um valor para exibição
+ */
+private fun formatarValor(valor: Any?): String? {
+    if (valor == null) return null
+    
+    return when (valor) {
+        is Date -> {
+            val formatter = SimpleDateFormat("dd/MM/yyyy", Locale("pt", "BR"))
+            formatter.format(valor)
+        }
+        is List<*> -> {
+            valor.joinToString(", ")
+        }
+        is String -> valor
+        is Boolean -> if (valor) "Sim" else "Não"
+        else -> valor.toString()
     }
 }
 

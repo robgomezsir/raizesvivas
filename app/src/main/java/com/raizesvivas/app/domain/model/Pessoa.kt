@@ -1,6 +1,7 @@
 package com.raizesvivas.app.domain.model
 
 import java.util.Date
+import java.util.Calendar
 
 /**
  * Enum para estados civis
@@ -32,12 +33,14 @@ enum class Genero(val label: String) {
 data class Pessoa(
     val id: String = "",
     val nome: String = "",
+    val apelido: String? = null,
     val dataNascimento: Date? = null,
     val dataFalecimento: Date? = null,
     val localNascimento: String? = null,
     val localResidencia: String? = null,
     val profissao: String? = null,
     val biografia: String? = null,
+    val telefone: String? = null,              // Telefone/Celular
     val estadoCivil: EstadoCivil? = null,   // Estado civil da pessoa
     val genero: Genero? = null,              // Gênero da pessoa
     
@@ -93,15 +96,33 @@ data class Pessoa(
     
     /**
      * Calcula idade atual ou idade ao falecer
+     * Usa Calendar para cálculo preciso considerando anos bissextos
      */
     fun calcularIdade(): Int? {
         val dataNasc = dataNascimento ?: return null
         val dataReferencia = dataFalecimento ?: Date()
         
-        val diff = dataReferencia.time - dataNasc.time
-        val anos = diff / (1000L * 60 * 60 * 24 * 365)
+        val calNasc = Calendar.getInstance().apply {
+            time = dataNasc
+        }
+        val calRef = Calendar.getInstance().apply {
+            time = dataReferencia
+        }
         
-        return anos.toInt()
+        var idade = calRef.get(Calendar.YEAR) - calNasc.get(Calendar.YEAR)
+        
+        // Verificar se ainda não fez aniversário este ano
+        val mesNasc = calNasc.get(Calendar.MONTH)
+        val diaNasc = calNasc.get(Calendar.DAY_OF_MONTH)
+        val mesRef = calRef.get(Calendar.MONTH)
+        val diaRef = calRef.get(Calendar.DAY_OF_MONTH)
+        
+        if (mesRef < mesNasc || (mesRef == mesNasc && diaRef < diaNasc)) {
+            idade--
+        }
+        
+        // Garantir que a idade não seja negativa
+        return if (idade < 0) null else idade
     }
     
     /**

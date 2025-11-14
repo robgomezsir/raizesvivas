@@ -11,6 +11,7 @@ import com.raizesvivas.app.domain.model.EstadoCivil
 import com.raizesvivas.app.domain.model.Genero
 import com.raizesvivas.app.domain.usecase.DetectarDuplicatasUseCase
 import com.raizesvivas.app.domain.usecase.VerificarConquistasUseCase
+import com.raizesvivas.app.domain.usecase.ValidarDuplicataUseCase
 import com.raizesvivas.app.utils.DuplicateDetector
 import com.raizesvivas.app.utils.ImageCompressor
 import com.raizesvivas.app.utils.NetworkUtils
@@ -37,6 +38,7 @@ class CadastroPessoaViewModel @Inject constructor(
     private val usuarioRepository: UsuarioRepository,
     private val networkUtils: NetworkUtils,
     private val detectarDuplicatasUseCase: DetectarDuplicatasUseCase,
+    private val validarDuplicataUseCase: ValidarDuplicataUseCase,
     private val storageService: StorageService,
     private val verificarConquistasUseCase: VerificarConquistasUseCase
 ) : ViewModel() {
@@ -292,44 +294,38 @@ class CadastroPessoaViewModel @Inject constructor(
                 
                 val pessoaComFoto = pessoa.copy(fotoUrl = fotoUrl)
                 
-                val resultado = if (estadoParaSalvar.isEditing) {
-                    pessoaRepository.atualizar(pessoaComFoto, ehAdmin)
-                } else {
-                    pessoaRepository.salvar(pessoaComFoto, ehAdmin)
-                }
-                
-                resultado.onSuccess {
-                    // Atualizar relacionamentos bidirecionais após salvar com sucesso
-                    atualizarRelacionamentosBidirecionais(pessoaId, ehAdmin)
-                    ParentescoCalculator.limparCache()
-
-                    Timber.d("✅ Pessoa ${if (estadoParaSalvar.isEditing) "atualizada" else "salva"}: ${pessoa.nome}")
+                // Validar duplicatas ANTES de salvar (apenas para novos cadastros)
+                if (!estadoParaSalvar.isEditing) {
+                    val validacaoDuplicata = validarDuplicataUseCase.validar(pessoaComFoto, toleranciaDias = 0)
                     
-                    val usuarioId = authService.currentUser?.uid
-                    
-                    if (!estadoParaSalvar.isEditing && usuarioId != null) { // Apenas para novas pessoas
-                        // Detectar duplicatas após salvar
-                        detectarDuplicatasAposSalvar(pessoa)
-                        
-                        // Verificar conquistas após adicionar nova pessoa
-                        verificarConquistasUseCase.verificarTodasConquistas(usuarioId)
-                    } else {
-                        // Verificar conquistas após atualizar pessoa (pode ter adicionado foto, dados, etc.)
-                        if (usuarioId != null) {
-                            verificarConquistasUseCase.verificarTodasConquistas(usuarioId)
+                    if (validacaoDuplicata.deveBloquear || validacaoDuplicata.deveAvisar) {
+                        // Duplicata encontrada - PAUSAR cadastro e mostrar diálogo
+                        _state.update {
+                            it.copy(
+                                isLoading = false,
+                                erro = if (validacaoDuplicata.deveBloquear) validacaoDuplicata.mensagem else null,
+                                avisoDuplicatas = if (validacaoDuplicata.deveAvisar) validacaoDuplicata.mensagem else null,
+                                duplicatasEncontradas = validacaoDuplicata.duplicatasEncontradas.map { dup ->
+                                    DuplicataInfo(
+                                        pessoaId = dup.pessoa.id,
+                                        nome = dup.pessoa.nome,
+                                        dataNascimento = dup.pessoa.dataNascimento,
+                                        nivel = dup.nivel.name,
+                                        razoes = dup.razoes,
+                                        scoreSimilaridade = dup.scoreSimilaridade
+                                    )
+                                },
+                                mostrarDialogDuplicata = true,
+                                pessoaPendente = pessoaComFoto, // Guardar pessoa para salvar depois
+                                ehAdminPendente = ehAdmin
+                            )
                         }
+                        return@launch
                     }
-                    
-                    _state.update { it.copy(isLoading = false, sucesso = true) }
                 }
                 
-                resultado.onFailure { error ->
-                    Timber.e(error, "❌ Erro ao salvar pessoa")
-                    _state.update { it.copy(
-                        isLoading = false,
-                        erro = "Erro ao salvar pessoa: ${error.message}"
-                    ) }
-                }
+                // Salvar pessoa (sem duplicatas ou após confirmação)
+                salvarPessoaInterno(pessoaComFoto, ehAdmin, estadoParaSalvar.isEditing, pessoaId)
                 
             } catch (e: Exception) {
                 Timber.e(e, "❌ Erro fatal ao salvar pessoa")
@@ -342,19 +338,100 @@ class CadastroPessoaViewModel @Inject constructor(
     }
     
     /**
+     * Salva pessoa internamente (extraído para reutilização)
+     */
+    private suspend fun salvarPessoaInterno(
+        pessoa: Pessoa,
+        ehAdmin: Boolean,
+        isEditing: Boolean,
+        pessoaId: String
+    ) {
+        // Buscar pessoa original ANTES de salvar para comparar relacionamentos (apenas se estiver editando)
+        val pessoaOriginal = if (isEditing) {
+            pessoaRepository.buscarPorId(pessoaId)
+        } else {
+            null
+        }
+        
+        val resultado = if (isEditing) {
+            pessoaRepository.atualizar(pessoa, ehAdmin)
+        } else {
+            pessoaRepository.salvar(pessoa, ehAdmin)
+        }
+        
+        resultado.onSuccess {
+            Timber.d("✅ Pessoa ${if (isEditing) "atualizada" else "salva"}: ${pessoa.nome}")
+            
+            // Atualizar relacionamentos bidirecionais após salvar com sucesso
+            atualizarRelacionamentosBidirecionais(pessoaId, pessoaOriginal, pessoa, ehAdmin)
+            ParentescoCalculator.limparCache()
+            
+            val usuarioId = authService.currentUser?.uid
+            
+            if (!isEditing && usuarioId != null) { // Apenas para novas pessoas
+                // Detectar duplicatas após salvar
+                detectarDuplicatasAposSalvar(pessoa)
+                
+                // Verificar conquistas após adicionar nova pessoa
+                verificarConquistasUseCase.verificarTodasConquistas(usuarioId)
+            } else {
+                // Verificar conquistas após atualizar pessoa (pode ter adicionado foto, dados, etc.)
+                if (usuarioId != null) {
+                    verificarConquistasUseCase.verificarTodasConquistas(usuarioId)
+                }
+            }
+            
+            _state.update { it.copy(isLoading = false, sucesso = true) }
+        }
+        
+        resultado.onFailure { error ->
+            Timber.e(error, "❌ Erro ao salvar pessoa")
+            _state.update { it.copy(
+                isLoading = false,
+                erro = "Erro ao salvar pessoa: ${error.message}"
+            ) }
+        }
+    }
+    
+    /**
      * Atualiza relacionamentos bidirecionais
      * Ex: Se pessoa A tem pai B, então pessoa B deve ter pessoa A como filho
+     * Também remove relacionamentos quando são removidos
      */
     private suspend fun atualizarRelacionamentosBidirecionais(
         pessoaId: String,
+        pessoaOriginal: Pessoa?,
+        pessoaAtualizada: Pessoa,
         ehAdmin: Boolean
     ) {
         try {
             val currentUser = authService.currentUser ?: return
-            val state = _state.value
             
-            // Se tem pai, adicionar como filho do pai
-            state.paiId?.let { paiId ->
+            // ========== ATUALIZAR/REMOVER RELACIONAMENTO COM PAI ==========
+            val paiAnterior = pessoaOriginal?.pai
+            val paiAtual = pessoaAtualizada.pai
+            
+            // Se tinha pai antes e agora não tem, ou mudou de pai
+            if (paiAnterior != null && paiAnterior != paiAtual) {
+                // Remover da lista de filhos do pai anterior
+                val paiAnteriorObj = pessoaRepository.buscarPorId(paiAnterior)
+                paiAnteriorObj?.let {
+                    val filhosAtualizados = it.filhos.filter { it != pessoaId }
+                    val paiAtualizado = it.copy(
+                        filhos = filhosAtualizados,
+                        modificadoPor = currentUser.uid,
+                        modificadoEm = Date()
+                    )
+                    pessoaRepository.atualizar(paiAtualizado, ehAdmin)
+                        .onSuccess { 
+                            Timber.d("🔗 Removido relacionamento: ${paiAnteriorObj.nome} não é mais pai de ${pessoaAtualizada.nome}")
+                            ParentescoCalculator.limparCache() 
+                        }
+                }
+            }
+            
+            // Se tem pai agora (novo ou mantido), adicionar como filho do pai
+            paiAtual?.let { paiId ->
                 val pai = pessoaRepository.buscarPorId(paiId)
                 pai?.let {
                     val filhosAtualizados = if (!it.filhos.contains(pessoaId)) {
@@ -368,12 +445,38 @@ class CadastroPessoaViewModel @Inject constructor(
                         modificadoEm = Date()
                     )
                     pessoaRepository.atualizar(paiAtualizado, ehAdmin)
-                        .onSuccess { ParentescoCalculator.limparCache() }
+                        .onSuccess { 
+                            Timber.d("🔗 Adicionado relacionamento: ${pai.nome} é pai de ${pessoaAtualizada.nome}")
+                            ParentescoCalculator.limparCache() 
+                        }
                 }
             }
             
-            // Se tem mãe, adicionar como filho da mãe
-            state.maeId?.let { maeId ->
+            // ========== ATUALIZAR/REMOVER RELACIONAMENTO COM MÃE ==========
+            val maeAnterior = pessoaOriginal?.mae
+            val maeAtual = pessoaAtualizada.mae
+            
+            // Se tinha mãe antes e agora não tem, ou mudou de mãe
+            if (maeAnterior != null && maeAnterior != maeAtual) {
+                // Remover da lista de filhos da mãe anterior
+                val maeAnteriorObj = pessoaRepository.buscarPorId(maeAnterior)
+                maeAnteriorObj?.let {
+                    val filhosAtualizados = it.filhos.filter { it != pessoaId }
+                    val maeAtualizada = it.copy(
+                        filhos = filhosAtualizados,
+                        modificadoPor = currentUser.uid,
+                        modificadoEm = Date()
+                    )
+                    pessoaRepository.atualizar(maeAtualizada, ehAdmin)
+                        .onSuccess { 
+                            Timber.d("🔗 Removido relacionamento: ${maeAnteriorObj.nome} não é mais mãe de ${pessoaAtualizada.nome}")
+                            ParentescoCalculator.limparCache() 
+                        }
+                }
+            }
+            
+            // Se tem mãe agora (nova ou mantida), adicionar como filho da mãe
+            maeAtual?.let { maeId ->
                 val mae = pessoaRepository.buscarPorId(maeId)
                 mae?.let {
                     val filhosAtualizados = if (!it.filhos.contains(pessoaId)) {
@@ -381,18 +484,43 @@ class CadastroPessoaViewModel @Inject constructor(
                     } else {
                         it.filhos
                     }
-                    val maeAtualizado = it.copy(
+                    val maeAtualizada = it.copy(
                         filhos = filhosAtualizados,
                         modificadoPor = currentUser.uid,
                         modificadoEm = Date()
                     )
-                    pessoaRepository.atualizar(maeAtualizado, ehAdmin)
-                        .onSuccess { ParentescoCalculator.limparCache() }
+                    pessoaRepository.atualizar(maeAtualizada, ehAdmin)
+                        .onSuccess { 
+                            Timber.d("🔗 Adicionado relacionamento: ${mae.nome} é mãe de ${pessoaAtualizada.nome}")
+                            ParentescoCalculator.limparCache() 
+                        }
                 }
             }
             
-            // Se tem cônjuge, vincular bidirecionalmente
-            state.conjugeId?.let { conjugeId ->
+            // ========== ATUALIZAR/REMOVER RELACIONAMENTO COM CÔNJUGE ==========
+            val conjugeAnterior = pessoaOriginal?.conjugeAtual
+            val conjugeAtual = pessoaAtualizada.conjugeAtual
+            
+            // Se tinha cônjuge antes e agora não tem, ou mudou de cônjuge
+            if (conjugeAnterior != null && conjugeAnterior != conjugeAtual) {
+                // Remover relacionamento do cônjuge anterior
+                val conjugeAnteriorObj = pessoaRepository.buscarPorId(conjugeAnterior)
+                conjugeAnteriorObj?.let {
+                    val conjugeAtualizado = it.copy(
+                        conjugeAtual = null,
+                        modificadoPor = currentUser.uid,
+                        modificadoEm = Date()
+                    )
+                    pessoaRepository.atualizar(conjugeAtualizado, ehAdmin)
+                        .onSuccess { 
+                            Timber.d("🔗 Removido relacionamento: ${conjugeAnteriorObj.nome} não é mais cônjuge de ${pessoaAtualizada.nome}")
+                            ParentescoCalculator.limparCache() 
+                        }
+                }
+            }
+            
+            // Se tem cônjuge agora (novo ou mantido), vincular bidirecionalmente
+            conjugeAtual?.let { conjugeId ->
                 val conjuge = pessoaRepository.buscarPorId(conjugeId)
                 conjuge?.let {
                     val conjugeAtualizado = it.copy(
@@ -404,6 +532,7 @@ class CadastroPessoaViewModel @Inject constructor(
 
                     // Verificar conquistas após registrar casamento (se ambos tinham conjugeAtual null antes)
                     resultadoConjuge.onSuccess {
+                        Timber.d("🔗 Adicionado relacionamento: ${conjuge.nome} é cônjuge de ${pessoaAtualizada.nome}")
                         ParentescoCalculator.limparCache()
                         val usuarioId = authService.currentUser?.uid
                         if (usuarioId != null && conjuge.conjugeAtual == null) {
@@ -413,6 +542,93 @@ class CadastroPessoaViewModel @Inject constructor(
                     }
                 }
             }
+            
+            // ========== ATUALIZAR/REMOVER RELACIONAMENTO COM FILHOS ==========
+            val filhosAnteriores = pessoaOriginal?.filhos ?: emptyList()
+            val filhosAtuais = pessoaAtualizada.filhos
+            
+            // Filhos que foram removidos
+            val filhosRemovidos = filhosAnteriores.filter { it !in filhosAtuais }
+            filhosRemovidos.forEach { filhoId ->
+                val filho = pessoaRepository.buscarPorId(filhoId)
+                filho?.let {
+                    val filhoAtualizado = when {
+                        it.pai == pessoaId -> it.copy(
+                            pai = null,
+                            modificadoPor = currentUser.uid,
+                            modificadoEm = Date()
+                        )
+                        it.mae == pessoaId -> it.copy(
+                            mae = null,
+                            modificadoPor = currentUser.uid,
+                            modificadoEm = Date()
+                        )
+                        else -> null
+                    }
+                    filhoAtualizado?.let { filhoAtual ->
+                        pessoaRepository.atualizar(filhoAtual, ehAdmin)
+                            .onSuccess { 
+                                Timber.d("🔗 Removido relacionamento: ${pessoaAtualizada.nome} não é mais pai/mãe de ${filhoAtual.nome}")
+                                ParentescoCalculator.limparCache() 
+                            }
+                    }
+                }
+            }
+            
+            // Filhos que foram adicionados
+            val filhosAdicionados = filhosAtuais.filter { it !in filhosAnteriores }
+            filhosAdicionados.forEach { filhoId ->
+                val filho = pessoaRepository.buscarPorId(filhoId)
+                filho?.let {
+                    // Determinar se deve ser pai ou mãe baseado no gênero
+                    // Se gênero não está definido, verificar qual campo (pai ou mae) está vazio
+                    val filhoAtualizado = when {
+                        pessoaAtualizada.genero == Genero.MASCULINO && it.pai != pessoaId -> {
+                            it.copy(
+                                pai = pessoaId,
+                                modificadoPor = currentUser.uid,
+                                modificadoEm = Date()
+                            )
+                        }
+                        pessoaAtualizada.genero == Genero.FEMININO && it.mae != pessoaId -> {
+                            it.copy(
+                                mae = pessoaId,
+                                modificadoPor = currentUser.uid,
+                                modificadoEm = Date()
+                            )
+                        }
+                        // Se gênero não está definido, preencher o campo que estiver vazio
+                        pessoaAtualizada.genero == null -> {
+                            when {
+                                it.pai == null && it.mae != pessoaId -> {
+                                    it.copy(
+                                        pai = pessoaId,
+                                        modificadoPor = currentUser.uid,
+                                        modificadoEm = Date()
+                                    )
+                                }
+                                it.mae == null && it.pai != pessoaId -> {
+                                    it.copy(
+                                        mae = pessoaId,
+                                        modificadoPor = currentUser.uid,
+                                        modificadoEm = Date()
+                                    )
+                                }
+                                else -> null // Ambos já preenchidos ou já está correto
+                            }
+                        }
+                        else -> null // Já está correto
+                    }
+                    filhoAtualizado?.let { filhoAtual ->
+                        pessoaRepository.atualizar(filhoAtual, ehAdmin)
+                            .onSuccess { 
+                                Timber.d("🔗 Adicionado relacionamento: ${pessoaAtualizada.nome} é pai/mãe de ${filhoAtual.nome}")
+                                ParentescoCalculator.limparCache() 
+                            }
+                    }
+                }
+            }
+            
         } catch (e: Exception) {
             Timber.e(e, "Erro ao atualizar relacionamentos bidirecionais")
             // Não falhar o salvamento principal por causa disso
@@ -503,6 +719,66 @@ class CadastroPessoaViewModel @Inject constructor(
             }
         }
     }
+    
+    /**
+     * Fecha o diálogo de duplicatas e permite continuar com o cadastro
+     */
+    fun confirmarContinuarComDuplicata() {
+        val estado = _state.value
+        val pessoaPendente = estado.pessoaPendente
+        val ehAdminPendente = estado.ehAdminPendente
+        
+        if (pessoaPendente != null) {
+            _state.update { 
+                it.copy(
+                    isLoading = true,
+                    mostrarDialogDuplicata = false,
+                    duplicatasEncontradas = emptyList(),
+                    avisoDuplicatas = null,
+                    pessoaPendente = null,
+                    ehAdminPendente = false
+                ) 
+            }
+            
+            viewModelScope.launch {
+                val pessoaId = pessoaPendente.id
+                salvarPessoaInterno(pessoaPendente, ehAdminPendente, false, pessoaId)
+            }
+        } else {
+            _state.update { 
+                it.copy(
+                    mostrarDialogDuplicata = false,
+                    duplicatasEncontradas = emptyList(),
+                    avisoDuplicatas = null
+                ) 
+            }
+        }
+    }
+    
+    /**
+     * Cancela o cadastro devido a duplicata
+     */
+    fun cancelarPorDuplicata() {
+        _state.update { 
+            it.copy(
+                isLoading = false,
+                mostrarDialogDuplicata = false,
+                duplicatasEncontradas = emptyList(),
+                avisoDuplicatas = null
+            ) 
+        }
+    }
+    
+    /**
+     * Fecha o diálogo de duplicatas sem ação
+     */
+    fun fecharDialogDuplicata() {
+        _state.update { 
+            it.copy(
+                mostrarDialogDuplicata = false
+            ) 
+        }
+    }
 }
 
 /**
@@ -539,6 +815,24 @@ data class CadastroPessoaState(
     val isLoading: Boolean = false,
     val sucesso: Boolean = false,
     val isEditing: Boolean = false,
-    val avisoDuplicatas: String? = null
+    val avisoDuplicatas: String? = null,
+    
+    // Duplicatas
+    val duplicatasEncontradas: List<DuplicataInfo> = emptyList(),
+    val mostrarDialogDuplicata: Boolean = false,
+    val pessoaPendente: Pessoa? = null, // Pessoa aguardando confirmação para salvar
+    val ehAdminPendente: Boolean = false // Se era admin quando tentou salvar
+)
+
+/**
+ * Informações sobre uma duplicata encontrada
+ */
+data class DuplicataInfo(
+    val pessoaId: String,
+    val nome: String,
+    val dataNascimento: Date?,
+    val nivel: String, // CRITICO, ALTO, MEDIO
+    val razoes: List<String>,
+    val scoreSimilaridade: Float
 )
 

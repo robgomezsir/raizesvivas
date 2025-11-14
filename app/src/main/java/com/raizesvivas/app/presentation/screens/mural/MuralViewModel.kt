@@ -6,6 +6,7 @@ import com.raizesvivas.app.data.remote.firebase.AuthService
 import com.raizesvivas.app.data.repository.PessoaRepository
 import com.raizesvivas.app.data.repository.RecadoRepository
 import com.raizesvivas.app.data.repository.UsuarioRepository
+import com.raizesvivas.app.data.repository.ChatRepository
 import com.raizesvivas.app.domain.model.Recado
 import java.util.Date
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -22,7 +23,8 @@ class MuralViewModel @Inject constructor(
     private val recadoRepository: RecadoRepository,
     private val pessoaRepository: PessoaRepository,
     private val authService: AuthService,
-    private val usuarioRepository: UsuarioRepository
+    private val usuarioRepository: UsuarioRepository,
+    private val chatRepository: ChatRepository
 ) : ViewModel() {
     
     private val _state = MutableStateFlow(MuralState())
@@ -71,6 +73,7 @@ class MuralViewModel @Inject constructor(
     
     init {
         carregarDados()
+        observarMensagensNaoLidas()
     }
     
     private fun carregarDados() {
@@ -286,6 +289,22 @@ class MuralViewModel @Inject constructor(
             }
         }
     }
+    
+    private fun observarMensagensNaoLidas() {
+        viewModelScope.launch {
+            chatRepository.observarMensagensNaoLidas()
+                .distinctUntilChanged()
+                .catch { error ->
+                    Timber.e(error, "Erro ao observar mensagens não lidas do chat")
+                }
+                .collect { mapa ->
+                    val total = mapa.values.sum()
+                    if (_state.value.totalMensagensChatNaoLidas != total) {
+                        _state.update { it.copy(totalMensagensChatNaoLidas = total) }
+                    }
+                }
+        }
+    }
 }
 
 /**
@@ -296,6 +315,7 @@ data class MuralState(
     val erro: String? = null,
     val mostrarModalNovoRecado: Boolean = false,
     val mostrarModalFixarRecado: String? = null, // ID do recado que está sendo fixado
-    val mostrarModalExcluirRecado: String? = null // ID do recado que está sendo avaliado para exclusão
+    val mostrarModalExcluirRecado: String? = null, // ID do recado que está sendo avaliado para exclusão
+    val totalMensagensChatNaoLidas: Int = 0
 )
 

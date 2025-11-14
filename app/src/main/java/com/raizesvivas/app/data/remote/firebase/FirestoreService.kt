@@ -7,6 +7,9 @@ import com.raizesvivas.app.domain.model.*
 import com.raizesvivas.app.domain.model.ConquistaDisponivel
 import com.raizesvivas.app.domain.model.ProgressoConquista
 import com.raizesvivas.app.utils.RetryHelper
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -36,7 +39,6 @@ class FirestoreService @Inject constructor(
     private val familiaZeroCollection = firestore.collection("familia_zero")
     private val invitesCollection = firestore.collection("invites")
     private val pendingEditsCollection = firestore.collection("pending_edits")
-    private val historicoEdicoesCollection = firestore.collection("edicoes_historico")
     @Suppress("unused")
     private val duplicatesCollection = firestore.collection("duplicates")
     private val recadosCollection = firestore.collection("recados")
@@ -357,6 +359,7 @@ class FirestoreService @Inject constructor(
         return try {
             val data = hashMapOf(
                 "nome" to pessoa.nome,
+                "apelido" to pessoa.apelido,
                 "dataNascimento" to pessoa.dataNascimento,
                 "dataFalecimento" to pessoa.dataFalecimento,
                 "localNascimento" to pessoa.localNascimento,
@@ -1043,18 +1046,8 @@ class FirestoreService @Inject constructor(
                         val pessoaRef = peopleCollection.document(edicao.pessoaId)
                         batch.set(pessoaRef, pessoaData)
                         
+                        // Deletar edição pendente após aplicar mudanças (sem manter histórico)
                         val edicaoRef = pendingEditsCollection.document(edicaoId)
-                        val revisadoEm = JavaDate()
-
-                        val historicoRef = historicoEdicoesCollection.document(edicaoId)
-                        batch.set(historicoRef, criarDadosHistoricoEdicao(
-                            edicao = edicao,
-                            statusFinal = StatusEdicao.APROVADA,
-                            revisadoPor = revisadoPor,
-                            revisadoEm = revisadoEm,
-                            foiAplicada = true
-                        ))
-
                         batch.delete(edicaoRef)
                         
                         batch.commit().await()
@@ -1087,18 +1080,9 @@ class FirestoreService @Inject constructor(
 
                 val edicao = edicaoSnapshot.toEdicaoPendente()
                 val batch = firestore.batch()
+                
+                // Deletar edição pendente rejeitada (sem manter histórico)
                 val edicaoRef = pendingEditsCollection.document(edicaoId)
-                val revisadoEm = JavaDate()
-
-                val historicoRef = historicoEdicoesCollection.document(edicaoId)
-                batch.set(historicoRef, criarDadosHistoricoEdicao(
-                    edicao = edicao,
-                    statusFinal = StatusEdicao.REJEITADA,
-                    revisadoPor = revisadoPor,
-                    revisadoEm = revisadoEm,
-                    foiAplicada = false
-                ))
-
                 batch.delete(edicaoRef)
                 batch.commit().await()
 
@@ -2461,15 +2445,28 @@ class FirestoreService @Inject constructor(
             var mensagens2 = emptyList<MensagemChat>()
             
             fun combinarEEnviar() {
+                val vinteQuatroHorasAtras = System.currentTimeMillis() - (24 * 60 * 60 * 1000L)
+                
                 val todasMensagens = (mensagens1 + mensagens2)
                     .distinctBy { it.id }
                     .sortedBy { it.enviadoEm }
                 
-                Timber.d("📨 Mensagens combinadas e filtradas: ${todasMensagens.size} total (Listener1: ${mensagens1.size}, Listener2: ${mensagens2.size})")
-                if (todasMensagens.isNotEmpty()) {
-                    Timber.d("📨 Primeira mensagem: ${todasMensagens.first().id}, Última: ${todasMensagens.last().id}")
+                // Filtrar mensagens expiradas (mais de 24h)
+                val mensagensValidas = todasMensagens.filter { it.enviadoEm.time >= vinteQuatroHorasAtras }
+                val mensagensExpiradas = todasMensagens.filter { it.enviadoEm.time < vinteQuatroHorasAtras }
+                
+                // Remover mensagens expiradas do Firestore (em background)
+                if (mensagensExpiradas.isNotEmpty()) {
+                    CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
+                        removerMensagensExpiradas(mensagensExpiradas)
+                    }
                 }
-                trySend(todasMensagens)
+                
+                Timber.d("📨 Mensagens combinadas e filtradas: ${mensagensValidas.size} válidas, ${mensagensExpiradas.size} expiradas (total: ${todasMensagens.size})")
+                if (mensagensValidas.isNotEmpty()) {
+                    Timber.d("📨 Primeira mensagem válida: ${mensagensValidas.first().id}, Última: ${mensagensValidas.last().id}")
+                }
+                trySend(mensagensValidas)
             }
             
             // Listener 1: remetenteId -> destinatarioId
@@ -2613,6 +2610,8 @@ class FirestoreService @Inject constructor(
     ): Result<List<MensagemChat>> {
         return RetryHelper.withNetworkRetry {
             try {
+                val vinteQuatroHorasAtras = System.currentTimeMillis() - (24 * 60 * 60 * 1000L)
+                
                 var query = mensagensChatCollection
                     .whereEqualTo("conversaId", conversaId)
                     .orderBy("enviadoEm", Query.Direction.DESCENDING)
@@ -2623,11 +2622,22 @@ class FirestoreService @Inject constructor(
                 }
 
                 val snapshot = query.get().await()
-                val mensagens = snapshot.documents
+                val todasMensagens = snapshot.documents
                     .mapNotNull { it.toMensagemChat() }
                     .sortedBy { it.enviadoEm }
+                
+                // Filtrar mensagens expiradas (mais de 24h)
+                val mensagensValidas = todasMensagens.filter { it.enviadoEm.time >= vinteQuatroHorasAtras }
+                val mensagensExpiradas = todasMensagens.filter { it.enviadoEm.time < vinteQuatroHorasAtras }
+                
+                // Remover mensagens expiradas do Firestore (em background, não bloqueia a resposta)
+                if (mensagensExpiradas.isNotEmpty()) {
+                    CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
+                        removerMensagensExpiradas(mensagensExpiradas)
+                    }
+                }
 
-                Result.success(mensagens)
+                Result.success(mensagensValidas)
             } catch (e: Exception) {
                 Timber.e(e, "❌ Erro ao buscar mensagens antigas para conversa $conversaId")
                 Result.failure(e)
@@ -2719,16 +2729,47 @@ class FirestoreService @Inject constructor(
         }
     }
     
+    /**
+     * Remove mensagens não lidas expiradas (mais de 24h)
+     * Mantida para compatibilidade com código existente
+     */
     private suspend fun removerMensagensNaoLidasExpiradas(mensagens: List<MensagemChat>) {
+        removerMensagensExpiradas(mensagens)
+    }
+    
+    /**
+     * Remove mensagens expiradas (mais de 24h) do Firestore
+     * Remove tanto mensagens lidas quanto não lidas
+     */
+    private suspend fun removerMensagensExpiradas(mensagens: List<MensagemChat>) {
+        if (mensagens.isEmpty()) return
+        
         try {
             val batch = firestore.batch()
             mensagens.forEach { mensagem ->
                 batch.delete(mensagensChatCollection.document(mensagem.id))
             }
             batch.commit().await()
-            Timber.d("🗑️ ${mensagens.size} mensagens não lidas expiradas removidas do Firestore")
+            Timber.d("🗑️ ${mensagens.size} mensagens expiradas removidas do Firestore")
         } catch (e: Exception) {
-            Timber.e(e, "❌ Erro ao remover mensagens não lidas expiradas")
+            Timber.e(e, "❌ Erro ao remover mensagens expiradas")
+        }
+    }
+    
+    /**
+     * Deleta uma mensagem específica do Firestore
+     * Permite deletar mensagens recebidas individualmente
+     */
+    suspend fun deletarMensagem(mensagemId: String): Result<Unit> {
+        return RetryHelper.withNetworkRetry {
+            try {
+                mensagensChatCollection.document(mensagemId).delete().await()
+                Timber.d("🗑️ Mensagem $mensagemId deletada do Firestore")
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao deletar mensagem $mensagemId")
+                Result.failure(e)
+            }
         }
     }
     

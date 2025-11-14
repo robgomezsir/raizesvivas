@@ -141,18 +141,106 @@ class ChatPreferences @Inject constructor(
     }
     
     /**
-     * Limpa todas as mensagens de uma conversa específica
+     * Deleta uma mensagem específica da conversa
+     */
+    suspend fun deletarMensagem(mensagemId: String, remetenteId: String, destinatarioId: String) {
+        try {
+            val conversaId = gerarConversaId(remetenteId, destinatarioId)
+            val mensagens = buscarMensagensPorConversaId(conversaId)
+            
+            val mensagensAtualizadas = mensagens.filter { it.id != mensagemId }
+            
+            val key = stringPreferencesKey("${MENSAGENS_KEY_PREFIX}$conversaId")
+            context.chatDataStore.edit { preferences ->
+                if (mensagensAtualizadas.isEmpty()) {
+                    preferences.remove(key)
+                } else {
+                    val mensagensJson = gson.toJson(mensagensAtualizadas.map { it.toSerializable() })
+                    preferences[key] = mensagensJson
+                }
+            }
+            
+            Timber.d("🗑️ Mensagem $mensagemId deletada da conversa $conversaId")
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao deletar mensagem")
+        }
+    }
+    
+    /**
+     * Deleta uma mensagem específica (sobrecarga que busca a conversa automaticamente)
+     */
+    suspend fun deletarMensagem(mensagemId: String) {
+        // Buscar em todas as conversas para encontrar a mensagem
+        try {
+            val todasChaves = context.chatDataStore.data.first().asMap().keys
+                .filter { it.name.startsWith(MENSAGENS_KEY_PREFIX) }
+            
+            for (chave in todasChaves) {
+                val conversaId = chave.name.removePrefix(MENSAGENS_KEY_PREFIX)
+                val mensagens = buscarMensagensPorConversaId(conversaId)
+                
+                if (mensagens.any { it.id == mensagemId }) {
+                    // Encontrou a mensagem, deletar
+                    val mensagensAtualizadas = mensagens.filter { it.id != mensagemId }
+                    val key = stringPreferencesKey(chave.name)
+                    
+                    context.chatDataStore.edit { preferences ->
+                        if (mensagensAtualizadas.isEmpty()) {
+                            preferences.remove(key)
+                        } else {
+                            val mensagensJson = gson.toJson(mensagensAtualizadas.map { it.toSerializable() })
+                            preferences[key] = mensagensJson
+                        }
+                    }
+                    
+                    Timber.d("🗑️ Mensagem $mensagemId deletada da conversa $conversaId")
+                    return
+                }
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao deletar mensagem")
+        }
+    }
+    
+    /**
+     * Limpa todas as mensagens ENVIADAS pelo usuário para um destinatário específico
+     * IMPORTANTE: Remove apenas mensagens onde remetenteId == remetenteId passado
+     * Não remove mensagens recebidas do destinatário
      */
     suspend fun limparMensagensConversa(remetenteId: String, destinatarioId: String) {
         try {
             val conversaId = gerarConversaId(remetenteId, destinatarioId)
             val key = stringPreferencesKey("${MENSAGENS_KEY_PREFIX}$conversaId")
             
+            // Buscar todas as mensagens da conversa
+            val mensagensAtuais = context.chatDataStore.data.first()[key]?.let { json ->
+                try {
+                    val type = object : TypeToken<List<MensagemChatSerializable>>() {}.type
+                    gson.fromJson<List<MensagemChatSerializable>>(json, type) ?: emptyList()
+                } catch (e: Exception) {
+                    Timber.e(e, "❌ Erro ao parsear mensagens")
+                    emptyList()
+                }
+            } ?: emptyList()
+            
+            // Filtrar apenas mensagens ENVIADAS pelo remetente (não remover mensagens recebidas)
+            val mensagensParaManter = mensagensAtuais.filter { it.remetenteId != remetenteId }
+            
+            Timber.d("🗑️ Limpando mensagens: ${mensagensAtuais.size} total, ${mensagensAtuais.size - mensagensParaManter.size} enviadas serão removidas, ${mensagensParaManter.size} recebidas serão mantidas")
+            
+            // Salvar apenas as mensagens que devem ser mantidas
             context.chatDataStore.edit { preferences ->
-                preferences.remove(key)
+                if (mensagensParaManter.isEmpty()) {
+                    // Se não há mensagens para manter, remover a chave completamente
+                    preferences.remove(key)
+                } else {
+                    // Salvar apenas as mensagens recebidas
+                    val json = gson.toJson(mensagensParaManter)
+                    preferences[key] = json
+                }
             }
             
-            Timber.d("🗑️ Mensagens da conversa $conversaId limpas")
+            Timber.d("✅ Mensagens ENVIADAS da conversa $conversaId limpas (${mensagensAtuais.size - mensagensParaManter.size} removidas)")
         } catch (e: Exception) {
             Timber.e(e, "❌ Erro ao limpar mensagens da conversa")
             throw e

@@ -20,6 +20,7 @@ import androidx.core.view.WindowCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.navigation.compose.rememberNavController
 import com.raizesvivas.app.data.remote.firebase.AuthService
+import com.raizesvivas.app.data.worker.WorkManagerInitializer
 import com.raizesvivas.app.presentation.navigation.NavGraph
 import com.raizesvivas.app.presentation.theme.LocalThemeController
 import com.raizesvivas.app.presentation.theme.RaizesVivasTheme
@@ -47,6 +48,9 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var authService: AuthService
     
+    @Inject
+    lateinit var workManagerInitializer: WorkManagerInitializer
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -56,7 +60,17 @@ class MainActivity : FragmentActivity() {
                 mutableStateOf(ThemeMode.SISTEMA)
             }
             val coroutineScope = rememberCoroutineScope()
+            
+            // Inicializar jobs periódicos após Hilt estar pronto
             LaunchedEffect(Unit) {
+                try {
+                    workManagerInitializer.agendarSincronizacaoRelacoes()
+                    workManagerInitializer.agendarVerificacaoAniversarios()
+                    Timber.d("✅ Jobs periódicos inicializados")
+                } catch (e: Exception) {
+                    Timber.e(e, "❌ Erro ao inicializar jobs periódicos")
+                }
+                
                 ThemePreferenceManager.readThemeMode(applicationContext)?.let {
                     themeModeState.value = it
                 }

@@ -12,6 +12,14 @@ enum class StatusEdicao {
 }
 
 /**
+ * Representa uma alteração de campo com valor antigo e novo
+ */
+data class AlteracaoCampo(
+    val valorAnterior: Any?,
+    val valorNovo: Any?
+)
+
+/**
  * Modelo representando uma edição aguardando aprovação
  * 
  * Quando um usuário não-admin edita uma pessoa, a edição
@@ -20,7 +28,7 @@ enum class StatusEdicao {
 data class EdicaoPendente(
     val id: String = "",
     val pessoaId: String = "",            // ID da pessoa sendo editada
-    val camposAlterados: Map<String, Any> = emptyMap(), // Campos que foram modificados
+    val camposAlterados: Map<String, AlteracaoCampo> = emptyMap(), // Campos alterados com valores DE/PARA
     val editadoPor: String = "",          // UserID de quem editou
     val status: StatusEdicao = StatusEdicao.PENDENTE,
     val criadoEm: Date = Date(),
@@ -32,5 +40,11 @@ data class EdicaoPendente(
      */
     val estaPendente: Boolean
         get() = status == StatusEdicao.PENDENTE
+    
+    /**
+     * Retorna os nomes dos campos alterados (compatibilidade com código antigo)
+     */
+    val nomesCamposAlterados: Set<String>
+        get() = camposAlterados.keys
 }
 

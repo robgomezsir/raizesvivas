@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.raizesvivas.app.data.repository.PessoaRepository
 import com.raizesvivas.app.domain.model.Pessoa
+import java.util.Locale
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -94,9 +95,25 @@ class DetalhesPessoaViewModel @Inject constructor(
                     val paiNome = pessoa.pai?.let { pessoaRepository.buscarPorId(it)?.getNomeExibicao() }
                     val maeNome = pessoa.mae?.let { pessoaRepository.buscarPorId(it)?.getNomeExibicao() }
                     val conjugeNome = pessoa.conjugeAtual?.let { pessoaRepository.buscarPorId(it)?.getNomeExibicao() }
-                    val filhosNomes = pessoa.filhos.mapNotNull { 
-                        pessoaRepository.buscarPorId(it)?.getNomeExibicao() 
-                    }
+
+                    // Consolidar filhos a partir da lista manual + relação pai/mãe no banco
+                    val filhosPorIds = pessoa.filhos
+                        .filter { it.isNotBlank() }
+                        .mapNotNull { filhoId ->
+                            runCatching { pessoaRepository.buscarPorId(filhoId) }.getOrNull()
+                        }
+                    val filhosRelacionados = runCatching {
+                        pessoaRepository.buscarFilhos(pessoa.id)
+                    }.getOrElse { emptyList() }
+
+                    val filhosUnicos = (filhosPorIds + filhosRelacionados)
+                        .filterNotNull()
+                        .distinctBy { it.id }
+                        .sortedWith(
+                            compareByDescending<Pessoa> { it.calcularIdade() ?: 0 }
+                                .thenBy { it.nome.lowercase(Locale.getDefault()) }
+                        )
+                    val filhosNomes = filhosUnicos.map { it.getNomeExibicao() }
                     
                     _state.update {
                         it.copy(

@@ -1,5 +1,6 @@
 package com.raizesvivas.app.presentation.screens.mural
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -18,10 +19,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Forum
+import androidx.compose.material.icons.filled.MarkChatUnread
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Refresh
@@ -194,148 +197,216 @@ fun MuralScreen(
         }
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize()) {
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(backgroundBrush)
                     .padding(paddingValues)
             ) {
-            when {
-                state.isLoading && recados.isEmpty() -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
+                AnimatedVisibility(visible = state.totalMensagensChatNaoLidas > 0) {
+                    ElevatedCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.elevatedCardColors(
+                            containerColor = colorScheme.primaryContainer
+                        )
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            CircularProgressIndicator()
-                            Text(
-                                "Carregando recados...",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-                
-                recados.isEmpty() -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                            modifier = Modifier.padding(32.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Forum,
-                                contentDescription = null,
-                                modifier = Modifier.size(64.dp),
-                                tint = colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                            )
-                            Text(
-                                "Nenhum recado ainda",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.SemiBold,
-                                color = colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                "Seja o primeiro a deixar um recado para a família!",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    }
-                }
-                
-                else -> {
-                    val listState = rememberLazyListState()
-                    
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        items(
-                            items = recadosOrdenados,
-                            key = { it.id }
-                        ) { recado ->
-                            RecadoCard(
-                                recado = recado,
-                                currentUserId = viewModel.currentUserId,
-                                isAdmin = isAdmin,
-                                onDelete = { viewModel.abrirModalExcluirRecado(recado.id) },
-                                onFixar = { viewModel.abrirModalFixarRecado(recado.id) },
-                                onCurtir = { curtir -> viewModel.curtirRecado(recado.id, curtir) },
-                                onNavigateToDetalhesPessoa = { pessoaId ->
-                                    if (pessoaId != null) {
-                                        onNavigateToDetalhesPessoa(pessoaId)
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Surface(
+                                    modifier = Modifier.size(40.dp),
+                                    shape = CircleShape,
+                                    color = colorScheme.primary.copy(alpha = 0.2f)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = Icons.Default.MarkChatUnread,
+                                            contentDescription = null,
+                                            tint = colorScheme.primary
+                                        )
                                     }
                                 }
-                            )
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    val total = state.totalMensagensChatNaoLidas
+                                    Text(
+                                        text = if (total == 1)
+                                            "Você tem 1 nova mensagem no chat"
+                                        else
+                                            "Você tem $total novas mensagens no chat",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colorScheme.onPrimaryContainer
+                                    )
+                                    Text(
+                                        text = "Abra o chat para continuar a conversa",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                                    )
+                                }
+                            }
+                            TextButton(onClick = onNavigateToChat) {
+                                Text("Abrir chat")
+                            }
                         }
-                        
-                        // Espaço extra no final
-                        item {
-                            Spacer(modifier = Modifier.height(80.dp))
+                    }
+                }
+
+                if (state.totalMensagensChatNaoLidas > 0) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+
+                when {
+                    state.isLoading && recados.isEmpty() -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                CircularProgressIndicator()
+                                Text(
+                                    "Carregando recados...",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+
+                    recados.isEmpty() -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(16.dp),
+                                modifier = Modifier.padding(32.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Forum,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(64.dp),
+                                    tint = colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                )
+                                Text(
+                                    "Nenhum recado ainda",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    "Seja o primeiro a deixar um recado para a família!",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+
+                    else -> {
+                        val listState = rememberLazyListState()
+
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            contentPadding = PaddingValues(
+                                start = 16.dp,
+                                end = 16.dp,
+                                top = 16.dp,
+                                bottom = 24.dp
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            items(
+                                items = recadosOrdenados,
+                                key = { it.id }
+                            ) { recado ->
+                                RecadoCard(
+                                    recado = recado,
+                                    currentUserId = viewModel.currentUserId,
+                                    isAdmin = isAdmin,
+                                    onDelete = { viewModel.abrirModalExcluirRecado(recado.id) },
+                                    onFixar = { viewModel.abrirModalFixarRecado(recado.id) },
+                                    onCurtir = { curtir -> viewModel.curtirRecado(recado.id, curtir) },
+                                    onNavigateToDetalhesPessoa = { pessoaId ->
+                                        if (pessoaId != null) {
+                                            onNavigateToDetalhesPessoa(pessoaId)
+                                        }
+                                    }
+                                )
+                            }
+
+                            item {
+                                Spacer(modifier = Modifier.height(80.dp))
+                            }
                         }
                     }
                 }
             }
-            
+
             PullToRefreshContainer(
                 state = pullToRefreshState,
                 modifier = Modifier.align(Alignment.TopCenter)
             )
         }
     }
-        
+    
     // Modais (fora do Scaffold para garantir que apareçam acima de tudo)
-    // Modal para criar novo recado
-        if (state.mostrarModalNovoRecado) {
-            ModalNovoRecado(
-                pessoas = pessoas,
-                onDismiss = { viewModel.fecharModalNovoRecado() },
-                onConfirmar = { titulo, mensagem, destinatarioId, cor ->
-                    viewModel.criarRecado(titulo, mensagem, destinatarioId, cor)
+    if (state.mostrarModalNovoRecado) {
+        ModalNovoRecado(
+            pessoas = pessoas,
+            onDismiss = { viewModel.fecharModalNovoRecado() },
+            onConfirmar = { titulo, mensagem, destinatarioId, cor ->
+                viewModel.criarRecado(titulo, mensagem, destinatarioId, cor)
+            },
+            isLoading = state.isLoading
+        )
+    }
+    
+    state.mostrarModalFixarRecado?.let { recadoId ->
+        val recado = recados.find { it.id == recadoId }
+        if (recado != null && isAdmin) {
+            ModalFixarRecado(
+                recado = recado,
+                onDismiss = { viewModel.fecharModalFixarRecado() },
+                onConfirmar = { fixado, fixadoAte ->
+                    viewModel.fixarRecado(recadoId, fixado, fixadoAte)
                 },
                 isLoading = state.isLoading
             )
         }
-        
-        // Modal para fixar recado (apenas admin)
-        state.mostrarModalFixarRecado?.let { recadoId ->
-            val recado = recados.find { it.id == recadoId }
-            if (recado != null && isAdmin) {
-                ModalFixarRecado(
-                    recado = recado,
-                    onDismiss = { viewModel.fecharModalFixarRecado() },
-                    onConfirmar = { fixado, fixadoAte ->
-                        viewModel.fixarRecado(recadoId, fixado, fixadoAte)
-                    },
-                    isLoading = state.isLoading
-                )
-            }
-        }
+    }
 
-        // Modal para confirmar exclusão de recado
-        state.mostrarModalExcluirRecado?.let { recadoId ->
-            val recado = recados.find { it.id == recadoId }
-            if (recado != null) {
-                ModalExcluirRecado(
-                    recado = recado,
-                    isLoading = state.isLoading,
-                    onDismiss = { viewModel.fecharModalExcluirRecado() },
-                    onConfirmar = { viewModel.deletarRecado(recado.id) }
-                )
-            } else {
-                viewModel.fecharModalExcluirRecado()
-            }
+    state.mostrarModalExcluirRecado?.let { recadoId ->
+        val recado = recados.find { it.id == recadoId }
+        if (recado != null) {
+            ModalExcluirRecado(
+                recado = recado,
+                isLoading = state.isLoading,
+                onDismiss = { viewModel.fecharModalExcluirRecado() },
+                onConfirmar = { viewModel.deletarRecado(recado.id) }
+            )
+        } else {
+            viewModel.fecharModalExcluirRecado()
         }
     }
 }

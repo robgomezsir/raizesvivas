@@ -1,11 +1,13 @@
 package com.raizesvivas.app.presentation.navigation
 
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -56,7 +58,9 @@ fun MainNavigation(
     Scaffold(
         bottomBar = {
             if (mostrarBottomNav) {
-                NavigationBar {
+                NavigationBar(
+                    modifier = Modifier.height(64.dp) // Altura padrão do NavigationBar menos 4.dp
+                ) {
                     // Home
                     NavigationBarItem(
                         icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
@@ -163,6 +167,9 @@ fun MainNavigation(
                     },
                     onNavigateToResolverDuplicatas = {
                         navControllerPrincipal.navigate(Screen.ResolverDuplicatas.route)
+                    },
+                    onNavigateToGerenciarUsuarios = {
+                        navControllerPrincipal.navigate(Screen.GerenciarUsuarios.route)
                     }
                 )
             }

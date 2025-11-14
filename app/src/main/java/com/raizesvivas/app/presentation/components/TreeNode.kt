@@ -25,6 +25,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.raizesvivas.app.domain.model.Pessoa
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 /**
  * Dados do nó da árvore genealógica
@@ -280,16 +282,28 @@ fun RegularNodeContent(pessoa: Pessoa) {
             maxLines = 2,
             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
         )
-        pessoa.dataNascimento?.let {
-            val idade = pessoa.calcularIdade()
-            if (idade != null && idade > 0) {
-                Text(
-                    "$idade anos",
-                    fontSize = 10.sp,
-                    color = Color.Gray,
-                    textAlign = TextAlign.Center
-                )
-            }
+        val idade = pessoa.calcularIdade()
+        val dateFormat = remember { SimpleDateFormat("dd/MM/yyyy", Locale("pt", "BR")) }
+        val idadeTexto = when {
+            idade != null && idade > 0 -> "$idade anos"
+            pessoa.dataNascimento != null -> dateFormat.format(pessoa.dataNascimento)
+            else -> ""
+        }
+        val apelido = pessoa.apelido?.takeIf { it.isNotBlank() }
+        val linhaSecundaria = when {
+            apelido != null && idadeTexto.isNotBlank() -> "$apelido - $idadeTexto"
+            apelido != null -> apelido
+            else -> idadeTexto
+        }
+        if (linhaSecundaria.isNotBlank()) {
+            Text(
+                linhaSecundaria,
+                fontSize = 10.sp,
+                color = Color.Gray,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+            )
         }
         if (pessoa.dataFalecimento != null) {
             Spacer(Modifier.height(2.dp))

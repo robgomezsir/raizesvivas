@@ -389,6 +389,42 @@ class ChatViewModel @Inject constructor(
     fun fecharModalLimparMensagens() {
         _state.update { it.copy(mostrarModalLimparMensagens = false) }
     }
+    
+    /**
+     * Deleta uma mensagem específica (permite deletar mensagens recebidas)
+     *
+     * @param mensagemId ID da mensagem a ser deletada
+     */
+    fun deletarMensagem(mensagemId: String) {
+        viewModelScope.launch {
+            try {
+                _state.update { it.copy(isLoading = true, erro = null) }
+                
+                val resultado = chatRepository.deletarMensagem(mensagemId)
+                
+                resultado.onSuccess {
+                    _state.update { it.copy(isLoading = false) }
+                    Timber.d("✅ Mensagem $mensagemId deletada com sucesso")
+                }.onFailure { error ->
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            erro = "Erro ao deletar mensagem: ${error.message}"
+                        )
+                    }
+                    Timber.e(error, "❌ Erro ao deletar mensagem")
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao deletar mensagem")
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        erro = "Erro ao deletar mensagem: ${e.message}"
+                    )
+                }
+            }
+        }
+    }
 }
 
 /**

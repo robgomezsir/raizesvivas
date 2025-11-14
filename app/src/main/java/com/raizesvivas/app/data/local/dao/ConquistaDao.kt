@@ -7,6 +7,8 @@ import kotlinx.coroutines.flow.Flow
 /**
  * DAO para Progresso de Conquistas
  * Todas as queries filtram por usuarioId para garantir que cada usuário veja apenas suas próprias conquistas
+ * 
+ * ATUALIZADO: Usa novos nomes de campos (concluida, progresso)
  */
 @Dao
 interface ConquistaDao {
@@ -14,19 +16,19 @@ interface ConquistaDao {
     /**
      * Observa todas as conquistas do usuário
      */
-    @Query("SELECT * FROM progresso_conquistas WHERE usuarioId = :usuarioId ORDER BY desbloqueada DESC, progressoAtual DESC")
+    @Query("SELECT * FROM progresso_conquistas WHERE usuarioId = :usuarioId ORDER BY concluida DESC, progresso DESC")
     fun observarTodasConquistas(usuarioId: String): Flow<List<ConquistaEntity>>
     
     /**
-     * Observa apenas conquistas desbloqueadas do usuário
+     * Observa apenas conquistas concluídas do usuário
      */
-    @Query("SELECT * FROM progresso_conquistas WHERE usuarioId = :usuarioId AND desbloqueada = 1 ORDER BY desbloqueadaEm DESC")
+    @Query("SELECT * FROM progresso_conquistas WHERE usuarioId = :usuarioId AND concluida = 1 ORDER BY desbloqueadaEm DESC")
     fun observarConquistasDesbloqueadas(usuarioId: String): Flow<List<ConquistaEntity>>
     
     /**
-     * Observa apenas conquistas não desbloqueadas (com progresso) do usuário
+     * Observa apenas conquistas não concluídas (com progresso) do usuário
      */
-    @Query("SELECT * FROM progresso_conquistas WHERE usuarioId = :usuarioId AND desbloqueada = 0 AND progressoAtual > 0 ORDER BY progressoAtual DESC")
+    @Query("SELECT * FROM progresso_conquistas WHERE usuarioId = :usuarioId AND concluida = 0 AND progresso > 0 ORDER BY progresso DESC")
     fun observarConquistasEmProgresso(usuarioId: String): Flow<List<ConquistaEntity>>
     
     /**
@@ -42,9 +44,9 @@ interface ConquistaDao {
     fun observarPorId(conquistaId: String, usuarioId: String): Flow<ConquistaEntity?>
     
     /**
-     * Conta conquistas desbloqueadas do usuário
+     * Conta conquistas concluídas do usuário
      */
-    @Query("SELECT COUNT(*) FROM progresso_conquistas WHERE usuarioId = :usuarioId AND desbloqueada = 1")
+    @Query("SELECT COUNT(*) FROM progresso_conquistas WHERE usuarioId = :usuarioId AND concluida = 1")
     fun contarDesbloqueadas(usuarioId: String): Flow<Int>
     
     /**
@@ -64,8 +66,8 @@ interface ConquistaDao {
      */
     @Query("""
         UPDATE progresso_conquistas 
-        SET progressoAtual = :progressoAtual,
-            desbloqueada = :desbloqueada,
+        SET progresso = :progresso,
+            concluida = :concluida,
             desbloqueadaEm = :desbloqueadaEm,
             precisaSincronizar = 1
         WHERE conquistaId = :conquistaId AND usuarioId = :usuarioId
@@ -73,17 +75,19 @@ interface ConquistaDao {
     suspend fun atualizarProgresso(
         conquistaId: String,
         usuarioId: String,
-        progressoAtual: Int,
-        desbloqueada: Boolean,
+        progresso: Int,
+        concluida: Boolean,
         desbloqueadaEm: Long?
     )
     
     /**
-     * Marca conquista como desbloqueada para o usuário
+     * Marca conquista como concluída para o usuário
+     * ATUALIZADO: Também atualiza progresso para igual ao progressoTotal
      */
     @Query("""
         UPDATE progresso_conquistas 
-        SET desbloqueada = 1,
+        SET concluida = 1,
+            progresso = progressoTotal,
             desbloqueadaEm = :timestamp,
             precisaSincronizar = 1
         WHERE conquistaId = :conquistaId AND usuarioId = :usuarioId

@@ -6,6 +6,8 @@ import com.raizesvivas.app.data.local.entities.toDomain
 import com.raizesvivas.app.data.local.entities.toEntity
 import com.raizesvivas.app.data.remote.firebase.FirestoreService
 import com.raizesvivas.app.domain.model.Pessoa
+import com.raizesvivas.app.domain.model.Genero
+import com.raizesvivas.app.presentation.components.agruparPessoasPorFamilias
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
@@ -188,10 +190,25 @@ class PessoaRepository @Inject constructor(
             }
             
             // Se não for admin, marca como não aprovado
-            val pessoaFinal = if (!ehAdmin) {
+            var pessoaFinal = if (!ehAdmin) {
                 pessoa.copy(aprovado = false)
             } else {
                 pessoa.copy(aprovado = true)
+            }
+            
+            // Validar e corrigir consistência das relações antes de salvar
+            val todasPessoas = buscarTodas()
+            val inconsistencias = validarConsistenciaRelacoes(pessoaFinal, todasPessoas)
+            
+            if (inconsistencias.isNotEmpty()) {
+                Timber.w("⚠️ Encontradas ${inconsistencias.size} inconsistências para pessoa ${pessoaFinal.id}")
+                inconsistencias.forEach { inconsistencia ->
+                    Timber.w("  - ${inconsistencia.mensagem}")
+                }
+                
+                // Corrigir automaticamente
+                pessoaFinal = corrigirConsistenciaRelacoes(pessoaFinal, todasPessoas)
+                Timber.d("✅ Consistência corrigida automaticamente para pessoa ${pessoaFinal.id}")
             }
             
             // Salvar no Firestore
@@ -357,26 +374,395 @@ class PessoaRepository @Inject constructor(
     }
     
     /**
-     * Conta quantas famílias (casais únicos) existem na árvore
+     * Conta total de pessoas aprovadas (visíveis na árvore)
+     */
+    suspend fun contarPessoasAprovadas(): Int {
+        return pessoaDao.contarPessoasAprovadas()
+    }
+    
+    /**
+     * Conta o número de grupos familiares usando a mesma lógica da tela de Familias
+     * Agrupa pessoas em: Família Zero + outras subfamílias (casais com filhos)
+     * Isso garante que o card na Home mostre o mesmo número que a aba Familias
      */
     suspend fun contarFamilias(): Int {
         val todasPessoas = buscarTodas()
-        val casais = mutableSetOf<Pair<String, String>>()
+        val pessoasMap = todasPessoas.associateBy { it.id }
         
-        todasPessoas.forEach { pessoa ->
-            pessoa.conjugeAtual?.let { conjugeId ->
-                // Criar par ordenado (menor ID primeiro) para evitar duplicatas
-                val par = if (pessoa.id < conjugeId) {
-                    Pair(pessoa.id, conjugeId)
-                } else {
-                    Pair(conjugeId, pessoa.id)
+        // Usar a mesma lógica de agrupamento da tela de Familias
+        val grupos = agruparPessoasPorFamilias(todasPessoas, pessoasMap)
+        
+        // Retornar o número de grupos familiares (Família Zero + subfamílias)
+        return grupos.size
+    }
+    
+    /**
+     * Retorna estatísticas detalhadas sobre as famílias
+     */
+    suspend fun obterEstatisticasFamilias(): EstatisticasFamilias {
+        val todasPessoas = buscarTodas()
+        val pessoasMap = todasPessoas.associateBy { it.id }
+        
+        // Usar a mesma lógica de agrupamento da tela de Familias
+        val grupos = agruparPessoasPorFamilias(todasPessoas, pessoasMap)
+        
+        val total = grupos.size
+        val familiaZero = grupos.count { it.ehFamiliaZero }
+        val monoparentais = grupos.count { it.ehFamiliaMonoparental }
+        val casais = grupos.count { !it.ehFamiliaZero && !it.ehFamiliaMonoparental }
+        
+        // Contar casais homoafetivos (mesmo gênero)
+        val homoafetivas = grupos.count { grupo ->
+            !grupo.ehFamiliaZero && 
+            !grupo.ehFamiliaMonoparental &&
+            grupo.conjugue1?.genero != null &&
+            grupo.conjugue2?.genero != null &&
+            grupo.conjugue1?.genero == grupo.conjugue2?.genero
+        }
+        
+        return EstatisticasFamilias(
+            total = total,
+            familiaZero = familiaZero,
+            monoparentais = monoparentais,
+            casais = casais,
+            homoafetivas = homoafetivas
+        )
+    }
+    
+    /**
+     * Estatísticas detalhadas sobre famílias
+     */
+    data class EstatisticasFamilias(
+        val total: Int,
+        val familiaZero: Int,
+        val monoparentais: Int,
+        val casais: Int,
+        val homoafetivas: Int
+    )
+    
+    /**
+     * Representa uma inconsistência encontrada nas relações familiares
+     */
+    data class Inconsistencia(
+        val tipo: TipoInconsistencia,
+        val pessoaId: String,
+        val campo: String,
+        val valorAtual: Any?,
+        val valorEsperado: Any?,
+        val mensagem: String
+    )
+    
+    /**
+     * Tipos de inconsistências que podem ser encontradas
+     */
+    enum class TipoInconsistencia {
+        FILHO_SEM_PAI_NA_LISTA,      // Filho não está na lista de filhos do pai
+        PAI_SEM_FILHO_NA_RELACAO,     // Pai não está como pai do filho
+        MAE_SEM_FILHO_NA_RELACAO,     // Mãe não está como mãe do filho
+        CONJUGE_BIDIRECIONAL          // ConjugeAtual não é recíproco
+    }
+    
+    /**
+     * Valida a consistência das relações familiares de uma pessoa
+     * Verifica se as relações bidirecionais estão sincronizadas
+     */
+    private suspend fun validarConsistenciaRelacoes(
+        pessoa: Pessoa,
+        todasPessoas: List<Pessoa>
+    ): List<Inconsistencia> {
+        val inconsistencias = mutableListOf<Inconsistencia>()
+        val pessoasMap = todasPessoas.associateBy { it.id }
+        
+        // Validar relação pai ↔ filhos
+        pessoa.pai?.let { paiId ->
+            val pai = pessoasMap[paiId]
+            if (pai != null) {
+                // Verificar se pessoa está na lista de filhos do pai
+                if (!pai.filhos.contains(pessoa.id)) {
+                    inconsistencias.add(
+                        Inconsistencia(
+                            tipo = TipoInconsistencia.FILHO_SEM_PAI_NA_LISTA,
+                            pessoaId = paiId,
+                            campo = "filhos",
+                            valorAtual = pai.filhos,
+                            valorEsperado = pai.filhos + pessoa.id,
+                            mensagem = "Pessoa ${pessoa.id} não está na lista de filhos do pai ${paiId}"
+                        )
+                    )
                 }
-                casais.add(par)
             }
         }
         
-        return casais.size
+        // Validar relação mãe ↔ filhos
+        pessoa.mae?.let { maeId ->
+            val mae = pessoasMap[maeId]
+            if (mae != null) {
+                // Verificar se pessoa está na lista de filhos da mãe
+                if (!mae.filhos.contains(pessoa.id)) {
+                    inconsistencias.add(
+                        Inconsistencia(
+                            tipo = TipoInconsistencia.FILHO_SEM_PAI_NA_LISTA,
+                            pessoaId = maeId,
+                            campo = "filhos",
+                            valorAtual = mae.filhos,
+                            valorEsperado = mae.filhos + pessoa.id,
+                            mensagem = "Pessoa ${pessoa.id} não está na lista de filhos da mãe ${maeId}"
+                        )
+                    )
+                }
+            }
+        }
+        
+        // Validar filhos ↔ pai/mae
+        pessoa.filhos.forEach { filhoId ->
+            val filho = pessoasMap[filhoId]
+            if (filho != null) {
+                // Verificar se pessoa está como pai ou mãe do filho
+                if (filho.pai != pessoa.id && filho.mae != pessoa.id) {
+                    // Determinar se deveria ser pai ou mãe baseado no gênero (se disponível)
+                    val deveriaSerPai = pessoa.genero == Genero.MASCULINO
+                    val deveriaSerMae = pessoa.genero == Genero.FEMININO
+                    
+                    when {
+                        deveriaSerPai && filho.pai != pessoa.id -> {
+                            inconsistencias.add(
+                                Inconsistencia(
+                                    tipo = TipoInconsistencia.PAI_SEM_FILHO_NA_RELACAO,
+                                    pessoaId = filhoId,
+                                    campo = "pai",
+                                    valorAtual = filho.pai,
+                                    valorEsperado = pessoa.id,
+                                    mensagem = "Filho ${filhoId} não tem ${pessoa.id} como pai"
+                                )
+                            )
+                        }
+                        deveriaSerMae && filho.mae != pessoa.id -> {
+                            inconsistencias.add(
+                                Inconsistencia(
+                                    tipo = TipoInconsistencia.MAE_SEM_FILHO_NA_RELACAO,
+                                    pessoaId = filhoId,
+                                    campo = "mae",
+                                    valorAtual = filho.mae,
+                                    valorEsperado = pessoa.id,
+                                    mensagem = "Filho ${filhoId} não tem ${pessoa.id} como mãe"
+                                )
+                            )
+                        }
+                        // Se gênero não está definido, verificar se pelo menos um dos campos está vazio
+                        filho.pai == null && filho.mae == null -> {
+                            inconsistencias.add(
+                                Inconsistencia(
+                                    tipo = TipoInconsistencia.PAI_SEM_FILHO_NA_RELACAO,
+                                    pessoaId = filhoId,
+                                    campo = "pai/mae",
+                                    valorAtual = "nenhum",
+                                    valorEsperado = pessoa.id,
+                                    mensagem = "Filho ${filhoId} não tem pai nem mãe definidos, mas está na lista de filhos de ${pessoa.id}"
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Validar relação cônjuge bidirecional
+        pessoa.conjugeAtual?.let { conjugeId ->
+            val conjuge = pessoasMap[conjugeId]
+            if (conjuge != null) {
+                // Verificar se o cônjuge também tem esta pessoa como cônjuge
+                if (conjuge.conjugeAtual != pessoa.id) {
+                    inconsistencias.add(
+                        Inconsistencia(
+                            tipo = TipoInconsistencia.CONJUGE_BIDIRECIONAL,
+                            pessoaId = conjugeId,
+                            campo = "conjugeAtual",
+                            valorAtual = conjuge.conjugeAtual,
+                            valorEsperado = pessoa.id,
+                            mensagem = "Cônjuge ${conjugeId} não tem ${pessoa.id} como cônjuge (relação não é recíproca)"
+                        )
+                    )
+                }
+                
+                // Validar que cônjuge atual não está na lista de ex-cônjuges
+                if (pessoa.exConjuges.contains(conjugeId)) {
+                    inconsistencias.add(
+                        Inconsistencia(
+                            tipo = TipoInconsistencia.CONJUGE_BIDIRECIONAL,
+                            pessoaId = pessoa.id,
+                            campo = "exConjuges",
+                            valorAtual = pessoa.exConjuges,
+                            valorEsperado = pessoa.exConjuges - conjugeId,
+                            mensagem = "Cônjuge atual ${conjugeId} não pode estar na lista de ex-cônjuges"
+                        )
+                    )
+                }
+            }
+        }
+        
+        // Validar que ex-cônjuges não estão como cônjuge atual
+        pessoa.exConjuges.forEach { exConjugeId ->
+            if (pessoa.conjugeAtual == exConjugeId) {
+                inconsistencias.add(
+                    Inconsistencia(
+                        tipo = TipoInconsistencia.CONJUGE_BIDIRECIONAL,
+                        pessoaId = pessoa.id,
+                        campo = "conjugeAtual",
+                        valorAtual = pessoa.conjugeAtual,
+                        valorEsperado = null,
+                        mensagem = "Ex-cônjuge ${exConjugeId} não pode ser cônjuge atual ao mesmo tempo"
+                    )
+                )
+            }
+        }
+        
+        return inconsistencias
     }
+    
+    /**
+     * Corrige automaticamente as inconsistências encontradas nas relações familiares
+     * Retorna a pessoa corrigida (mas não salva automaticamente)
+     */
+    private suspend fun corrigirConsistenciaRelacoes(
+        pessoa: Pessoa,
+        todasPessoas: List<Pessoa>
+    ): Pessoa {
+        var pessoaCorrigida = pessoa
+        val pessoasMap = todasPessoas.associateBy { it.id }
+        val pessoasParaAtualizar = mutableMapOf<String, Pessoa>()
+        
+        // Corrigir relação pai ↔ filhos
+        pessoa.pai?.let { paiId ->
+            val pai = pessoasMap[paiId]
+            if (pai != null && !pai.filhos.contains(pessoa.id)) {
+                val filhosAtualizados = pai.filhos + pessoa.id
+                pessoasParaAtualizar[paiId] = pai.copy(filhos = filhosAtualizados)
+                Timber.d("🔧 Corrigindo: adicionando ${pessoa.id} à lista de filhos do pai ${paiId}")
+            }
+        }
+        
+        // Corrigir relação mãe ↔ filhos
+        pessoa.mae?.let { maeId ->
+            val mae = pessoasMap[maeId]
+            if (mae != null && !mae.filhos.contains(pessoa.id)) {
+                val filhosAtualizados = mae.filhos + pessoa.id
+                pessoasParaAtualizar[maeId] = mae.copy(filhos = filhosAtualizados)
+                Timber.d("🔧 Corrigindo: adicionando ${pessoa.id} à lista de filhos da mãe ${maeId}")
+            }
+        }
+        
+        // Corrigir filhos ↔ pai/mae
+        pessoa.filhos.forEach { filhoId ->
+            val filho = pessoasMap[filhoId]
+            if (filho != null) {
+                val deveriaSerPai = pessoa.genero == Genero.MASCULINO
+                val deveriaSerMae = pessoa.genero == Genero.FEMININO
+                
+                when {
+                    deveriaSerPai && filho.pai != pessoa.id -> {
+                        pessoasParaAtualizar[filhoId] = filho.copy(pai = pessoa.id)
+                        Timber.d("🔧 Corrigindo: definindo ${pessoa.id} como pai do filho ${filhoId}")
+                    }
+                    deveriaSerMae && filho.mae != pessoa.id -> {
+                        pessoasParaAtualizar[filhoId] = filho.copy(mae = pessoa.id)
+                        Timber.d("🔧 Corrigindo: definindo ${pessoa.id} como mãe do filho ${filhoId}")
+                    }
+                    // Se gênero não está definido e filho não tem pai nem mãe, tentar inferir
+                    filho.pai == null && filho.mae == null -> {
+                        // Não podemos determinar automaticamente, então não corrigimos
+                        // Isso requer intervenção manual
+                        Timber.w("⚠️ Não é possível determinar automaticamente se ${pessoa.id} é pai ou mãe de ${filhoId} (gênero não definido)")
+                    }
+                }
+            }
+        }
+        
+        // Corrigir relação cônjuge bidirecional
+        pessoa.conjugeAtual?.let { conjugeId ->
+            val conjuge = pessoasMap[conjugeId]
+            if (conjuge != null) {
+                // Corrigir reciprocidade
+                if (conjuge.conjugeAtual != pessoa.id) {
+                    pessoasParaAtualizar[conjugeId] = conjuge.copy(conjugeAtual = pessoa.id)
+                    Timber.d("🔧 Corrigindo: definindo ${pessoa.id} como cônjuge de ${conjugeId}")
+                }
+                
+                // Remover cônjuge atual da lista de ex-cônjuges se estiver lá
+                if (pessoa.exConjuges.contains(conjugeId)) {
+                    val exConjugesCorrigidos = pessoa.exConjuges - conjugeId
+                    pessoaCorrigida = pessoaCorrigida.copy(exConjuges = exConjugesCorrigidos)
+                    Timber.d("🔧 Corrigindo: removendo cônjuge atual ${conjugeId} da lista de ex-cônjuges")
+                }
+            }
+        }
+        
+        // Remover ex-cônjuges que são cônjuge atual
+        val exConjugesCorrigidos = pessoa.exConjuges.filter { it != pessoa.conjugeAtual }
+        if (exConjugesCorrigidos.size != pessoa.exConjuges.size) {
+            pessoaCorrigida = pessoaCorrigida.copy(exConjuges = exConjugesCorrigidos)
+            Timber.d("🔧 Corrigindo: removendo ex-cônjuges que são cônjuge atual")
+        }
+        
+        // Salvar todas as pessoas atualizadas (em background, não bloqueia)
+        pessoasParaAtualizar.forEach { (id, pessoaAtualizada) ->
+            try {
+                // Salvar no Firestore e cache local
+                firestoreService.salvarPessoa(pessoaAtualizada)
+                pessoaDao.inserir(pessoaAtualizada.toEntity())
+                Timber.d("✅ Pessoa $id atualizada para corrigir consistência")
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao atualizar pessoa $id para correção de consistência")
+            }
+        }
+        
+        return pessoaCorrigida
+    }
+    
+    /**
+     * Sincroniza todas as relações familiares, validando e corrigindo inconsistências
+     * Útil para executar periodicamente ou manualmente por admin
+     */
+    suspend fun sincronizarRelacoesFamiliares(): Result<RelatorioSincronizacao> {
+        return try {
+            Timber.d("🔄 Iniciando sincronização de relações familiares...")
+            val todasPessoas = buscarTodas()
+            val inconsistenciasTotais = mutableListOf<Inconsistencia>()
+            val pessoasCorrigidas = mutableSetOf<String>()
+        
+        todasPessoas.forEach { pessoa ->
+                val inconsistencias = validarConsistenciaRelacoes(pessoa, todasPessoas)
+                if (inconsistencias.isNotEmpty()) {
+                    inconsistenciasTotais.addAll(inconsistencias)
+                    corrigirConsistenciaRelacoes(pessoa, todasPessoas)
+                    pessoasCorrigidas.add(pessoa.id)
+                }
+            }
+            
+            val relatorio = RelatorioSincronizacao(
+                totalPessoas = todasPessoas.size,
+                inconsistenciasEncontradas = inconsistenciasTotais.size,
+                pessoasCorrigidas = pessoasCorrigidas.size,
+                detalhes = inconsistenciasTotais
+            )
+            
+            Timber.d("✅ Sincronização concluída: ${relatorio.pessoasCorrigidas} pessoas corrigidas, ${relatorio.inconsistenciasEncontradas} inconsistências encontradas")
+            Result.success(relatorio)
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao sincronizar relações familiares")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Relatório de sincronização de relações familiares
+     */
+    data class RelatorioSincronizacao(
+        val totalPessoas: Int,
+        val inconsistenciasEncontradas: Int,
+        val pessoasCorrigidas: Int,
+        val detalhes: List<Inconsistencia>
+    )
     
     /**
      * Conta quantas pessoas nasceram antes da data de nascimento do usuário (ranking)

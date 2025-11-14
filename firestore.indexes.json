@@ -48,6 +48,57 @@
         { "fieldPath": "deletado", "order": "ASCENDING" },
         { "fieldPath": "criadoEm", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "mensagens_chat",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "remetenteId", "order": "ASCENDING" },
+        { "fieldPath": "destinatarioId", "order": "ASCENDING" },
+        { "fieldPath": "enviadoEm", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "mensagens_chat",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "remetenteId", "order": "ASCENDING" },
+        { "fieldPath": "destinatarioId", "order": "ASCENDING" },
+        { "fieldPath": "enviadoEm", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "mensagens_chat",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "remetenteId", "order": "ASCENDING" },
+        { "fieldPath": "destinatarioId", "order": "ASCENDING" },
+        { "fieldPath": "lida", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "conquistasProgresso",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "concluida", "order": "ASCENDING" },
+        { "fieldPath": "desbloqueadaEm", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "conquistasProgresso",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "conquistaId", "order": "ASCENDING" },
+        { "fieldPath": "progresso", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "conquistasDisponiveis",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "categoria", "order": "ASCENDING" },
+        { "fieldPath": "pontosRecompensa", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

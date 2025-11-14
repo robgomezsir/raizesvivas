@@ -295,6 +295,92 @@ object RoomMigrations {
             db.execSQL("DROP TABLE pessoas_old")
         }
     }
+    
+    val MIGRATION_8_9 = object : Migration(8, 9) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // Adicionar campo telefone na tabela pessoas
+            db.execSQL("""
+                ALTER TABLE pessoas ADD COLUMN telefone TEXT
+            """)
+        }
+    }
+
+    val MIGRATION_9_10 = object : Migration(9, 10) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // Migração: Renomear colunas desbloqueada → concluida e progressoAtual → progresso
+            // Adicionar novas colunas: nivel e pontuacaoTotal
+            
+            // SQLite não suporta RENAME COLUMN diretamente, então precisamos:
+            // 1. Criar nova tabela com estrutura correta
+            // 2. Copiar dados convertendo campos
+            // 3. Deletar tabela antiga
+            // 4. Renomear nova tabela
+            
+            // 1. Criar nova tabela com estrutura correta
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS progresso_conquistas_new (
+                    conquistaId TEXT NOT NULL,
+                    usuarioId TEXT NOT NULL,
+                    concluida INTEGER NOT NULL,
+                    desbloqueadaEm INTEGER,
+                    progresso INTEGER NOT NULL,
+                    progressoTotal INTEGER NOT NULL,
+                    nivel INTEGER NOT NULL DEFAULT 1,
+                    pontuacaoTotal INTEGER NOT NULL DEFAULT 0,
+                    sincronizadoEm INTEGER NOT NULL,
+                    precisaSincronizar INTEGER NOT NULL,
+                    PRIMARY KEY(conquistaId, usuarioId)
+                )
+            """)
+            
+            // 2. Copiar dados convertendo campos antigos para novos
+            db.execSQL("""
+                INSERT INTO progresso_conquistas_new 
+                SELECT 
+                    conquistaId,
+                    usuarioId,
+                    desbloqueada AS concluida,
+                    desbloqueadaEm,
+                    progressoAtual AS progresso,
+                    progressoTotal,
+                    1 AS nivel,
+                    0 AS pontuacaoTotal,
+                    sincronizadoEm,
+                    precisaSincronizar
+                FROM progresso_conquistas
+            """)
+            
+            // 3. Deletar tabela antiga
+            db.execSQL("DROP TABLE IF EXISTS progresso_conquistas")
+            
+            // 4. Renomear nova tabela
+            db.execSQL("ALTER TABLE progresso_conquistas_new RENAME TO progresso_conquistas")
+            
+            // 5. Recriar índices com novos nomes de colunas
+            db.execSQL("""
+                CREATE INDEX IF NOT EXISTS index_progresso_conquistas_usuarioId 
+                ON progresso_conquistas(usuarioId)
+            """)
+            db.execSQL("""
+                CREATE INDEX IF NOT EXISTS index_progresso_conquistas_concluida 
+                ON progresso_conquistas(concluida)
+            """)
+            db.execSQL("""
+                CREATE INDEX IF NOT EXISTS index_progresso_conquistas_usuarioId_concluida 
+                ON progresso_conquistas(usuarioId, concluida)
+            """)
+        }
+    }
+
+    val MIGRATION_10_11 = object : Migration(10, 11) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                ALTER TABLE pessoas ADD COLUMN apelido TEXT
+                """.trimIndent()
+            )
+        }
+    }
 
     fun getAllMigrations(): Array<Migration> {
         return arrayOf(
@@ -304,7 +390,10 @@ object RoomMigrations {
             MIGRATION_4_5,
             MIGRATION_5_6,
             MIGRATION_6_7,
-            MIGRATION_7_8
+            MIGRATION_7_8,
+            MIGRATION_8_9,
+            MIGRATION_9_10,
+            MIGRATION_10_11
         )
     }
 }

@@ -35,35 +35,42 @@ class BiometricPreferences @Inject constructor(
     
     /**
      * Salva o email do último usuário logado
+     * O email é sempre normalizado (trim + lowercase) para garantir consistência
      */
     suspend fun saveLastEmail(email: String) {
+        val normalizedEmail = email.trim().lowercase()
         context.dataStore.edit { preferences ->
-            preferences[LAST_EMAIL_KEY] = email
+            preferences[LAST_EMAIL_KEY] = normalizedEmail
         }
     }
     
     /**
      * Obtém o email do último usuário logado
+     * O email retornado é sempre normalizado (trim + lowercase)
      */
     fun getLastEmail(): Flow<String?> {
         return context.dataStore.data.map { preferences ->
-            preferences[LAST_EMAIL_KEY]
+            preferences[LAST_EMAIL_KEY]?.trim()?.lowercase()
         }
     }
     
     /**
      * Obtém o email do último usuário logado de forma síncrona
+     * O email retornado é sempre normalizado (trim + lowercase)
      */
     suspend fun getLastEmailSync(): String? {
-        return context.dataStore.data.first()[LAST_EMAIL_KEY]
+        val email = context.dataStore.data.first()[LAST_EMAIL_KEY]
+        return email?.trim()?.lowercase()
     }
     
     /**
      * Salva se a biometria está habilitada para o email
+     * O email é sempre normalizado (trim + lowercase) antes de salvar
      */
     suspend fun setBiometricEnabled(email: String, enabled: Boolean) {
+        val normalizedEmail = email.trim().lowercase()
         context.dataStore.edit { preferences ->
-            preferences[LAST_EMAIL_KEY] = email
+            preferences[LAST_EMAIL_KEY] = normalizedEmail
             preferences[BIOMETRIC_ENABLED_KEY] = if (enabled) "true" else "false"
         }
     }

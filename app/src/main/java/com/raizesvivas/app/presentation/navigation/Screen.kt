@@ -36,6 +36,9 @@ sealed class Screen(val route: String) {
     // Duplicatas
     object ResolverDuplicatas : Screen("resolver_duplicatas")
     
+    // Gerenciar Usuários (Admin)
+    object GerenciarUsuarios : Screen("gerenciar_usuarios")
+    
     // Chat
     object ChatContacts : Screen("chat_contacts")
     object ChatConversation : Screen("chat_conversation/{destinatarioId}/{destinatarioNome}") {

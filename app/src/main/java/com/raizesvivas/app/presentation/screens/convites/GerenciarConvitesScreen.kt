@@ -266,6 +266,57 @@ fun GerenciarConvitesScreen(
             
             Spacer(modifier = Modifier.height(24.dp))
             
+            // Convites Pendentes
+            val convitesPendentes = convites.filter { it.status == StatusConvite.PENDENTE }
+            Text(
+                text = "Convites Pendentes (${convitesPendentes.size})",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            
+            if (convitesPendentes.isEmpty()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Schedule,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "Nenhum convite pendente",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            } else {
+                convitesPendentes.forEach { convite ->
+                    ConviteCard(
+                        convite = convite,
+                        dateFormatter = dateFormatter,
+                        onDeletar = { viewModel.deletarConvite(convite.id) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
             // Lista de convites
             Text(
                 text = "Todos os Convites (${convites.size})",
@@ -274,7 +325,10 @@ fun GerenciarConvitesScreen(
                 modifier = Modifier.padding(bottom = 8.dp)
             )
             
-            if (convites.isEmpty()) {
+            // Filtrar convites que não são pendentes (para evitar duplicação)
+            val convitesNaoPendentes = convites.filter { it.status != StatusConvite.PENDENTE }
+            
+            if (convitesNaoPendentes.isEmpty() && convitesPendentes.isEmpty()) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
@@ -301,8 +355,30 @@ fun GerenciarConvitesScreen(
                         )
                     }
                 }
+            } else if (convitesNaoPendentes.isEmpty()) {
+                // Se só há convites pendentes, mostrar mensagem
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "Todos os convites estão pendentes",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             } else {
-                convites.forEach { convite ->
+                convitesNaoPendentes.forEach { convite ->
                     ConviteCard(
                         convite = convite,
                         dateFormatter = dateFormatter,
