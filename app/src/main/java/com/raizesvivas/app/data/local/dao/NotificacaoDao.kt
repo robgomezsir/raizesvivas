@@ -69,4 +69,19 @@ interface NotificacaoDao {
      */
     @Query("DELETE FROM notificacoes WHERE criadaEm < :timestampLimite")
     suspend fun deletarAntigas(timestampLimite: Long)
+    
+    /**
+     * Busca notificações de aniversário não lidas de hoje
+     * Compara apenas data (sem hora) usando timestamp em milissegundos
+     */
+    @Query("""
+        SELECT * FROM notificacoes 
+        WHERE tipo = 'ANIVERSARIO' 
+        AND lida = 0 
+        AND criadaEm >= :inicioHoje
+        AND criadaEm < :inicioAmanha
+        ORDER BY criadaEm DESC
+        LIMIT 1
+    """)
+    suspend fun buscarAniversarioHojeNaoLido(inicioHoje: Long, inicioAmanha: Long): NotificacaoEntity?
 }

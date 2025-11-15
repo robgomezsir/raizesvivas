@@ -2,11 +2,13 @@ package com.raizesvivas.app.presentation.navigation
 
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
@@ -63,7 +65,13 @@ fun MainNavigation(
                 ) {
                     // Home
                     NavigationBarItem(
-                        icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
+                        icon = { 
+                            Icon(
+                                painter = painterResource(id = com.raizesvivas.app.R.drawable.home),
+                                contentDescription = "Home",
+                                modifier = Modifier.size(24.dp)
+                            )
+                        },
                         label = {},
                         selected = currentDestination?.hierarchy?.any { it.route == Screen.Home.route } == true,
                         onClick = {
@@ -77,7 +85,13 @@ fun MainNavigation(
                     
                     // Mural
                     NavigationBarItem(
-                        icon = { Icon(Icons.Default.Forum, contentDescription = "Mural") },
+                        icon = { 
+                            Icon(
+                                painter = painterResource(id = com.raizesvivas.app.R.drawable.mural),
+                                contentDescription = "Mural",
+                                modifier = Modifier.size(24.dp)
+                            )
+                        },
                         label = {},
                         selected = currentDestination?.hierarchy?.any { it.route == Screen.Mural.route } == true,
                         onClick = {
@@ -91,7 +105,13 @@ fun MainNavigation(
                     
                     // Família
                     NavigationBarItem(
-                        icon = { Icon(Icons.Default.People, contentDescription = "Família") },
+                        icon = { 
+                            Icon(
+                                painter = painterResource(id = com.raizesvivas.app.R.drawable.familia),
+                                contentDescription = "Família",
+                                modifier = Modifier.size(24.dp)
+                            )
+                        },
                         label = {},
                         selected = currentDestination?.hierarchy?.any { it.route == Screen.Familia.route } == true,
                         onClick = {
@@ -170,6 +190,9 @@ fun MainNavigation(
                     },
                     onNavigateToGerenciarUsuarios = {
                         navControllerPrincipal.navigate(Screen.GerenciarUsuarios.route)
+                    },
+                    onNavigateToChat = { destinatarioId, destinatarioNome ->
+                        navController.navigate(Screen.ChatConversation.createRoute(destinatarioId, destinatarioNome))
                     }
                 )
             }

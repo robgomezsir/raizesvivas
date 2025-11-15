@@ -273,6 +273,25 @@ class UsuarioRepository @Inject constructor(
     }
     
     /**
+     * Busca usuário por pessoa vinculada
+     */
+    suspend fun buscarUsuarioPorPessoaId(pessoaId: String): Usuario? {
+        return try {
+            val resultado = firestoreService.buscarUsuarioPorPessoaId(pessoaId)
+            
+            resultado.getOrNull()?.let { usuario ->
+                // Salvar no cache local
+                usuarioDao.inserir(usuario.toEntity())
+                usuario
+            }
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao buscar usuário por pessoaId: $pessoaId")
+            null
+        }
+    }
+    
+    /**
      * Verifica se é o primeiro usuário do sistema (nenhum admin existe ainda)
      */
     suspend fun ehPrimeiroUsuario(): Boolean {

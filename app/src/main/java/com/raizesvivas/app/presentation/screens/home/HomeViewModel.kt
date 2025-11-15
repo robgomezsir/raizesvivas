@@ -52,6 +52,13 @@ class HomeViewModel @Inject constructor(
     private val _mostrarModalEditarNome = MutableStateFlow(false)
     val mostrarModalEditarNome = _mostrarModalEditarNome.asStateFlow()
     
+    /**
+     * Busca usuário por pessoa vinculada
+     */
+    suspend fun buscarUsuarioPorPessoaId(pessoaId: String): Usuario? {
+        return usuarioRepository.buscarUsuarioPorPessoaId(pessoaId)
+    }
+    
     fun abrirModalFamiliaZero() {
         _mostrarModalFamiliaZero.value = true
     }

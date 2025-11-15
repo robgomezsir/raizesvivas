@@ -79,4 +79,11 @@ class NotificacaoViewModel @Inject constructor(
             notificacaoRepository.marcarTodasComoLidas()
         }
     }
+    
+    /**
+     * Busca notificação de aniversário de hoje não lida
+     */
+    suspend fun buscarAniversarioHojeNaoLido(): Notificacao? {
+        return notificacaoRepository.buscarAniversarioHojeNaoLido()
+    }
 }

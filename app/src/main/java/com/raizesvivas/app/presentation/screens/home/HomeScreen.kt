@@ -4,15 +4,10 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.clickable
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -28,19 +23,22 @@ import androidx.compose.runtime.key
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.raizesvivas.app.domain.model.Pessoa
+import com.raizesvivas.app.domain.model.Notificacao
+import com.raizesvivas.app.domain.model.TipoNotificacao
 import com.raizesvivas.app.presentation.viewmodel.NotificacaoViewModel
 import com.raizesvivas.app.presentation.components.NotificacoesModal
+import com.raizesvivas.app.presentation.components.ModalFestivoAniversario
 import com.raizesvivas.app.presentation.components.ModalSelecionarFamiliaZero
-import com.raizesvivas.app.presentation.screens.home.TipoOrdenacao
 import com.raizesvivas.app.presentation.theme.LocalThemeController
 import com.raizesvivas.app.presentation.theme.ThemeMode
 import kotlinx.coroutines.launch
@@ -64,7 +62,8 @@ fun HomeScreen(
     onNavigateToGerenciarConvites: () -> Unit = {},
     onNavigateToGerenciarEdicoes: () -> Unit = {},
     onNavigateToResolverDuplicatas: () -> Unit = {},
-    onNavigateToGerenciarUsuarios: () -> Unit = {}
+    onNavigateToGerenciarUsuarios: () -> Unit = {},
+    onNavigateToChat: (String, String) -> Unit = { _, _ -> } // destinatarioId, destinatarioNome
 ) {
     val state by viewModel.state.collectAsState()
     val pessoas by viewModel.pessoas.collectAsState()
@@ -85,6 +84,79 @@ fun HomeScreen(
     // Estado local para modal de notificações
     var mostrarModalNotificacoes by remember { mutableStateOf(false) }
     
+    // Estado local para modal festivo de aniversário
+    var mostrarModalAniversario by remember { mutableStateOf(false) }
+    var notificacaoAniversario by remember { mutableStateOf<Notificacao?>(null) }
+    var pessoaAniversarioNome by remember { mutableStateOf<String?>(null) }
+    var filaAniversarios by remember { mutableStateOf<List<Pair<Notificacao, String>>>(emptyList()) }
+    var indiceAniversarioAtual by remember { mutableIntStateOf(0) }
+    
+    // CoroutineScope para operações assíncronas
+    val scope = rememberCoroutineScope()
+    
+    // Verificar aniversários de hoje ao entrar na tela e quando pessoas carregarem
+    LaunchedEffect(pessoas.isNotEmpty()) {
+        // Aguardar um pouco após o login para garantir que tudo está carregado
+        kotlinx.coroutines.delay(1000)
+        
+        // Verificar diretamente nas pessoas se há aniversários hoje
+        val hoje = java.util.Calendar.getInstance()
+        val diaHoje = hoje.get(java.util.Calendar.DAY_OF_MONTH)
+        val mesHoje = hoje.get(java.util.Calendar.MONTH)
+        
+        // Buscar TODAS as pessoas que fazem aniversário hoje
+        val aniversariantesHoje = pessoas.filter { pessoa ->
+            pessoa.dataNascimento?.let { dataNasc ->
+                val calNasc = java.util.Calendar.getInstance().apply {
+                    time = dataNasc
+                }
+                val diaNasc = calNasc.get(java.util.Calendar.DAY_OF_MONTH)
+                val mesNasc = calNasc.get(java.util.Calendar.MONTH)
+                diaNasc == diaHoje && mesNasc == mesHoje
+            } ?: false
+        }
+        
+        // Criar fila de notificações com nomes das pessoas apenas se ainda não foi criada
+        if (aniversariantesHoje.isNotEmpty() && filaAniversarios.isEmpty()) {
+            val fila = aniversariantesHoje.map { aniversariante ->
+                val idade = aniversariante.calcularIdade()
+                val nomeExibicao = aniversariante.getNomeExibicao()
+                
+                val notificacao = Notificacao(
+                    id = java.util.UUID.randomUUID().toString(),
+                    tipo = TipoNotificacao.ANIVERSARIO,
+                    titulo = "🎉 Feliz Aniversário!",
+                    mensagem = when {
+                        idade != null -> "Parabéns, $nomeExibicao! 🎉 Hoje você completa $idade anos!"
+                        else -> "Parabéns, $nomeExibicao! 🎉 Que este dia seja especial!"
+                    },
+                    lida = false,
+                    criadaEm = java.util.Date(),
+                    relacionadoId = aniversariante.id,
+                    dadosExtras = mapOf(
+                        "pessoaId" to aniversariante.id,
+                        "idade" to (idade?.toString() ?: "")
+                    )
+                )
+                Pair(notificacao, nomeExibicao)
+            }
+            filaAniversarios = fila
+            indiceAniversarioAtual = 0
+        }
+    }
+    
+    // Exibir próximo modal da fila quando não há modal aberto
+    LaunchedEffect(filaAniversarios.isNotEmpty(), mostrarModalAniversario, indiceAniversarioAtual) {
+        if (filaAniversarios.isNotEmpty() && 
+            indiceAniversarioAtual < filaAniversarios.size && 
+            !mostrarModalAniversario) {
+            val (notificacao, nomePessoa) = filaAniversarios[indiceAniversarioAtual]
+            notificacaoAniversario = notificacao
+            pessoaAniversarioNome = nomePessoa
+            mostrarModalAniversario = true
+        }
+    }
+    
     // Buscar pessoa vinculada ao usuário (memoizado para evitar recálculos)
     val pessoaVinculada = remember(state.usuario?.pessoaVinculada, pessoas) {
         state.usuario?.pessoaVinculada?.let { pessoaId ->
@@ -103,6 +175,7 @@ fun HomeScreen(
     // Sincronizar termoBusca do estado para o local quando estado mudar externamente
     LaunchedEffect(state.termoBusca) {
         if (state.termoBusca != termoBusca) {
+            @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
             termoBusca = state.termoBusca
         }
     }
@@ -134,7 +207,6 @@ fun HomeScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     
     val drawerState = rememberDrawerState(DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
     val themeController = LocalThemeController.current
     val isAdmin = state.usuario?.ehAdministrador == true
     
@@ -148,8 +220,9 @@ fun HomeScreen(
                 onOpenNotificacoes = {
                     scope.launch {
                         drawerState.close()
-                        mostrarModalNotificacoes = true
                     }
+                    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+                    mostrarModalNotificacoes = true
                 },
                 onGerenciarConvites = {
                     scope.launch {
@@ -182,7 +255,7 @@ fun HomeScreen(
                     }
                 },
                 themeMode = themeController.modo,
-                onThemeModeChange = { mode ->
+                onThemeModeChange = { mode: ThemeMode ->
                     themeController.selecionarModo(mode)
                 }
             )
@@ -195,7 +268,10 @@ fun HomeScreen(
                 actions = {
                     // Botão de notificações
                     Box {
-                        IconButton(onClick = { mostrarModalNotificacoes = true }) {
+                        IconButton(onClick = { 
+                            @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+                            mostrarModalNotificacoes = true
+                        }) {
                             Icon(Icons.Default.Notifications, contentDescription = "Notificações")
                         }
                         // Badge com contador de não lidas
@@ -434,7 +510,7 @@ fun HomeScreen(
                     StatCard(
                         title = "Pessoas",
                         value = state.totalPessoas.toString(),
-                        icon = Icons.Default.People,
+                        painter = painterResource(id = com.raizesvivas.app.R.drawable.pessoas),
                         modifier = Modifier.weight(1f)
                     )
                     
@@ -446,11 +522,14 @@ fun HomeScreen(
                         )
                     ) {
                         Column(
-                            modifier = Modifier.padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Home,
+                                painter = painterResource(id = com.raizesvivas.app.R.drawable.familia),
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
                                 modifier = Modifier.size(32.dp)
@@ -469,31 +548,6 @@ fun HomeScreen(
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                                 textAlign = TextAlign.Center
                             )
-                            // Mostrar detalhes se houver famílias especiais
-                            if (state.familiasMonoparentais > 0 || state.familiasHomoafetivas > 0) {
-                                Spacer(modifier = Modifier.height(8.dp))
-                                HorizontalDivider(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.3f)
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                if (state.familiasMonoparentais > 0) {
-                                    Text(
-                                        text = "${state.familiasMonoparentais} monoparental${if (state.familiasMonoparentais != 1) "is" else ""}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-                                if (state.familiasHomoafetivas > 0) {
-                                    Text(
-                                        text = "${state.familiasHomoafetivas} homoafetiva${if (state.familiasHomoafetivas != 1) "s" else ""}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-                            }
                         }
                     }
                 }
@@ -508,21 +562,21 @@ fun HomeScreen(
                     StatCard(
                         title = "Meninas",
                         value = state.meninas.toString(),
-                        icon = Icons.Default.Face,
+                        painter = painterResource(id = com.raizesvivas.app.R.drawable.menina),
                         modifier = Modifier.weight(1f)
                     )
                     
                     StatCard(
                         title = "Meninos",
                         value = state.meninos.toString(),
-                        icon = Icons.Default.Person,
+                        painter = painterResource(id = com.raizesvivas.app.R.drawable.menino),
                         modifier = Modifier.weight(1f)
                     )
                     
                     StatCard(
                         title = "Outros",
                         value = state.outros.toString(),
-                        icon = Icons.Default.PersonOutline,
+                        painter = painterResource(id = com.raizesvivas.app.R.drawable.outros),
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -537,7 +591,7 @@ fun HomeScreen(
                     StatCard(
                         title = "Posição",
                         value = if (state.rankingPessoas > 0) "#${state.rankingPessoas + 1}" else "-",
-                        icon = Icons.Default.Star,
+                        painter = painterResource(id = com.raizesvivas.app.R.drawable.posicao),
                         modifier = Modifier.weight(1f)
                     )
                     
@@ -545,7 +599,7 @@ fun HomeScreen(
                         StatCard(
                             title = "Sobrinhos",
                             value = state.totalSobrinhos.toString(),
-                            icon = Icons.Default.Face,
+                            painter = painterResource(id = com.raizesvivas.app.R.drawable.sobrinhos),
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -573,7 +627,7 @@ fun HomeScreen(
                 ModalEditarNomeFamiliaZero(
                     nomeAtual = state.familiaZeroNome ?: "",
                     onDismiss = { viewModel.fecharModalEditarNome() },
-                    onConfirmar = { novoNome ->
+                    onConfirmar = { novoNome: String ->
                         viewModel.atualizarNomeFamiliaZero(novoNome)
                     },
                     isLoading = state.isLoading
@@ -585,16 +639,21 @@ fun HomeScreen(
                 modifier = Modifier.align(Alignment.TopCenter)
             )
         }
+        }
         
         if (mostrarModalNotificacoes) {
             NotificacoesModal(
                 notificacoes = notificacoes,
                 viewModel = notificacaoViewModel,
-                onDismiss = { mostrarModalNotificacoes = false },
+                onDismiss = { 
+                    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+                    mostrarModalNotificacoes = false
+                },
                 onNotificacaoClick = { notificacao ->
+                    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
                     mostrarModalNotificacoes = false
                     when (notificacao.tipo) {
-                        com.raizesvivas.app.domain.model.TipoNotificacao.CONQUISTA_DESBLOQUEADA -> {
+                        TipoNotificacao.CONQUISTA_DESBLOQUEADA -> {
                             // Futuras navegações específicas podem ser adicionadas aqui
                         }
                         else -> Unit
@@ -602,7 +661,92 @@ fun HomeScreen(
                 }
             )
         }
-    }
+        
+        // Modal festivo de aniversário
+        notificacaoAniversario?.let { notificacao ->
+            if (mostrarModalAniversario) {
+                ModalFestivoAniversario(
+                    notificacao = notificacao,
+                    pessoaNome = pessoaAniversarioNome,
+                    onEnviarMensagem = {
+                        mostrarModalAniversario = false
+                        // Marcar como lida
+                        scope.launch {
+                            notificacaoViewModel.marcarComoLida(notificacao)
+                            
+                            // Verificar se o aniversariante é usuário da app
+                            val pessoaId = notificacao.relacionadoId
+                            if (pessoaId != null) {
+                                val usuario = viewModel.buscarUsuarioPorPessoaId(pessoaId)
+                                if (usuario != null) {
+                                    // Se for usuário, navegar para o chat
+                                    val nome = pessoaAniversarioNome ?: usuario.nome
+                                    onNavigateToChat(usuario.id, nome)
+                                } else {
+                                    // Se não for usuário, navegar para detalhes da pessoa
+                                    onNavigateToDetalhesPessoa(pessoaId)
+                                }
+                            }
+                        }
+                        
+                        // Avançar para próximo aniversário da fila
+                        if (indiceAniversarioAtual < filaAniversarios.size - 1) {
+                            indiceAniversarioAtual++
+                        } else {
+                            // Limpar fila quando terminar
+                            @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+                            filaAniversarios = emptyList()
+                            @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+                            indiceAniversarioAtual = 0
+                            @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+                            notificacaoAniversario = null
+                            @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+                            pessoaAniversarioNome = null
+                        }
+                    },
+                    onIgnorar = {
+                        mostrarModalAniversario = false
+                        // Marcar como lida ao ignorar
+                        scope.launch {
+                            notificacaoViewModel.marcarComoLida(notificacao)
+                        }
+                        
+                        // Avançar para próximo aniversário da fila
+                        if (indiceAniversarioAtual < filaAniversarios.size - 1) {
+                            indiceAniversarioAtual++
+                        } else {
+                            // Limpar fila quando terminar
+                            @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+                            filaAniversarios = emptyList()
+                            @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+                            indiceAniversarioAtual = 0
+                            @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+                            notificacaoAniversario = null
+                            @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+                            pessoaAniversarioNome = null
+                        }
+                    },
+                    onDismiss = {
+                        mostrarModalAniversario = false
+                        
+                        // Avançar para próximo aniversário da fila
+                        if (indiceAniversarioAtual < filaAniversarios.size - 1) {
+                            indiceAniversarioAtual++
+                        } else {
+                            // Limpar fila quando terminar
+                            @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+                            filaAniversarios = emptyList()
+                            @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+                            indiceAniversarioAtual = 0
+                            @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+                            notificacaoAniversario = null
+                            @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+                            pessoaAniversarioNome = null
+                        }
+                    }
+                )
+            }
+        }
     }
 }
 
@@ -610,7 +754,8 @@ fun HomeScreen(
 fun StatCard(
     title: String,
     value: String,
-    icon: ImageVector,
+    painter: Painter? = null,
+    icon: ImageVector? = null,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -620,15 +765,30 @@ fun StatCard(
         )
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.size(32.dp)
-            )
+            when {
+                painter != null -> {
+                    Icon(
+                        painter = painter,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+                icon != null -> {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+            }
             Spacer(modifier = Modifier.height(8.dp))
             if (value.isNotBlank()) {
                 Text(
@@ -650,6 +810,7 @@ fun StatCard(
 }
 
 @Composable
+@Suppress("UNUSED")
 fun PessoaCard(
     pessoa: Pessoa,
     onClick: () -> Unit
@@ -711,7 +872,7 @@ fun PessoaCard(
  * Modal para editar o nome da Família Zero
  */
 @Composable
-private fun ModalEditarNomeFamiliaZero(
+fun ModalEditarNomeFamiliaZero(
     nomeAtual: String,
     onDismiss: () -> Unit,
     onConfirmar: (String) -> Unit,
@@ -789,7 +950,7 @@ private fun ModalEditarNomeFamiliaZero(
 }
 
 @Composable
-private fun HomeDrawerContent(
+fun HomeDrawerContent(
     isAdmin: Boolean,
     notificacoesNaoLidas: Int,
     onClose: () -> Unit,
@@ -908,7 +1069,7 @@ private fun HomeDrawerContent(
 }
 
 @Composable
-private fun DrawerSectionTitle(text: String) {
+fun DrawerSectionTitle(text: String) {
     Text(
         text = text,
         style = MaterialTheme.typography.titleMedium,
@@ -919,7 +1080,7 @@ private fun DrawerSectionTitle(text: String) {
 }
 
 @Composable
-private fun ThemeSelector(
+fun ThemeSelector(
     themeMode: ThemeMode,
     onThemeModeChange: (ThemeMode) -> Unit
 ) {
@@ -955,7 +1116,7 @@ private fun ThemeSelector(
 }
 
 @Composable
-private fun ThemeOptionChip(
+fun ThemeOptionChip(
     label: String,
     selected: Boolean,
     onClick: () -> Unit

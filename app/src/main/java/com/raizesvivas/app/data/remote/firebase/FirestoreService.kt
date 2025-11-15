@@ -135,6 +135,48 @@ class FirestoreService @Inject constructor(
     }
     
     /**
+     * Busca usuário por pessoa vinculada
+     */
+    suspend fun buscarUsuarioPorPessoaId(pessoaId: String): Result<Usuario?> {
+        return RetryHelper.withNetworkRetry {
+            try {
+                val query = usersCollection
+                    .whereEqualTo("pessoaVinculada", pessoaId)
+                    .limit(1)
+                    .get()
+                    .await()
+                
+                if (query.isEmpty) {
+                    return@withNetworkRetry Result.success(null)
+                }
+                
+                val document = query.documents.first()
+                val data = document.data ?: return@withNetworkRetry Result.success(null)
+                
+                val usuario = Usuario(
+                    id = document.id,
+                    nome = data["nome"] as? String ?: "",
+                    email = data["email"] as? String ?: "",
+                    fotoUrl = data["fotoUrl"] as? String,
+                    posicaoRanking = (data["posicaoRanking"] as? Long)?.toInt(),
+                    pessoaVinculada = data["pessoaVinculada"] as? String,
+                    ehAdministrador = data["ehAdministrador"] as? Boolean ?: false,
+                    familiaZeroPai = data["familiaZeroPai"] as? String,
+                    familiaZeroMae = data["familiaZeroMae"] as? String,
+                    primeiroAcesso = data["primeiroAcesso"] as? Boolean ?: true,
+                    criadoEm = (data["criadoEm"] as? com.google.firebase.Timestamp)?.toDate() ?: JavaDate()
+                )
+                
+                Result.success(usuario)
+                
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao buscar usuário por pessoaId: $pessoaId")
+                Result.failure(e)
+            }
+        }
+    }
+    
+    /**
      * Observa usuário em tempo real
      */
     @Suppress("unused")

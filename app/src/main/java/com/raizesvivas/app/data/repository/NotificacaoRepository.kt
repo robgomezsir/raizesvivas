@@ -80,4 +80,28 @@ class NotificacaoRepository @Inject constructor(
             Timber.e(e, "❌ Erro ao marcar todas como lidas")
         }
     }
+    
+    /**
+     * Busca notificação de aniversário de hoje não lida
+     */
+    suspend fun buscarAniversarioHojeNaoLido(): Notificacao? {
+        return try {
+            // Calcular início do dia de hoje e amanhã
+            val calendar = java.util.Calendar.getInstance()
+            calendar.set(java.util.Calendar.HOUR_OF_DAY, 0)
+            calendar.set(java.util.Calendar.MINUTE, 0)
+            calendar.set(java.util.Calendar.SECOND, 0)
+            calendar.set(java.util.Calendar.MILLISECOND, 0)
+            val inicioHoje = calendar.timeInMillis
+            
+            calendar.add(java.util.Calendar.DAY_OF_MONTH, 1)
+            val inicioAmanha = calendar.timeInMillis
+            
+            val entity = notificacaoDao.buscarAniversarioHojeNaoLido(inicioHoje, inicioAmanha)
+            entity?.toDomain()
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao buscar aniversário de hoje")
+            null
+        }
+    }
 }
