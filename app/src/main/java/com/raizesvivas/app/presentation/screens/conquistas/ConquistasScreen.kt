@@ -783,7 +783,7 @@ private fun ConquistaCard(
 }
 
 /**
- * Modal de Ranking
+ * Modal de Ranking - Reformulado com Material 3
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -793,33 +793,61 @@ private fun RankingModal(
     isLoading: Boolean,
     onDismiss: () -> Unit
 ) {
-    AlertDialog(
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 2.dp),
-        properties = DialogProperties(usePlatformDefaultWidth = false),
-        title = {
+        sheetState = sheetState,
+        dragHandle = { BottomSheetDefaults.DragHandle() }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 24.dp)
+        ) {
+            // Header
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.EmojiEvents,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(28.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Ranking de Conquistas",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
+                Surface(
+                    modifier = Modifier.size(48.dp),
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.EmojiEvents,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Ranking de Conquistas",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "${ranking.size} participantes",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
-        },
-        text = {
+            
+            HorizontalDivider()
+            
+            // Conteúdo
             if (isLoading) {
                 Box(
                     modifier = Modifier
@@ -838,60 +866,56 @@ private fun RankingModal(
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text(
-                            text = "🏆",
-                            style = MaterialTheme.typography.displayMedium
-                        )
+                        Surface(
+                            modifier = Modifier.size(64.dp),
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = "🏆",
+                                    style = MaterialTheme.typography.displaySmall
+                                )
+                            }
+                        }
                         Text(
                             text = "Ainda não há ranking disponível",
                             style = MaterialTheme.typography.bodyLarge,
-                            textAlign = TextAlign.Center
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
             } else {
-                Box(
+                LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 1.dp)
+                        .heightIn(max = 500.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = 500.dp),
-                        contentPadding = PaddingValues(horizontal = 1.dp, vertical = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(
-                            items = ranking,
-                            key = { it.usuarioId },
-                            contentType = { "ranking_item" }
-                        ) { usuario ->
-                            RankingItem(
-                                usuario = usuario,
-                                isUsuarioAtual = usuario.usuarioId == usuarioIdAtual,
-                                isTop3 = usuario.posicao <= 3
-                            )
-                        }
+                    items(
+                        items = ranking,
+                        key = { it.usuarioId },
+                        contentType = { "ranking_item" }
+                    ) { usuario ->
+                        RankingItem(
+                            usuario = usuario,
+                            isUsuarioAtual = usuario.usuarioId == usuarioIdAtual,
+                            isTop3 = usuario.posicao <= 3
+                        )
                     }
                 }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Fechar")
-            }
         }
-    )
+    }
 }
 
 /**
- * Item do Ranking
- * Layout simplificado: Classificação | Nome (linha 1)
- *                      Pontuação | Nível (linha 2)
- * Sem foto do usuário
+ * Item do Ranking - Reformulado com Material 3
+ * Layout moderno com linhas suaves e destaques
  */
 @Composable
 private fun RankingItem(
@@ -899,65 +923,112 @@ private fun RankingItem(
     isUsuarioAtual: Boolean,
     isTop3: Boolean
 ) {
-    val backgroundColor = when {
-        isUsuarioAtual -> MaterialTheme.colorScheme.primaryContainer
-        isTop3 -> when (usuario.posicao) {
-            1 -> Color(0xFFFFD700).copy(alpha = 0.2f) // Ouro
-            2 -> Color(0xFFC0C0C0).copy(alpha = 0.2f) // Prata
-            3 -> Color(0xFFCD7F32).copy(alpha = 0.2f) // Bronze
-            else -> MaterialTheme.colorScheme.surfaceVariant
+    // Cores e elevações baseadas na posição
+    val (containerColor, contentColor, elevation, medalIcon) = when {
+        isUsuarioAtual -> {
+            Quadruple(
+                MaterialTheme.colorScheme.primaryContainer,
+                MaterialTheme.colorScheme.onPrimaryContainer,
+                4.dp,
+                null
+            )
         }
-        else -> MaterialTheme.colorScheme.surfaceVariant
-    }
-    
-    val borderColor = when {
-        isUsuarioAtual -> MaterialTheme.colorScheme.primary
-        isTop3 -> when (usuario.posicao) {
-            1 -> Color(0xFFFFD700) // Ouro
-            2 -> Color(0xFFC0C0C0) // Prata
-            3 -> Color(0xFFCD7F32) // Bronze
-            else -> Color.Transparent
+        usuario.posicao == 1 -> {
+            Quadruple(
+                MaterialTheme.colorScheme.tertiaryContainer,
+                MaterialTheme.colorScheme.onTertiaryContainer,
+                6.dp,
+                Icons.Default.EmojiEvents
+            )
         }
-        else -> Color.Transparent
+        usuario.posicao == 2 -> {
+            Quadruple(
+                MaterialTheme.colorScheme.secondaryContainer,
+                MaterialTheme.colorScheme.onSecondaryContainer,
+                5.dp,
+                Icons.Default.EmojiEvents
+            )
+        }
+        usuario.posicao == 3 -> {
+            Quadruple(
+                MaterialTheme.colorScheme.surfaceVariant,
+                MaterialTheme.colorScheme.onSurfaceVariant,
+                4.dp,
+                Icons.Default.EmojiEvents
+            )
+        }
+        else -> {
+            Quadruple(
+                MaterialTheme.colorScheme.surface,
+                MaterialTheme.colorScheme.onSurface,
+                1.dp,
+                null
+            )
+        }
     }
     
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = backgroundColor
+            containerColor = containerColor
         ),
-        border = if (borderColor != Color.Transparent) {
-            BorderStroke(2.dp, borderColor)
-        } else null,
         elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isTop3) 6.dp else 2.dp
-        )
+            defaultElevation = elevation
+        ),
+        shape = RoundedCornerShape(16.dp)
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Linha 1: Classificação | Nome
+            // Posição com destaque
+            Surface(
+                modifier = Modifier.size(56.dp),
+                shape = CircleShape,
+                color = if (isTop3 || isUsuarioAtual) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.surfaceVariant
+                }
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    if (medalIcon != null) {
+                        Icon(
+                            imageVector = medalIcon,
+                            contentDescription = null,
+                            tint = if (usuario.posicao == 1) {
+                                Color(0xFFFFD700)
+                            } else if (usuario.posicao == 2) {
+                                Color(0xFFC0C0C0)
+                            } else {
+                                Color(0xFFCD7F32)
+                            },
+                            modifier = Modifier.size(28.dp)
+                        )
+                    } else {
+                        Text(
+                            text = "#${usuario.posicao}",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isTop3 || isUsuarioAtual) {
+                                MaterialTheme.colorScheme.onPrimary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+                        )
+                    }
+                }
+            }
+            
+            // Informações do usuário
             Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "#${usuario.posicao}",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
@@ -965,43 +1036,78 @@ private fun RankingItem(
                         text = usuario.nome,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = if (isUsuarioAtual || isTop3) FontWeight.Bold else FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = contentColor
                     )
                     if (isUsuarioAtual) {
-                        Badge(
-                            containerColor = MaterialTheme.colorScheme.primary
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.primary
                         ) {
                             Text(
                                 text = "Você",
-                                style = MaterialTheme.typography.labelSmall
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             )
                         }
                     }
                 }
-            }
-
-            // Linha 2: Pontuação | Nível
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Pontuação (repetida na segunda linha conforme solicitado)
-                Text(
-                    text = "${usuario.xpTotal} XP",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
                 
-                // Nível
-                Text(
-                    text = "Nível ${usuario.nivel}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // XP
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "${usuario.xpTotal} XP",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = contentColor.copy(alpha = 0.8f)
+                        )
+                    }
+                    
+                    // Nível
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    ) {
+                        Text(
+                            text = "Nível ${usuario.nivel}",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium,
+                            color = contentColor.copy(alpha = 0.8f),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                    
+                    // Conquistas
+                    if (usuario.conquistasDesbloqueadas > 0) {
+                        Text(
+                            text = "${usuario.conquistasDesbloqueadas} conquistas",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = contentColor.copy(alpha = 0.6f)
+                        )
+                    }
+                }
             }
         }
     }
 }
+
+// Helper class para retornar múltiplos valores
+private data class Quadruple<A, B, C, D>(
+    val first: A,
+    val second: B,
+    val third: C,
+    val fourth: D
+)
 

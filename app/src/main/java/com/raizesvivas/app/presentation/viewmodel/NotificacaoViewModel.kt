@@ -29,6 +29,7 @@ class NotificacaoViewModel @Inject constructor(
     init {
         observarNotificacoes()
         observarContadorNaoLidas()
+        sincronizarNotificacoes()
     }
     
     /**
@@ -85,5 +86,69 @@ class NotificacaoViewModel @Inject constructor(
      */
     suspend fun buscarAniversarioHojeNaoLido(): Notificacao? {
         return notificacaoRepository.buscarAniversarioHojeNaoLido()
+    }
+    
+    /**
+     * Cria uma nova notificação
+     */
+    fun criarNotificacao(notificacao: Notificacao) {
+        viewModelScope.launch {
+            notificacaoRepository.criarNotificacao(notificacao)
+        }
+    }
+    
+    /**
+     * Busca primeira notificação ADMIN_MENSAGEM não lida
+     */
+    suspend fun buscarAdminMensagemNaoLida(): Notificacao? {
+        return notificacaoRepository.buscarAdminMensagemNaoLida()
+    }
+    
+    /**
+     * Sincroniza notificações do Firestore para o banco local
+     * Chamado automaticamente no init, mas pode ser chamado manualmente também
+     */
+    private fun sincronizarNotificacoes() {
+        viewModelScope.launch {
+            try {
+                val resultado = notificacaoRepository.sincronizarNotificacoesDoFirestore()
+                resultado.onSuccess { quantidade ->
+                    if (quantidade > 0) {
+                        Timber.d("✅ $quantidade notificação(ões) sincronizada(s) do Firestore")
+                    }
+                }
+                resultado.onFailure { error ->
+                    Timber.w(error, "⚠️ Aviso ao sincronizar notificações (continuando com dados locais)")
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao sincronizar notificações")
+            }
+        }
+    }
+    
+    /**
+     * Força uma nova sincronização de notificações do Firestore
+     */
+    fun forcarSincronizacao() {
+        sincronizarNotificacoes()
+    }
+
+    /**
+     * Registra analytics de clique no download da atualização
+     */
+    fun registrarCliqueDownloadAtualizacao(notificacao: Notificacao) {
+        viewModelScope.launch {
+            val versao = notificacao.dadosExtras["versao"]
+            val url = notificacao.dadosExtras["downloadUrl"]
+            try {
+                notificacaoRepository.registrarCliqueDownloadAtualizacao(
+                    notificacaoId = notificacao.id,
+                    versao = versao,
+                    downloadUrl = url
+                )
+            } catch (_: Exception) {
+                // Analytics não deve afetar UX
+            }
+        }
     }
 }

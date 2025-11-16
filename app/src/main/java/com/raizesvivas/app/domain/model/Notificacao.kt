@@ -29,5 +29,6 @@ enum class TipoNotificacao(val descricao: String) {
     EDICAO_PENDENTE("Edição Pendente"),
     CONQUISTA_DESBLOQUEADA("Conquista Desbloqueada"),
     ANIVERSARIO("Aniversário"),
+    ADMIN_MENSAGEM("Mensagem do Administrador"),
     OUTRO("Outro")
 }

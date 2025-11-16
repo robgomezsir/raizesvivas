@@ -446,11 +446,6 @@ class VerificarConquistasUseCase @Inject constructor(
                     pessoas.mapNotNull { it.distanciaFamiliaZero }.toSet().size
                 }
             }
-            else -> {
-                // Caso não tratado (não deveria acontecer, mas garante exaustividade)
-                Timber.w("⚠️ TipoCondicao não tratado: ${conquista.condicao.tipo}")
-                0
-            }
         }
     }
 }

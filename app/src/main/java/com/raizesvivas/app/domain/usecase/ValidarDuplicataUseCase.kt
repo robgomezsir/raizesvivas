@@ -163,7 +163,7 @@ class ValidarDuplicataUseCase @Inject constructor(
                 pessoa.dataNascimento == null && outra.dataNascimento == null -> true
                 pessoa.dataNascimento == null || outra.dataNascimento == null -> false
                 else -> {
-                    val diffDias = abs(pessoa.dataNascimento!!.time - outra.dataNascimento!!.time) / (1000L * 60 * 60 * 24)
+                    val diffDias = abs(pessoa.dataNascimento.time - outra.dataNascimento.time) / (1000L * 60 * 60 * 24)
                     diffDias <= toleranciaDias
                 }
             }

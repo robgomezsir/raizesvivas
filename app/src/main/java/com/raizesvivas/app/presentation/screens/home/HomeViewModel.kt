@@ -10,9 +10,13 @@ import com.raizesvivas.app.domain.model.Pessoa
 import com.raizesvivas.app.domain.model.Usuario
 import com.raizesvivas.app.domain.model.Genero
 import com.raizesvivas.app.domain.model.FamiliaZero
+import com.raizesvivas.app.presentation.screens.familia.FamiliaUiModel
 import com.raizesvivas.app.domain.usecase.GerarDadosTesteUseCase
 import com.raizesvivas.app.utils.ParentescoCalculator
+import com.raizesvivas.app.utils.MinhaFamiliaPreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import android.content.Context
 import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
@@ -43,7 +47,8 @@ class HomeViewModel @Inject constructor(
     private val usuarioRepository: UsuarioRepository,
     private val pessoaRepository: PessoaRepository,
     private val familiaZeroRepository: FamiliaZeroRepository,
-    private val gerarDadosTesteUseCase: GerarDadosTesteUseCase
+    private val gerarDadosTesteUseCase: GerarDadosTesteUseCase,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
     
     private val _mostrarModalFamiliaZero = MutableStateFlow(false)
@@ -51,6 +56,15 @@ class HomeViewModel @Inject constructor(
     
     private val _mostrarModalEditarNome = MutableStateFlow(false)
     val mostrarModalEditarNome = _mostrarModalEditarNome.asStateFlow()
+    
+    private val _mostrarModalMinhaFamilia = MutableStateFlow(false)
+    val mostrarModalMinhaFamilia = _mostrarModalMinhaFamilia.asStateFlow()
+    
+    private val _minhaFamiliaId = MutableStateFlow<String?>(null)
+    val minhaFamiliaId = _minhaFamiliaId.asStateFlow()
+    
+    private val _minhaFamiliaNome = MutableStateFlow<String?>(null)
+    val minhaFamiliaNome = _minhaFamiliaNome.asStateFlow()
     
     /**
      * Busca usuário por pessoa vinculada
@@ -349,6 +363,104 @@ class HomeViewModel @Inject constructor(
         carregarDados()
         observarFamiliaZero()
         observarEstatisticasGenero()
+        promoverPrimeiroAdminSenior()
+        carregarMinhaFamilia()
+    }
+    
+    /**
+     * Carrega a preferência de "Minha família"
+     * O nome será atualizado quando as famílias forem carregadas
+     */
+    private fun carregarMinhaFamilia() {
+        viewModelScope.launch {
+            try {
+                val familiaId = MinhaFamiliaPreferences.obterFamiliaId(context)
+                _minhaFamiliaId.value = familiaId
+                // O nome será atualizado quando as famílias forem observadas
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao carregar Minha Família")
+            }
+        }
+    }
+    
+    /**
+     * Atualiza o nome da "Minha família" baseado no ID salvo
+     * Deve ser chamado quando as famílias forem carregadas
+     */
+    fun atualizarNomeMinhaFamilia(familias: List<com.raizesvivas.app.presentation.screens.familia.FamiliaUiModel>) {
+        val familiaId = _minhaFamiliaId.value
+        if (familiaId != null) {
+            val familia = familias.find { it.id == familiaId }
+            _minhaFamiliaNome.value = familia?.nomeExibicao
+        } else {
+            _minhaFamiliaNome.value = null
+        }
+    }
+    
+    /**
+     * Abre o modal para selecionar "Minha família"
+     */
+    fun abrirModalMinhaFamilia() {
+        _mostrarModalMinhaFamilia.value = true
+    }
+    
+    /**
+     * Fecha o modal de seleção de "Minha família"
+     */
+    fun fecharModalMinhaFamilia() {
+        _mostrarModalMinhaFamilia.value = false
+    }
+    
+    /**
+     * Define uma família como "Minha família"
+     */
+    fun definirMinhaFamilia(familiaId: String, familiaNome: String) {
+        viewModelScope.launch {
+            try {
+                MinhaFamiliaPreferences.salvarFamiliaId(context, familiaId)
+                _minhaFamiliaId.value = familiaId
+                _minhaFamiliaNome.value = familiaNome
+                Timber.d("✅ Minha família definida: $familiaNome")
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao salvar Minha Família")
+            }
+        }
+    }
+    
+    /**
+     * Remove a seleção de "Minha família"
+     */
+    fun removerMinhaFamilia() {
+        viewModelScope.launch {
+            try {
+                MinhaFamiliaPreferences.salvarFamiliaId(context, null)
+                _minhaFamiliaId.value = null
+                _minhaFamiliaNome.value = null
+                Timber.d("✅ Minha família removida")
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao remover Minha Família")
+            }
+        }
+    }
+    
+    /**
+     * Promove automaticamente o usuário mais antigo para ADMIN SÊNIOR
+     * Executa apenas uma vez - se já existir um ADMIN SR, não faz nada
+     */
+    private fun promoverPrimeiroAdminSenior() {
+        viewModelScope.launch {
+            try {
+                val resultado = usuarioRepository.promoverPrimeiroAdminSenior()
+                resultado.onSuccess {
+                    Timber.d("✅ Verificação de ADMIN SÊNIOR concluída")
+                }
+                resultado.onFailure { error ->
+                    Timber.w(error, "⚠️ Aviso ao verificar ADMIN SÊNIOR")
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao promover primeiro ADMIN SÊNIOR")
+            }
+        }
     }
     
     /**

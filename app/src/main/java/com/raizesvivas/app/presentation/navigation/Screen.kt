@@ -39,11 +39,17 @@ sealed class Screen(val route: String) {
     // Gerenciar Usuários (Admin)
     object GerenciarUsuarios : Screen("gerenciar_usuarios")
     
+    // Configurações (Admin Sênior)
+    object Configuracoes : Screen("configuracoes")
+    
     // Chat
     object ChatContacts : Screen("chat_contacts")
     object ChatConversation : Screen("chat_conversation/{destinatarioId}/{destinatarioNome}") {
         fun createRoute(destinatarioId: String, destinatarioNome: String) = 
             "chat_conversation/$destinatarioId/${destinatarioNome.replace("/", "_")}"
     }
+    
+    // Amigo da Família
+    object AdicionarAmigo : Screen("adicionar_amigo")
 }
 

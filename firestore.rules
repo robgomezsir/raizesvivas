@@ -12,10 +12,47 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // ==============================
+    // 📊 Coleção: analytics_notificacoes
+    // ==============================
+    match /analytics_notificacoes/{eventId} {
+      // LEITURA: Apenas ADMIN SÊNIOR pode consultar eventos (com queries eficientes)
+      allow read, list: if isAdminSenior() && isEfficientQuery();
+
+      // CRIAÇÃO: Qualquer usuário autenticado pode registrar um evento próprio
+      // (não bloqueamos o campo usuarioId por compatibilidade, mas exigimos estar autenticado)
+      allow create: if isAuthenticated() && validarEventoAnalytics();
+
+      // Atualização/Exclusão: bloqueado
+      allow update, delete: if false;
+
+      function validarEventoAnalytics() {
+        let dados = request.resource.data;
+        return dados.keys().hasAll(['usuarioId', 'notificacaoId', 'evento', 'criadoEm']) &&
+               dados.usuarioId is string &&
+               dados.usuarioId.size() > 0 &&
+               dados.notificacaoId is string &&
+               dados.notificacaoId.size() > 0 &&
+               dados.evento is string &&
+               dados.evento.size() > 0 &&
+               dados.criadoEm is timestamp &&
+               // extras são opcionais e, se presentes, precisam ser map
+               (!dados.keys().hasAny(['versao']) || dados.versao is string) &&
+               (!dados.keys().hasAny(['downloadUrl']) || dados.downloadUrl is string);
+      }
+    }
+
     // Verifica se o usuário é administrador
     function isAdmin() {
       return isAuthenticated() &&
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.ehAdministrador == true;
+    }
+
+    // Verifica se o usuário é administrador sênior
+    function isAdminSenior() {
+      return isAuthenticated() &&
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.ehAdministradorSenior == true;
     }
 
     // Verifica se o usuário é o dono de um documento
@@ -201,24 +238,12 @@ service cloud.firestore {
                      request.query.limit <= 100 &&
                      request.query.orderBy.size() > 0;
 
-      function isRemetente() {
-        return isAuthenticated() && resource.data.remetenteId == request.auth.uid;
-      }
-
-      function isDestinatario() {
-        return isAuthenticated() && resource.data.destinatarioId == request.auth.uid;
-      }
-
-      function isParticipante() {
-        return isAuthenticated() &&
-          (resource.data.remetenteId == request.auth.uid ||
-           resource.data.destinatarioId == request.auth.uid);
-      }
-
       // Para leitura individual de documentos: valida que o usuário é participante
       // CRÍTICO: Esta regra garante que mesmo se a query list passar,
       // apenas documentos onde o usuário é participante serão retornados
-      allow read: if isParticipante();
+      allow read: if isAuthenticated() &&
+                   (resource.data.remetenteId == request.auth.uid ||
+                    resource.data.destinatarioId == request.auth.uid);
       
       // Criar mensagem: usuário autenticado pode criar mensagens onde ele é o remetente
       allow create: if isAuthenticated() &&
@@ -232,14 +257,16 @@ service cloud.firestore {
                       request.resource.data.lida is bool;
       
       // Atualizar: apenas destinatário pode marcar como lida
-      allow update: if isParticipante() &&
-                      isDestinatario() &&
-                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lida']) &&
-                      request.resource.data.lida == true;
+      allow update: if isAuthenticated() &&
+                     resource.data.destinatarioId == request.auth.uid &&
+                     request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lida']) &&
+                     request.resource.data.lida == true;
       
       // Deletar: qualquer participante (remetente ou destinatário) pode deletar mensagens
       // Permite que usuários removam mensagens recebidas ou enviadas de suas conversas
-      allow delete: if isParticipante();
+      allow delete: if isAuthenticated() &&
+                     (resource.data.remetenteId == request.auth.uid ||
+                      resource.data.destinatarioId == request.auth.uid);
     }
 
     // ==============================
@@ -364,6 +391,73 @@ service cloud.firestore {
                dados.totalConquistas is int &&
                dados.totalConquistas >= 0 &&
                (!dados.keys().hasAny(['atualizadoEm']) || dados.atualizadoEm is timestamp);
+      }
+    }
+
+    // ==============================
+    // 🔔 Subcoleção: notificacoes (PRIVADA)
+    // usuarios/{userId}/notificacoes/{notificacaoId}
+    // ==============================
+    match /usuarios/{userId}/notificacoes/{notificacaoId} {
+      // LEITURA: 
+      // - Usuário pode ler suas próprias notificações
+      // - ADMIN SR pode ler notificações de qualquer usuário (para gerenciamento)
+      allow read: if isAuthenticated() &&
+                   (request.auth.uid == userId || isAdminSenior());
+      
+      // LISTAGEM: queries eficientes com ordenação
+      allow list: if isAuthenticated() &&
+                    (request.auth.uid == userId || isAdminSenior()) &&
+                    request.query.limit <= 100 &&
+                    request.query.orderBy.size() > 0;
+      
+      // CRIAÇÃO:
+      // - ADMIN SR pode criar notificações para qualquer usuário (mensagens globais)
+      // - Sistema pode criar notificações para o próprio usuário
+      allow create: if isAuthenticated() &&
+                     (
+                       (isAdminSenior() && validarNotificacao()) ||
+                       (request.auth.uid == userId && validarNotificacao())
+                     );
+      
+      // ATUALIZAÇÃO:
+      // - Usuário pode atualizar suas próprias notificações (marcar como lida)
+      // - ADMIN SR pode atualizar notificações de qualquer usuário
+      allow update: if isAuthenticated() &&
+                     (
+                       (request.auth.uid == userId && 
+                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lida']) &&
+                        request.resource.data.lida is bool) ||
+                       (isAdminSenior() && validarNotificacao())
+                     );
+      
+      // DELEÇÃO: Apenas o próprio usuário ou ADMIN SR pode deletar
+      allow delete: if isAuthenticated() &&
+                     (request.auth.uid == userId || isAdminSenior());
+      
+      // Função auxiliar para validar dados de notificação
+      function validarNotificacao() {
+        let dados = request.resource.data;
+        return dados.keys().hasAll(['id', 'tipo', 'titulo', 'mensagem', 'lida', 'criadaEm']) &&
+               dados.id is string &&
+               dados.id.size() > 0 &&
+               dados.tipo is string &&
+               dados.tipo.size() > 0 &&
+               dados.titulo is string &&
+               dados.titulo.size() > 0 &&
+               dados.mensagem is string &&
+               dados.mensagem.size() > 0 &&
+               dados.lida is bool &&
+               dados.criadaEm is timestamp &&
+               // relacionadoId é opcional (pode ser null, string vazia ou string)
+               (!dados.keys().hasAny(['relacionadoId']) || 
+                dados.relacionadoId == null || 
+                dados.relacionadoId == "" ||
+                dados.relacionadoId is string) &&
+               // dadosExtras é opcional (pode não existir, ser map vazio ou map com dados)
+               (!dados.keys().hasAny(['dadosExtras']) || 
+                dados.dadosExtras == null ||
+                dados.dadosExtras is map);
       }
     }
   }

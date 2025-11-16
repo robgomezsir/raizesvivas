@@ -84,4 +84,16 @@ interface NotificacaoDao {
         LIMIT 1
     """)
     suspend fun buscarAniversarioHojeNaoLido(inicioHoje: Long, inicioAmanha: Long): NotificacaoEntity?
+    
+    /**
+     * Busca primeira notificação ADMIN_MENSAGEM não lida
+     */
+    @Query("""
+        SELECT * FROM notificacoes 
+        WHERE tipo = 'ADMIN_MENSAGEM' 
+        AND lida = 0 
+        ORDER BY criadaEm DESC
+        LIMIT 1
+    """)
+    suspend fun buscarAdminMensagemNaoLida(): NotificacaoEntity?
 }

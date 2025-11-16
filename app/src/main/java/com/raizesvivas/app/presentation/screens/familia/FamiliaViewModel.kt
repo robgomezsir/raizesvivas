@@ -2,11 +2,13 @@ package com.raizesvivas.app.presentation.screens.familia
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.raizesvivas.app.data.repository.AmigoRepository
 import com.raizesvivas.app.data.repository.FamiliaPersonalizadaRepository
 import com.raizesvivas.app.data.repository.FamiliaZeroRepository
 import com.raizesvivas.app.data.repository.GamificacaoRepository
 import com.raizesvivas.app.data.repository.PessoaRepository
 import com.raizesvivas.app.data.repository.UsuarioRepository
+import com.raizesvivas.app.domain.model.Amigo
 import com.raizesvivas.app.data.remote.firebase.AuthService
 import com.raizesvivas.app.domain.model.FamiliaPersonalizada
 import com.raizesvivas.app.domain.model.FamiliaZero
@@ -46,6 +48,7 @@ class FamiliaViewModel @Inject constructor(
     private val usuarioRepository: UsuarioRepository,
     private val authService: AuthService,
     private val gamificacaoRepository: GamificacaoRepository,
+    private val amigoRepository: AmigoRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -122,13 +125,25 @@ class FamiliaViewModel @Inject constructor(
 
     private fun observarDados() {
         viewModelScope.launch {
-            val dadosFamiliaFlow = combine(
+            // Combinar os primeiros 5 flows
+            val dadosParciaisFlow = combine(
                 pessoaRepository.observarTodasPessoas(),
                 familiaZeroRepository.observar(),
                 familiaPersonalizadaRepository.observarTodas(),
                 observarUsuarioAtual(),
                 familiasMonoparentaisRejeitadas
-            ) { pessoas, familiaZero, personalizadas, usuario, rejeitados ->
+            ) { pessoas: List<Pessoa>, familiaZero: FamiliaZero?, personalizadas: List<FamiliaPersonalizada>, usuario: Usuario?, rejeitados: Set<String> ->
+                Triple(pessoas, familiaZero, Triple(personalizadas, usuario, rejeitados))
+            }
+            
+            // Combinar com o último flow
+            val dadosFamiliaFlow = combine(
+                dadosParciaisFlow,
+                amigoRepository.observarTodosAmigos()
+            ) { parcial, amigos ->
+                val (pessoas, familiaZero, dadosExtras) = parcial
+                val (personalizadas, usuario, rejeitados) = dadosExtras
+                
                 val montagem = montarFamilias(
                     pessoas = pessoas,
                     familiaZero = familiaZero,
@@ -137,7 +152,7 @@ class FamiliaViewModel @Inject constructor(
 
                 val outrosFamiliares = pessoas.filter { pessoa ->
                     pessoa.id.isNotBlank() && pessoa.id !in montagem.membrosAssociados
-                }.distinctBy { it.id }
+                }.distinctBy { pessoa -> pessoa.id }
 
                 // Montar famílias rejeitadas com informações completas
                 val familiasRejeitadas = montarFamiliasRejeitadas(pessoas, rejeitados)
@@ -147,7 +162,8 @@ class FamiliaViewModel @Inject constructor(
                     outrosFamiliares = outrosFamiliares,
                     usuarioEhAdmin = usuario?.ehAdministrador == true,
                     familiasPendentes = montagem.familiasPendentes,
-                    familiasRejeitadas = familiasRejeitadas
+                    familiasRejeitadas = familiasRejeitadas,
+                    amigos = amigos
                 )
             }
 
@@ -168,7 +184,8 @@ class FamiliaViewModel @Inject constructor(
                         familiasMonoparentaisPendentes = dados.familiasPendentes,
                         mostrarDialogFamiliaPendente = primeiraPendente != null && !atual.mostrarDialogFamiliaPendente,
                         familiaPendenteAtual = primeiraPendente,
-                        familiasRejeitadas = dados.familiasRejeitadas
+                        familiasRejeitadas = dados.familiasRejeitadas,
+                        amigos = dados.amigos
                     )
                 }
             }
@@ -621,6 +638,49 @@ class FamiliaViewModel @Inject constructor(
             }
         }
     }
+    
+    /**
+     * Vincula um familiar a um amigo
+     */
+    fun vincularFamiliarAoAmigo(amigoId: String, familiarId: String) {
+        viewModelScope.launch {
+            try {
+                val amigo = amigoRepository.buscarPorId(amigoId)
+                if (amigo != null) {
+                    val familiaresAtualizados = amigo.familiaresVinculados.toMutableList()
+                    if (familiarId !in familiaresAtualizados) {
+                        familiaresAtualizados.add(familiarId)
+                        val amigoAtualizado = amigo.copy(
+                            familiaresVinculados = familiaresAtualizados,
+                            modificadoEm = Date()
+                        )
+                        amigoRepository.salvar(amigoAtualizado)
+                        Timber.d("✅ Familiar vinculado ao amigo: ${amigo.nome}")
+                    }
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao vincular familiar ao amigo")
+            }
+        }
+    }
+    
+    /**
+     * Exclui um amigo
+     */
+    fun excluirAmigo(amigoId: String) {
+        viewModelScope.launch {
+            try {
+                val resultado = amigoRepository.deletar(amigoId)
+                resultado.onSuccess {
+                    Timber.d("✅ Amigo excluído: $amigoId")
+                }.onFailure { erro ->
+                    Timber.e(erro, "❌ Erro ao excluir amigo")
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao excluir amigo")
+            }
+        }
+    }
 
     fun atualizarNomeFamilia(familia: FamiliaUiModel, novoNome: String) {
         val nomeLimpo = novoNome.trim()
@@ -718,7 +778,7 @@ class FamiliaViewModel @Inject constructor(
             val parentesColateraisFlatten = grupo.parentesColaterais.values.flatten()
             
             val idsAssociados = mutableSetOf<String>().apply {
-                conjuguePrincipal?.id?.takeIf { it.isNotBlank() }?.let { add(it) }
+                raiz.id.takeIf { it.isNotBlank() }?.let { add(it) }
                 conjugueSecundario?.id?.takeIf { it.isNotBlank() }?.let { add(it) }
                 grupo.filhos.forEach { filho ->
                     filho.id.takeIf { it.isNotBlank() }?.let { add(it) }
@@ -900,7 +960,8 @@ private data class DadosFamilia(
     val outrosFamiliares: List<Pessoa>,
     val usuarioEhAdmin: Boolean,
     val familiasPendentes: List<FamiliaMonoparentalPendente> = emptyList(),
-    val familiasRejeitadas: List<FamiliaMonoparentalPendente> = emptyList()
+    val familiasRejeitadas: List<FamiliaMonoparentalPendente> = emptyList(),
+    val amigos: List<Amigo> = emptyList()
 )
 
 data class FamiliaUiModel(
@@ -937,7 +998,8 @@ data class FamiliaState(
     val familiasMonoparentaisPendentes: List<FamiliaMonoparentalPendente> = emptyList(),
     val mostrarDialogFamiliaPendente: Boolean = false,
     val familiaPendenteAtual: FamiliaMonoparentalPendente? = null,
-    val familiasRejeitadas: List<FamiliaMonoparentalPendente> = emptyList()
+    val familiasRejeitadas: List<FamiliaMonoparentalPendente> = emptyList(),
+    val amigos: List<Amigo> = emptyList()
 )
 
 private fun TreeNodeData.flatten(): List<FamiliaPessoaItem> {

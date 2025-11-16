@@ -246,6 +246,29 @@ class UsuarioRepository @Inject constructor(
     }
     
     /**
+     * Busca o usuário mais antigo (primeiro cadastro)
+     * Retorna o usuário com a data de criação mais antiga
+     */
+    suspend fun buscarUsuarioMaisAntigo(): Result<Usuario?> {
+        return try {
+            val resultado = buscarTodosUsuarios()
+            
+            resultado.map { usuarios ->
+                if (usuarios.isEmpty()) {
+                    null
+                } else {
+                    // Ordenar por data de criação (mais antigo primeiro) e pegar o primeiro
+                    usuarios.minByOrNull { it.criadoEm.time }
+                }
+            }
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao buscar usuário mais antigo")
+            Result.failure(e)
+        }
+    }
+    
+    /**
      * Promove ou rebaixa um usuário a administrador
      */
     suspend fun promoverAdmin(userId: String, ehAdmin: Boolean): Result<Unit> {
@@ -261,6 +284,93 @@ class UsuarioRepository @Inject constructor(
             
         } catch (e: Exception) {
             Timber.e(e, "❌ Erro ao ${if (ehAdmin) "promover" else "rebaixar"} admin")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Promove um usuário a ADMIN SÊNIOR
+     * Apenas um ADMIN SÊNIOR pode promover outros para ADMIN SÊNIOR
+     * 
+     * @param promotorId ID do usuário que está promovendo (deve ser ADMIN SR)
+     * @param userId ID do usuário a ser promovido
+     */
+    suspend fun promoverAdminSenior(promotorId: String, userId: String): Result<Unit> {
+        return try {
+            // Verificar se o promotor é ADMIN SR
+            val promotor = buscarPorId(promotorId)
+            if (promotor == null || !promotor.ehAdministradorSenior) {
+                return Result.failure(Exception("Apenas ADMIN SÊNIOR pode promover outros para ADMIN SÊNIOR"))
+            }
+            
+            // Buscar usuário a ser promovido
+            val usuario = buscarPorId(userId)
+            if (usuario == null) {
+                return Result.failure(Exception("Usuário não encontrado"))
+            }
+            
+            // Promover (também promove para admin comum se não for)
+            val atualizado = usuario.copy(
+                ehAdministrador = true,
+                ehAdministradorSenior = true
+            )
+            atualizar(atualizado)
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao promover ADMIN SÊNIOR")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Verifica se já existe um ADMIN SÊNIOR no sistema
+     */
+    suspend fun existeAdminSenior(): Boolean {
+        return try {
+            val resultado = buscarTodosUsuarios()
+            resultado.getOrNull()?.any { it.ehAdministradorSenior } ?: false
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao verificar se existe ADMIN SÊNIOR")
+            false
+        }
+    }
+    
+    /**
+     * Promove automaticamente o usuário mais antigo para ADMIN SÊNIOR
+     * Executa apenas uma vez - se já existir um ADMIN SR, não faz nada
+     */
+    suspend fun promoverPrimeiroAdminSenior(): Result<Unit> {
+        return try {
+            // Verificar se já existe um ADMIN SR
+            if (existeAdminSenior()) {
+                Timber.d("✅ Já existe um ADMIN SÊNIOR no sistema")
+                return Result.success(Unit)
+            }
+            
+            // Buscar usuário mais antigo
+            val resultado = buscarUsuarioMaisAntigo()
+            val usuarioMaisAntigo = resultado.getOrNull()
+            
+            if (usuarioMaisAntigo == null) {
+                Timber.w("⚠️ Nenhum usuário encontrado para promover a ADMIN SÊNIOR")
+                return Result.failure(Exception("Nenhum usuário encontrado"))
+            }
+            
+            // Promover para ADMIN SÊNIOR (e também para admin comum)
+            val atualizado = usuarioMaisAntigo.copy(
+                ehAdministrador = true,
+                ehAdministradorSenior = true
+            )
+            
+            val resultadoAtualizacao = atualizar(atualizado)
+            resultadoAtualizacao.onSuccess {
+                Timber.d("✅ Usuário mais antigo promovido a ADMIN SÊNIOR: ${usuarioMaisAntigo.nome} (${usuarioMaisAntigo.id})")
+            }
+            
+            resultadoAtualizacao
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao promover primeiro ADMIN SÊNIOR")
             Result.failure(e)
         }
     }

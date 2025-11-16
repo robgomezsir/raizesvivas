@@ -362,7 +362,7 @@ object ParentescoCalculator {
     @Suppress("unused")
     private fun determinarDescendente(
         geracao: Int,
-        pessoa: Pessoa,
+        @Suppress("UNUSED_PARAMETER") pessoa: Pessoa,
         descendente: Pessoa
     ): String {
         val genero = descendente.genero

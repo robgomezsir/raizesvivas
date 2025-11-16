@@ -1,6 +1,8 @@
 package com.raizesvivas.app.presentation.components
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -143,9 +145,11 @@ private fun NotificacoesContent(
         HorizontalDivider()
 
         if (notificacoes.isNotEmpty()) {
+            val scrollState = rememberScrollState()
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .horizontalScroll(scrollState)
                     .padding(horizontal = 20.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -295,6 +299,10 @@ private fun NotificacaoItem(
                         MaterialTheme.colorScheme.tertiaryContainer
                     com.raizesvivas.app.domain.model.TipoNotificacao.CONQUISTA_DESBLOQUEADA -> 
                         MaterialTheme.colorScheme.secondaryContainer
+                    com.raizesvivas.app.domain.model.TipoNotificacao.ANIVERSARIO -> 
+                        MaterialTheme.colorScheme.tertiaryContainer
+                    com.raizesvivas.app.domain.model.TipoNotificacao.ADMIN_MENSAGEM -> 
+                        MaterialTheme.colorScheme.primaryContainer
                     else -> 
                         MaterialTheme.colorScheme.primaryContainer
                 }
@@ -308,6 +316,10 @@ private fun NotificacaoItem(
                                 Icons.Default.FamilyRestroom
                             com.raizesvivas.app.domain.model.TipoNotificacao.CONQUISTA_DESBLOQUEADA -> 
                                 Icons.Default.Star
+                            com.raizesvivas.app.domain.model.TipoNotificacao.ANIVERSARIO -> 
+                                Icons.Default.Cake
+                            com.raizesvivas.app.domain.model.TipoNotificacao.ADMIN_MENSAGEM -> 
+                                Icons.Default.AdminPanelSettings
                             else -> 
                                 Icons.Default.Info
                         },
@@ -318,6 +330,10 @@ private fun NotificacaoItem(
                                 MaterialTheme.colorScheme.onTertiaryContainer
                             com.raizesvivas.app.domain.model.TipoNotificacao.CONQUISTA_DESBLOQUEADA -> 
                                 MaterialTheme.colorScheme.onSecondaryContainer
+                            com.raizesvivas.app.domain.model.TipoNotificacao.ANIVERSARIO -> 
+                                MaterialTheme.colorScheme.onTertiaryContainer
+                            com.raizesvivas.app.domain.model.TipoNotificacao.ADMIN_MENSAGEM ->
+                                MaterialTheme.colorScheme.onPrimaryContainer
                             else -> 
                                 MaterialTheme.colorScheme.onPrimaryContainer
                         }

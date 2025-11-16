@@ -382,6 +382,36 @@ object RoomMigrations {
         }
     }
 
+    val MIGRATION_11_12 = object : Migration(11, 12) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // Adicionar campo ehAdministradorSenior na tabela usuarios
+            db.execSQL(
+                """
+                ALTER TABLE usuarios ADD COLUMN ehAdministradorSenior INTEGER NOT NULL DEFAULT 0
+                """.trimIndent()
+            )
+        }
+    }
+
+    val MIGRATION_12_13 = object : Migration(12, 13) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // Criar tabela amigos
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS amigos (
+                    id TEXT NOT NULL PRIMARY KEY,
+                    nome TEXT NOT NULL,
+                    telefone TEXT,
+                    familiaresVinculados TEXT NOT NULL,
+                    criadoPor TEXT NOT NULL,
+                    criadoEm INTEGER NOT NULL,
+                    modificadoEm INTEGER NOT NULL
+                )
+                """.trimIndent()
+            )
+        }
+    }
+
     fun getAllMigrations(): Array<Migration> {
         return arrayOf(
             MIGRATION_1_2,
@@ -393,7 +423,9 @@ object RoomMigrations {
             MIGRATION_7_8,
             MIGRATION_8_9,
             MIGRATION_9_10,
-            MIGRATION_10_11
+            MIGRATION_10_11,
+            MIGRATION_11_12,
+            MIGRATION_12_13
         )
     }
 }

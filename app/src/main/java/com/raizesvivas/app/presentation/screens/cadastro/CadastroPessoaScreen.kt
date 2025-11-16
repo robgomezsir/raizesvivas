@@ -506,11 +506,14 @@ fun CadastroPessoaScreen(
                 modifier = Modifier.padding(bottom = 8.dp)
             )
             
-            // Seleção de Pai
+            // Seleção de Pai - apenas pessoas do gênero Masculino ou Outro
             PessoaSelector(
                 label = "Pai",
                 pessoaId = state.paiId,
-                pessoasDisponiveis = pessoasDisponiveis.filter { it.id != pessoaId },
+                pessoasDisponiveis = pessoasDisponiveis.filter { 
+                    it.id != pessoaId && 
+                    (it.genero == Genero.MASCULINO || it.genero == Genero.OUTRO)
+                },
                 onPessoaSelecionada = { pessoa -> viewModel.onPaiChanged(pessoa?.id) },
                 mostrarAdicionarNovo = true,
                 onAdicionarNovo = { onNavigateToCadastroPessoa(null) },
@@ -519,11 +522,14 @@ fun CadastroPessoaScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Seleção de Mãe
+            // Seleção de Mãe - apenas pessoas do gênero Feminino ou Outro
             PessoaSelector(
                 label = "Mãe",
                 pessoaId = state.maeId,
-                pessoasDisponiveis = pessoasDisponiveis.filter { it.id != pessoaId },
+                pessoasDisponiveis = pessoasDisponiveis.filter { 
+                    it.id != pessoaId && 
+                    (it.genero == Genero.FEMININO || it.genero == Genero.OUTRO)
+                },
                 onPessoaSelecionada = { pessoa -> viewModel.onMaeChanged(pessoa?.id) },
                 mostrarAdicionarNovo = true,
                 onAdicionarNovo = { onNavigateToCadastroPessoa(null) },
@@ -858,7 +864,7 @@ fun DialogDuplicatas(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     LinearProgressIndicator(
-                                        progress = duplicata.scoreSimilaridade,
+                                        progress = { duplicata.scoreSimilaridade },
                                         modifier = Modifier
                                             .weight(1f)
                                             .height(6.dp)
@@ -899,15 +905,13 @@ fun DialogDuplicatas(
             }
         },
         dismissButton = {
-            if (isBloqueio) {
-                // Em caso de bloqueio, não há dismiss (só "Entendi")
-                null
-            } else {
+            if (!isBloqueio) {
                 // Em caso de aviso, botão "Cancelar"
                 TextButton(onClick = onCancelar) {
                     Text("Cancelar")
                 }
             }
+            // Em caso de bloqueio, não há dismiss (só "Entendi")
         }
     )
 }

@@ -16,6 +16,7 @@ import com.raizesvivas.app.data.local.dao.ConquistaDao
 import com.raizesvivas.app.data.local.dao.PerfilGamificacaoDao
 import com.raizesvivas.app.data.local.dao.FamiliaPersonalizadaDao
 import com.raizesvivas.app.data.local.dao.UsuarioDao
+import com.raizesvivas.app.data.local.dao.AmigoDao
 import com.raizesvivas.app.data.local.migration.RoomMigrations
 import dagger.Module
 import dagger.Provides
@@ -148,6 +149,17 @@ object DatabaseModule {
         database: RaizesVivasDatabase
     ): FamiliaPersonalizadaDao {
         return database.familiaPersonalizadaDao()
+    }
+    
+    /**
+     * Provê DAO de Amigos
+     */
+    @Provides
+    @Singleton
+    fun provideAmigoDao(
+        database: RaizesVivasDatabase
+    ): AmigoDao {
+        return database.amigoDao()
     }
     
     /**

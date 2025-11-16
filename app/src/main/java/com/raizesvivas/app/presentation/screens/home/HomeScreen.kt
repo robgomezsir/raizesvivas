@@ -5,11 +5,16 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.draw.clip
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -38,7 +43,11 @@ import com.raizesvivas.app.domain.model.TipoNotificacao
 import com.raizesvivas.app.presentation.viewmodel.NotificacaoViewModel
 import com.raizesvivas.app.presentation.components.NotificacoesModal
 import com.raizesvivas.app.presentation.components.ModalFestivoAniversario
+import com.raizesvivas.app.presentation.components.ModalNotificacaoAdmin
+import com.raizesvivas.app.presentation.components.ModalNovaMensagem
 import com.raizesvivas.app.presentation.components.ModalSelecionarFamiliaZero
+import com.raizesvivas.app.presentation.screens.chat.ChatViewModel
+import com.raizesvivas.app.presentation.screens.familia.FamiliaViewModel
 import com.raizesvivas.app.presentation.theme.LocalThemeController
 import com.raizesvivas.app.presentation.theme.ThemeMode
 import kotlinx.coroutines.launch
@@ -63,6 +72,7 @@ fun HomeScreen(
     onNavigateToGerenciarEdicoes: () -> Unit = {},
     onNavigateToResolverDuplicatas: () -> Unit = {},
     onNavigateToGerenciarUsuarios: () -> Unit = {},
+    onNavigateToConfiguracoes: () -> Unit = {},
     onNavigateToChat: (String, String) -> Unit = { _, _ -> } // destinatarioId, destinatarioNome
 ) {
     val state by viewModel.state.collectAsState()
@@ -73,6 +83,24 @@ fun HomeScreen(
     val notificacaoViewModel: NotificacaoViewModel = hiltViewModel()
     val notificacoes by notificacaoViewModel.notificacoes.collectAsState()
     val contadorNaoLidas by notificacaoViewModel.contadorNaoLidas.collectAsState()
+    
+    // ViewModel de Chat para observar mensagens não lidas
+    val chatViewModel: ChatViewModel = hiltViewModel()
+    val mensagensNaoLidas by chatViewModel.mensagensNaoLidas.collectAsState()
+    
+    // ViewModel de Família para obter lista de famílias
+    val familiaViewModel: FamiliaViewModel = hiltViewModel()
+    val familiaState by familiaViewModel.state.collectAsState()
+    
+    // Estado de "Minha família"
+    val minhaFamiliaId by viewModel.minhaFamiliaId.collectAsState()
+    val minhaFamiliaNome by viewModel.minhaFamiliaNome.collectAsState()
+    val mostrarModalMinhaFamilia by viewModel.mostrarModalMinhaFamilia.collectAsState()
+    
+    // Atualizar nome da "Minha família" quando as famílias mudarem
+    LaunchedEffect(familiaState.familias, minhaFamiliaId) {
+        viewModel.atualizarNomeMinhaFamilia(familiaState.familias)
+    }
     
     // Estado local para busca expansível
     var mostrarBusca by remember { mutableStateOf(false) }
@@ -91,11 +119,22 @@ fun HomeScreen(
     var filaAniversarios by remember { mutableStateOf<List<Pair<Notificacao, String>>>(emptyList()) }
     var indiceAniversarioAtual by remember { mutableIntStateOf(0) }
     
+    // Estado local para modal de notificação ADMIN
+    var mostrarModalAdminMensagem by remember { mutableStateOf(false) }
+    var notificacaoAdminMensagem by remember { mutableStateOf<Notificacao?>(null) }
+    
+    // Estado local para modal de nova mensagem
+    var mostrarModalNovaMensagem by remember { mutableStateOf(false) }
+    var remetenteIdMensagem by remember { mutableStateOf<String?>(null) }
+    var remetenteNomeMensagem by remember { mutableStateOf<String?>(null) }
+    var quantidadeMensagens by remember { mutableIntStateOf(0) }
+    val mensagensJaProcessadas = remember { mutableStateOf(mutableSetOf<String>()) } // IDs de remetentes já processados
+    
     // CoroutineScope para operações assíncronas
     val scope = rememberCoroutineScope()
     
     // Verificar aniversários de hoje ao entrar na tela e quando pessoas carregarem
-    LaunchedEffect(pessoas.isNotEmpty()) {
+    LaunchedEffect(pessoas.isNotEmpty(), notificacoes) {
         // Aguardar um pouco após o login para garantir que tudo está carregado
         kotlinx.coroutines.delay(1000)
         
@@ -116,9 +155,40 @@ fun HomeScreen(
             } ?: false
         }
         
-        // Criar fila de notificações com nomes das pessoas apenas se ainda não foi criada
-        if (aniversariantesHoje.isNotEmpty() && filaAniversarios.isEmpty()) {
-            val fila = aniversariantesHoje.map { aniversariante ->
+        // Buscar IDs de pessoas que já têm notificações de aniversário marcadas como lidas hoje
+        val hojeInicio = java.util.Calendar.getInstance().apply {
+            set(java.util.Calendar.HOUR_OF_DAY, 0)
+            set(java.util.Calendar.MINUTE, 0)
+            set(java.util.Calendar.SECOND, 0)
+            set(java.util.Calendar.MILLISECOND, 0)
+        }.time
+        
+        val hojeFim = java.util.Calendar.getInstance().apply {
+            set(java.util.Calendar.HOUR_OF_DAY, 23)
+            set(java.util.Calendar.MINUTE, 59)
+            set(java.util.Calendar.SECOND, 59)
+            set(java.util.Calendar.MILLISECOND, 999)
+        }.time
+        
+        val aniversariosJaProcessados = notificacoes
+            .filter { notificacao ->
+                notificacao.tipo == TipoNotificacao.ANIVERSARIO &&
+                notificacao.lida &&
+                notificacao.criadaEm.after(hojeInicio) &&
+                notificacao.criadaEm.before(hojeFim)
+            }
+            .mapNotNull { it.relacionadoId }
+            .toSet()
+        
+        // Filtrar aniversariantes que ainda não foram processados
+        val aniversariantesNaoProcessados = aniversariantesHoje.filter { aniversariante ->
+            aniversariante.id !in aniversariosJaProcessados
+        }
+        
+        // Criar fila de notificações apenas para aniversariantes não processados
+        // e apenas se ainda não foi criada
+        if (aniversariantesNaoProcessados.isNotEmpty() && filaAniversarios.isEmpty()) {
+            val fila = aniversariantesNaoProcessados.map { aniversariante ->
                 val idade = aniversariante.calcularIdade()
                 val nomeExibicao = aniversariante.getNomeExibicao()
                 
@@ -138,10 +208,85 @@ fun HomeScreen(
                         "idade" to (idade?.toString() ?: "")
                     )
                 )
+                
+                // Salvar notificação no banco de dados para que possa ser verificada depois
+                scope.launch {
+                    notificacaoViewModel.criarNotificacao(notificacao)
+                }
+                
                 Pair(notificacao, nomeExibicao)
             }
             filaAniversarios = fila
             indiceAniversarioAtual = 0
+        } else if (aniversariantesNaoProcessados.isEmpty() && filaAniversarios.isNotEmpty()) {
+            // Se não há mais aniversariantes não processados, limpar a fila
+            filaAniversarios = emptyList()
+            indiceAniversarioAtual = 0
+            notificacaoAniversario = null
+            pessoaAniversarioNome = null
+            mostrarModalAniversario = false
+        }
+    }
+    
+    // Verificar notificações ADMIN_MENSAGEM não lidas ao entrar na tela
+    LaunchedEffect(notificacoes) {
+        // Aguardar um pouco após o login para garantir que tudo está carregado
+        kotlinx.coroutines.delay(1500)
+        
+        // Verificar se já há uma notificação ADMIN_MENSAGEM não lida
+        if (!mostrarModalAdminMensagem && notificacaoAdminMensagem == null) {
+            val adminMensagem = notificacaoViewModel.buscarAdminMensagemNaoLida()
+            if (adminMensagem != null) {
+                notificacaoAdminMensagem = adminMensagem
+                mostrarModalAdminMensagem = true
+            }
+        }
+    }
+    
+    // Observar mensagens não lidas e exibir modal quando houver novas
+    // Detecta tanto no login quanto quando novas mensagens chegam em tempo real
+    LaunchedEffect(mensagensNaoLidas) {
+        // Verificar se há mensagens não lidas e se não há outros modais abertos
+        if (!mostrarModalAdminMensagem && 
+            !mostrarModalNovaMensagem && 
+            !mostrarModalAniversario && 
+            mensagensNaoLidas.isNotEmpty()) {
+            
+            // Encontrar o primeiro remetente com mensagens não lidas que ainda não foi processado
+            val remetenteComMensagens = mensagensNaoLidas.entries.firstOrNull { (remetenteId, quantidade) ->
+                quantidade > 0 && remetenteId !in mensagensJaProcessadas.value
+            }
+            
+            if (remetenteComMensagens != null) {
+                val (remetenteId, quantidade) = remetenteComMensagens
+                
+                // Aguardar um pouco para garantir que os usuários foram carregados (apenas na primeira vez)
+                if (mensagensJaProcessadas.value.isEmpty()) {
+                    kotlinx.coroutines.delay(2000) // Delay maior apenas no login
+                } else {
+                    kotlinx.coroutines.delay(300) // Delay menor para mensagens em tempo real
+                }
+                
+                // Verificar novamente se ainda não há outros modais abertos (pode ter mudado durante o delay)
+                if (!mostrarModalAdminMensagem && 
+                    !mostrarModalNovaMensagem && 
+                    !mostrarModalAniversario) {
+                    
+                    // Buscar nome do remetente usando o ChatViewModel que já tem a lista de usuários
+                    val usuarios = chatViewModel.usuarios.value
+                    val remetente = usuarios.firstOrNull { it.id == remetenteId }
+                    val nomeRemetente = remetente?.nome ?: "Usuário"
+                    
+                    // Exibir modal
+                    remetenteIdMensagem = remetenteId
+                    remetenteNomeMensagem = nomeRemetente
+                    quantidadeMensagens = quantidade
+                    mostrarModalNovaMensagem = true
+                    
+                    // Marcar como processado para não exibir novamente
+                    mensagensJaProcessadas.value.add(remetenteId)
+                }
+            }
         }
     }
     
@@ -209,12 +354,14 @@ fun HomeScreen(
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val themeController = LocalThemeController.current
     val isAdmin = state.usuario?.ehAdministrador == true
+    val isAdminSenior = state.usuario?.ehAdministradorSenior == true
     
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
             HomeDrawerContent(
                 isAdmin = isAdmin,
+                isAdminSenior = isAdminSenior,
                 notificacoesNaoLidas = contadorNaoLidas,
                 onClose = { scope.launch { drawerState.close() } },
                 onOpenNotificacoes = {
@@ -246,6 +393,12 @@ fun HomeScreen(
                     scope.launch {
                         drawerState.close()
                         onNavigateToGerenciarUsuarios()
+                    }
+                },
+                onConfiguracoes = {
+                    scope.launch {
+                        drawerState.close()
+                        onNavigateToConfiguracoes()
                     }
                 },
                 onSair = {
@@ -390,7 +543,56 @@ fun HomeScreen(
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
-                // 2. Card do usuário vinculado (parentesco) - Segundo
+                // 2. Card "Minha família" - Segundo
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                            .clickable { viewModel.abrirModalMinhaFamilia() },
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // Nome da família ou placeholder
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = minhaFamiliaNome?.uppercase() ?: "MINHA FAMÍLIA",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                            Text(
+                                text = if (minhaFamiliaNome != null) "Família personalizada" else "Toque para selecionar",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                            )
+                        }
+                        
+                        // Ícone
+                        IconButton(
+                            onClick = { viewModel.abrirModalMinhaFamilia() }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Home,
+                                contentDescription = "Minha família",
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // 3. Card do usuário vinculado (parentesco) - Terceiro
                 pessoaVinculada?.let { pessoa ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -531,7 +733,7 @@ fun HomeScreen(
                             Icon(
                                 painter = painterResource(id = com.raizesvivas.app.R.drawable.familia),
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                // tint removido para preservar cores originais da imagem PNG
                                 modifier = Modifier.size(32.dp)
                             )
                             Spacer(modifier = Modifier.height(8.dp))
@@ -634,6 +836,23 @@ fun HomeScreen(
                 )
             }
             
+            // Modal para selecionar "Minha família"
+            if (mostrarModalMinhaFamilia) {
+                ModalSelecionarMinhaFamilia(
+                    familias = familiaState.familias,
+                    familiaSelecionadaId = minhaFamiliaId,
+                    onDismiss = { viewModel.fecharModalMinhaFamilia() },
+                    onSelecionar = { familiaId, familiaNome ->
+                        viewModel.definirMinhaFamilia(familiaId, familiaNome)
+                        viewModel.fecharModalMinhaFamilia()
+                    },
+                    onRemover = {
+                        viewModel.removerMinhaFamilia()
+                        viewModel.fecharModalMinhaFamilia()
+                    }
+                )
+            }
+            
             PullToRefreshContainer(
                 state = pullToRefreshState,
                 modifier = Modifier.align(Alignment.TopCenter)
@@ -669,29 +888,35 @@ fun HomeScreen(
                     notificacao = notificacao,
                     pessoaNome = pessoaAniversarioNome,
                     onEnviarMensagem = {
+                        // IMPORTANTE: Capturar os valores da notificação atual ANTES de avançar o índice
+                        val notificacaoAtual = notificacao
+                        val pessoaIdAtual = notificacao.relacionadoId
+                        val pessoaNomeAtual = pessoaAniversarioNome
+                        val indiceAtual = indiceAniversarioAtual
+                        
                         mostrarModalAniversario = false
-                        // Marcar como lida
+                        
+                        // Marcar como lida e navegar usando os valores capturados
                         scope.launch {
-                            notificacaoViewModel.marcarComoLida(notificacao)
+                            notificacaoViewModel.marcarComoLida(notificacaoAtual)
                             
-                            // Verificar se o aniversariante é usuário da app
-                            val pessoaId = notificacao.relacionadoId
-                            if (pessoaId != null) {
-                                val usuario = viewModel.buscarUsuarioPorPessoaId(pessoaId)
+                            // Verificar se o aniversariante é usuário da app usando os valores capturados
+                            if (pessoaIdAtual != null) {
+                                val usuario = viewModel.buscarUsuarioPorPessoaId(pessoaIdAtual)
                                 if (usuario != null) {
-                                    // Se for usuário, navegar para o chat
-                                    val nome = pessoaAniversarioNome ?: usuario.nome
+                                    // Se for usuário, navegar para o chat usando os valores capturados
+                                    val nome = pessoaNomeAtual ?: usuario.nome
                                     onNavigateToChat(usuario.id, nome)
                                 } else {
-                                    // Se não for usuário, navegar para detalhes da pessoa
-                                    onNavigateToDetalhesPessoa(pessoaId)
+                                    // Se não for usuário, navegar para detalhes da pessoa usando o ID capturado
+                                    onNavigateToDetalhesPessoa(pessoaIdAtual)
                                 }
                             }
                         }
                         
-                        // Avançar para próximo aniversário da fila
-                        if (indiceAniversarioAtual < filaAniversarios.size - 1) {
-                            indiceAniversarioAtual++
+                        // Avançar para próximo aniversário da fila APÓS capturar os valores
+                        if (indiceAtual < filaAniversarios.size - 1) {
+                            indiceAniversarioAtual = indiceAtual + 1
                         } else {
                             // Limpar fila quando terminar
                             @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
@@ -747,6 +972,45 @@ fun HomeScreen(
                 )
             }
         }
+        
+        // Modal de notificação ADMIN_MENSAGEM
+        notificacaoAdminMensagem?.let { notificacao ->
+            if (mostrarModalAdminMensagem) {
+                ModalNotificacaoAdmin(
+                    notificacao = notificacao,
+                    onMarcarComoLida = {
+                        scope.launch {
+                            notificacaoViewModel.marcarComoLida(notificacao)
+                            mostrarModalAdminMensagem = false
+                            notificacaoAdminMensagem = null
+                        }
+                    },
+                    onDownloadClicked = { notif ->
+                        notificacaoViewModel.registrarCliqueDownloadAtualizacao(notif)
+                    }
+                )
+            }
+        }
+        
+        // Modal de nova mensagem no chat
+        if (mostrarModalNovaMensagem && remetenteIdMensagem != null && remetenteNomeMensagem != null) {
+            ModalNovaMensagem(
+                remetenteNome = remetenteNomeMensagem!!,
+                quantidadeMensagens = quantidadeMensagens,
+                onAbrirChat = {
+                    mostrarModalNovaMensagem = false
+                    val remetenteId = remetenteIdMensagem
+                    val remetenteNome = remetenteNomeMensagem
+                    if (remetenteId != null && remetenteNome != null) {
+                        onNavigateToChat(remetenteId, remetenteNome)
+                    }
+                },
+                onIgnorar = {
+                    mostrarModalNovaMensagem = false
+                    // Não remover de mensagensJaProcessadas para não exibir novamente
+                }
+            )
+        }
     }
 }
 
@@ -773,14 +1037,16 @@ fun StatCard(
         ) {
             when {
                 painter != null -> {
+                    // Para imagens drawable (PNG), não aplicar tint para preservar cores originais
                     Icon(
                         painter = painter,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        // tint removido para preservar cores originais das imagens PNG
                         modifier = Modifier.size(32.dp)
                     )
                 }
                 icon != null -> {
+                    // Para ImageVector, manter tint para seguir o tema
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
@@ -949,9 +1215,137 @@ fun ModalEditarNomeFamiliaZero(
     )
 }
 
+/**
+ * Modal para selecionar "Minha família"
+ */
+@Composable
+fun ModalSelecionarMinhaFamilia(
+    familias: List<com.raizesvivas.app.presentation.screens.familia.FamiliaUiModel>,
+    familiaSelecionadaId: String?,
+    onDismiss: () -> Unit,
+    onSelecionar: (String, String) -> Unit,
+    onRemover: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                imageVector = Icons.Default.Home,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+        },
+        title = {
+            Text(
+                text = "Selecionar Minha Família",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (familias.isEmpty()) {
+                    Text(
+                        text = "Nenhuma família disponível",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 400.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(familias, key = { it.id }) { familia ->
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .clickable {
+                                        onSelecionar(familia.id, familia.nomeExibicao)
+                                    },
+                                color = if (familia.id == familiaSelecionadaId) {
+                                    MaterialTheme.colorScheme.primaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.surfaceVariant
+                                }
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = familia.nomeExibicao,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = if (familia.id == familiaSelecionadaId) {
+                                                MaterialTheme.colorScheme.onPrimaryContainer
+                                            } else {
+                                                MaterialTheme.colorScheme.onSurfaceVariant
+                                            }
+                                        )
+                                        if (familia.conjuguePrincipal != null || familia.conjugueSecundario != null) {
+                                            Text(
+                                                text = buildString {
+                                                    familia.conjuguePrincipal?.let { append(it.nome) }
+                                                    if (familia.conjuguePrincipal != null && familia.conjugueSecundario != null) {
+                                                        append(" & ")
+                                                    }
+                                                    familia.conjugueSecundario?.let { append(it.nome) }
+                                                },
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = if (familia.id == familiaSelecionadaId) {
+                                                    MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                                                } else {
+                                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                                }
+                                            )
+                                        }
+                                    }
+                                    if (familia.id == familiaSelecionadaId) {
+                                        Icon(
+                                            imageVector = Icons.Default.CheckCircle,
+                                            contentDescription = "Selecionada",
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            if (familiaSelecionadaId != null) {
+                Button(
+                    onClick = onRemover
+                ) {
+                    Text("Remover seleção")
+                }
+            }
+        },
+        dismissButton = {
+            OutlinedButton(onClick = onDismiss) {
+                Text("Fechar")
+            }
+        }
+    )
+}
+
 @Composable
 fun HomeDrawerContent(
     isAdmin: Boolean,
+    isAdminSenior: Boolean = false,
     notificacoesNaoLidas: Int,
     onClose: () -> Unit,
     onOpenNotificacoes: () -> Unit,
@@ -959,6 +1353,7 @@ fun HomeDrawerContent(
     onGerenciarEdicoes: () -> Unit,
     onResolverDuplicatas: () -> Unit,
     onGerenciarUsuarios: () -> Unit,
+    onConfiguracoes: () -> Unit,
     onSair: () -> Unit,
     themeMode: ThemeMode,
     onThemeModeChange: (ThemeMode) -> Unit
@@ -1026,6 +1421,17 @@ fun HomeDrawerContent(
                     selected = false,
                     onClick = onGerenciarUsuarios,
                     icon = { Icon(Icons.Default.People, contentDescription = null) },
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                )
+            }
+            
+            // Configurações - apenas ADMIN SÊNIOR
+            if (isAdminSenior) {
+                NavigationDrawerItem(
+                    label = { Text("Configurações") },
+                    selected = false,
+                    onClick = onConfiguracoes,
+                    icon = { Icon(Icons.Default.Settings, contentDescription = null) },
                     modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                 )
             }

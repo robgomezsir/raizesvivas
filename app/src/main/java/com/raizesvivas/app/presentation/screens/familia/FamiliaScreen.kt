@@ -34,9 +34,11 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.FamilyRestroom
+import androidx.compose.material.icons.outlined.GroupAdd
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -85,6 +87,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.graphics.Color
+import com.raizesvivas.app.domain.model.Amigo
 import com.raizesvivas.app.domain.model.Genero
 import com.raizesvivas.app.domain.model.Pessoa
 import com.raizesvivas.app.presentation.components.TreeNodeData
@@ -96,7 +99,8 @@ import java.util.Locale
 fun FamiliaScreen(
     viewModel: FamiliaViewModel = hiltViewModel(),
     onNavigateToDetalhesPessoa: (String) -> Unit,
-    onNavigateToCadastroPessoa: () -> Unit = {}
+    onNavigateToCadastroPessoa: () -> Unit = {},
+    onNavigateToAdicionarAmigo: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
     val pullRefreshState = rememberPullToRefreshState()
@@ -122,9 +126,30 @@ fun FamiliaScreen(
     val pessoaParaConfirmarAdicao = remember { mutableStateOf<Pessoa?>(null) }
     val outrosFamiliaresExpandidos = rememberSaveable { mutableStateOf(false) }
     var familiasRejeitadasExpandidas by rememberSaveable { mutableStateOf(false) }
+    val amigosExpandidos = rememberSaveable { mutableStateOf(false) }
+    val amigoParaVincular = remember { mutableStateOf<com.raizesvivas.app.domain.model.Amigo?>(null) }
+    val amigoParaExcluir = remember { mutableStateOf<com.raizesvivas.app.domain.model.Amigo?>(null) }
     val nomeEditado = remember { mutableStateOf("") }
     var mostrarBusca by rememberSaveable { mutableStateOf(false) }
     var termoBusca by rememberSaveable { mutableStateOf("") }
+    
+    // Extrair todas as pessoas das famílias para uso em toda a tela
+    val todasPessoasDasFamilias = remember(state.familias) {
+        state.familias.flatMap { familia ->
+            val pessoas = mutableSetOf<Pessoa>()
+            // Adicionar cônjuges
+            familia.conjuguePrincipal?.let { pessoas.add(it) }
+            familia.conjugueSecundario?.let { pessoas.add(it) }
+            // Adicionar membros da árvore
+            familia.membrosFlatten.forEach { item ->
+                pessoas.add(item.pessoa)
+                item.conjuge?.let { pessoas.add(it) }
+            }
+            // Adicionar membros extras
+            familia.membrosExtras.forEach { pessoas.add(it) }
+            pessoas.toList()
+        }.distinctBy { pessoa -> pessoa.id }
+    }
     
     // Estado para drag and drop
     var familiaSendoArrastada by remember { mutableStateOf<String?>(null) }
@@ -257,24 +282,6 @@ fun FamiliaScreen(
                 }
 
                 else -> {
-                    // Extrair todas as pessoas das famílias para busca individual
-                    val todasPessoasDasFamilias = remember(state.familias) {
-                        state.familias.flatMap { familia ->
-                            val pessoas = mutableSetOf<Pessoa>()
-                            // Adicionar cônjuges
-                            familia.conjuguePrincipal?.let { pessoas.add(it) }
-                            familia.conjugueSecundario?.let { pessoas.add(it) }
-                            // Adicionar membros da árvore
-                            familia.membrosFlatten.forEach { item ->
-                                pessoas.add(item.pessoa)
-                                item.conjuge?.let { pessoas.add(it) }
-                            }
-                            // Adicionar membros extras
-                            familia.membrosExtras.forEach { pessoas.add(it) }
-                            pessoas.toList()
-                        }
-                    }
-                    
                     // Buscar pessoas individuais quando houver termo de busca
                     val pessoasFiltradas = remember(
                         todasPessoasDasFamilias,
@@ -661,6 +668,78 @@ fun FamiliaScreen(
                                 }
                             }
                         }
+                        
+                        // Seção de Amigos da Família (apenas quando não houver busca)
+                        if (!mostrarPessoasIndividuais && state.amigos.isNotEmpty()) {
+                            item {
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { amigosExpandidos.value = !amigosExpandidos.value },
+                                    shape = RoundedCornerShape(28.dp),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                                    ),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 20.dp, vertical = 16.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = "Amigo da Família",
+                                                    style = MaterialTheme.typography.titleMedium,
+                                                    fontWeight = FontWeight.SemiBold
+                                                )
+                                                Text(
+                                                    text = "Amigos próximos da família.",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                            Icon(
+                                                imageVector = if (amigosExpandidos.value) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                                                contentDescription = if (amigosExpandidos.value) "Recolher" else "Expandir",
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+
+                                        AnimatedVisibility(
+                                            visible = amigosExpandidos.value,
+                                            enter = fadeIn() + expandVertically(),
+                                            exit = fadeOut()
+                                        ) {
+                                            Column(
+                                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(top = 12.dp)
+                                            ) {
+                                                state.amigos.forEach { amigo ->
+                                                    AmigoCard(
+                                                        amigo = amigo,
+                                                        pessoasDisponiveis = todasPessoasDasFamilias + state.outrosFamiliares,
+                                                        onVincularFamiliar = {
+                                                            amigoParaVincular.value = amigo
+                                                        },
+                                                        onExcluirAmigo = {
+                                                            amigoParaExcluir.value = amigo
+                                                        }
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                     }
                 }
@@ -670,6 +749,20 @@ fun FamiliaScreen(
                 state = pullRefreshState,
                 modifier = Modifier.align(Alignment.TopCenter)
             )
+            
+            // FAB secundário para adicionar amigo (posicionado acima do FAB principal)
+            FloatingActionButton(
+                onClick = onNavigateToAdicionarAmigo,
+                containerColor = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(bottom = 80.dp, end = 16.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.GroupAdd,
+                    contentDescription = "Adicionar Amigo"
+                )
+            }
 
             state.erro?.let { mensagemErro ->
                 Box(
@@ -1104,6 +1197,210 @@ fun FamiliaScreen(
                 }
             }
         )
+    }
+    
+    // Modal para vincular familiar ao amigo
+    amigoParaVincular.value?.let { amigo ->
+        val pessoasDisponiveisParaVincular = remember(state.amigos, state.outrosFamiliares, todasPessoasDasFamilias) {
+            val todasPessoas = (todasPessoasDasFamilias + state.outrosFamiliares).distinctBy { pessoa -> pessoa.id }
+            todasPessoas.filter { pessoa ->
+                pessoa.id !in amigo.familiaresVinculados
+            }
+        }
+        
+        AlertDialog(
+            onDismissRequest = { amigoParaVincular.value = null },
+            title = {
+                Text(
+                    text = "Vincular Familiar a ${amigo.nome}",
+                    style = MaterialTheme.typography.titleLarge
+                )
+            },
+            text = {
+                if (pessoasDisponiveisParaVincular.isEmpty()) {
+                    Text(
+                        text = "Todos os familiares já estão vinculados a este amigo.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 320.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(pessoasDisponiveisParaVincular, key = { pessoa: Pessoa -> pessoa.id }) { pessoa ->
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .clickable(enabled = !state.isLoading) {
+                                        viewModel.vincularFamiliarAoAmigo(amigo.id, pessoa.id)
+                                        amigoParaVincular.value = null
+                                    },
+                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                                ) {
+                                    Text(
+                                        text = pessoa.getNomeExibicao(),
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    pessoa.calcularIdade()?.let { idade ->
+                                        Text(
+                                            text = "$idade anos",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        amigoParaVincular.value = null
+                    }
+                ) {
+                    Text("Fechar")
+                }
+            }
+        )
+    }
+    
+    // Modal de confirmação para excluir amigo
+    amigoParaExcluir.value?.let { amigo ->
+        AlertDialog(
+            onDismissRequest = { amigoParaExcluir.value = null },
+            title = {
+                Text(
+                    text = "Excluir Amigo",
+                    style = MaterialTheme.typography.titleLarge
+                )
+            },
+            text = {
+                Text(
+                    text = "Deseja realmente excluir ${amigo.nome}? Esta ação não pode ser desfeita.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.excluirAmigo(amigo.id)
+                        amigoParaExcluir.value = null
+                    },
+                    enabled = !state.isLoading
+                ) {
+                    Text("Excluir")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { amigoParaExcluir.value = null }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun AmigoCard(
+    amigo: Amigo,
+    pessoasDisponiveis: List<Pessoa>,
+    onVincularFamiliar: () -> Unit,
+    onExcluirAmigo: () -> Unit
+) {
+    val familiaresVinculados = remember(amigo.familiaresVinculados, pessoasDisponiveis) {
+        pessoasDisponiveis
+            .filter { it.id in amigo.familiaresVinculados }
+            .distinctBy { pessoa -> pessoa.id }
+    }
+    
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp)),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+        tonalElevation = 1.dp
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = amigo.getNomeExibicao(),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    amigo.telefone?.let { telefone ->
+                        if (telefone.isNotBlank()) {
+                            Text(
+                                text = telefone,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+                
+                // Botões de ação
+                Row {
+                    // Botão de excluir
+                    IconButton(onClick = onExcluirAmigo) {
+                        Icon(
+                            imageVector = Icons.Filled.Delete,
+                            contentDescription = "Excluir Amigo",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
+                    // Botão + para vincular mais familiares
+                    IconButton(onClick = onVincularFamiliar) {
+                        Icon(
+                            imageVector = Icons.Filled.Add,
+                            contentDescription = "Vincular Familiar",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+            
+            // Lista de familiares vinculados
+            if (familiaresVinculados.isNotEmpty()) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant, thickness = 1.dp)
+                Text(
+                    text = "Vinculado(s):",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    familiaresVinculados.forEach { familiar ->
+                        Text(
+                            text = "• ${familiar.getNomeExibicao()}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 

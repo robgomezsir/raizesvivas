@@ -1,6 +1,5 @@
 package com.raizesvivas.app.presentation.navigation
 
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -60,9 +59,7 @@ fun MainNavigation(
     Scaffold(
         bottomBar = {
             if (mostrarBottomNav) {
-                NavigationBar(
-                    modifier = Modifier.height(64.dp) // Altura padrão do NavigationBar menos 4.dp
-                ) {
+                NavigationBar {
                     // Home
                     NavigationBarItem(
                         icon = { 
@@ -191,6 +188,9 @@ fun MainNavigation(
                     onNavigateToGerenciarUsuarios = {
                         navControllerPrincipal.navigate(Screen.GerenciarUsuarios.route)
                     },
+                    onNavigateToConfiguracoes = {
+                        navControllerPrincipal.navigate(Screen.Configuracoes.route)
+                    },
                     onNavigateToChat = { destinatarioId, destinatarioNome ->
                         navController.navigate(Screen.ChatConversation.createRoute(destinatarioId, destinatarioNome))
                     }
@@ -208,6 +208,9 @@ fun MainNavigation(
                     },
                     onNavigateToCadastroPessoa = {
                         navControllerPrincipal.navigate(Screen.CadastroPessoa.route)
+                    },
+                    onNavigateToAdicionarAmigo = {
+                        navControllerPrincipal.navigate(Screen.AdicionarAmigo.route)
                     }
                 )
             }

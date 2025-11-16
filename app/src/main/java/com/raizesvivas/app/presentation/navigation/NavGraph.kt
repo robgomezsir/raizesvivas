@@ -20,6 +20,8 @@ import com.raizesvivas.app.presentation.screens.detalhes.DetalhesPessoaScreen
 import com.raizesvivas.app.presentation.screens.duplicatas.ResolverDuplicatasScreen
 import com.raizesvivas.app.presentation.screens.onboarding.FamiliaZeroScreen
 import com.raizesvivas.app.presentation.screens.usuarios.GerenciarUsuariosScreen
+import com.raizesvivas.app.presentation.screens.configuracoes.ConfiguracoesScreen
+import com.raizesvivas.app.presentation.screens.amigo.AdicionarAmigoScreen
 import timber.log.Timber
 
 /**
@@ -322,6 +324,42 @@ fun NavGraph(
             popExitTransition = { Transitions.popExitTransition() }
         ) {
             GerenciarUsuariosScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        // ============================================
+        // CONFIGURAÇÕES (ADMIN SÊNIOR)
+        // ============================================
+        
+        composable(
+            route = Screen.Configuracoes.route,
+            enterTransition = { Transitions.enterTransition() },
+            exitTransition = { Transitions.exitTransition() },
+            popEnterTransition = { Transitions.popEnterTransition() },
+            popExitTransition = { Transitions.popExitTransition() }
+        ) {
+            ConfiguracoesScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        // ============================================
+        // ADICIONAR AMIGO DA FAMÍLIA
+        // ============================================
+        
+        composable(
+            route = Screen.AdicionarAmigo.route,
+            enterTransition = { Transitions.enterTransition() },
+            exitTransition = { Transitions.exitTransition() },
+            popEnterTransition = { Transitions.popEnterTransition() },
+            popExitTransition = { Transitions.popExitTransition() }
+        ) {
+            AdicionarAmigoScreen(
                 onNavigateBack = {
                     navController.popBackStack()
                 }

@@ -56,6 +56,10 @@ class FirestoreService @Inject constructor(
     private fun perfilGamificacaoCollection(usuarioId: String) = 
         usuariosCollection.document(usuarioId).collection("perfilGamificacao")
     
+    // Coleção de notificações: usuarios/{userId}/notificacoes/{notificacaoId}
+    private fun notificacoesCollection(usuarioId: String) = 
+        usuariosCollection.document(usuarioId).collection("notificacoes")
+    
     // DEPRECATED: Mantido para compatibilidade durante migração
     @Deprecated("Use conquistasProgressoCollection ao invés de conquistasCollection", ReplaceWith("conquistasProgressoCollection(usuarioId)"))
     private fun conquistasCollection(usuarioId: String) = 
@@ -86,6 +90,7 @@ class FirestoreService @Inject constructor(
                     "posicaoRanking" to usuario.posicaoRanking,
                     "pessoaVinculada" to usuario.pessoaVinculada,
                     "ehAdministrador" to usuario.ehAdministrador,
+                    "ehAdministradorSenior" to usuario.ehAdministradorSenior,
                     "familiaZeroPai" to usuario.familiaZeroPai,
                     "familiaZeroMae" to usuario.familiaZeroMae,
                     "primeiroAcesso" to usuario.primeiroAcesso,
@@ -161,6 +166,7 @@ class FirestoreService @Inject constructor(
                     posicaoRanking = (data["posicaoRanking"] as? Long)?.toInt(),
                     pessoaVinculada = data["pessoaVinculada"] as? String,
                     ehAdministrador = data["ehAdministrador"] as? Boolean ?: false,
+                    ehAdministradorSenior = data["ehAdministradorSenior"] as? Boolean ?: false,
                     familiaZeroPai = data["familiaZeroPai"] as? String,
                     familiaZeroMae = data["familiaZeroMae"] as? String,
                     primeiroAcesso = data["primeiroAcesso"] as? Boolean ?: true,
@@ -1022,7 +1028,7 @@ class FirestoreService @Inject constructor(
      */
     suspend fun aprovarEdicao(
         edicaoId: String,
-        revisadoPor: String
+        @Suppress("UNUSED_PARAMETER") revisadoPor: String
     ): Result<Unit> {
         return RetryHelper.withNetworkRetry {
             try {
@@ -1050,7 +1056,7 @@ class FirestoreService @Inject constructor(
                         val camposValoresNovos = edicao.camposAlterados
                             .mapValues { it.value.valorNovo }
                             .filterValues { it != null }
-                            .mapValues { it.value!! } as Map<String, Any>
+                            .mapValues { it.value!! }
                         val pessoaAtualizada = aplicarMudancas(pessoaOriginal, camposValoresNovos)
                         
                         // Batch update: atualizar pessoa e marcar edição como aprovada
@@ -1111,7 +1117,7 @@ class FirestoreService @Inject constructor(
      */
     suspend fun rejeitarEdicao(
         edicaoId: String,
-        revisadoPor: String
+        @Suppress("UNUSED_PARAMETER") revisadoPor: String
     ): Result<Unit> {
         return RetryHelper.withNetworkRetry {
             try {
@@ -1120,7 +1126,6 @@ class FirestoreService @Inject constructor(
                     return@withNetworkRetry Result.failure(Exception("Edição pendente não encontrada"))
                 }
 
-                val edicao = edicaoSnapshot.toEdicaoPendente()
                 val batch = firestore.batch()
                 
                 // Deletar edição pendente rejeitada (sem manter histórico)
@@ -2971,6 +2976,148 @@ class FirestoreService @Inject constructor(
                 Result.success(Unit)
             } catch (e: Exception) {
                 Timber.e(e, "❌ Erro ao salvar perfil de gamificação")
+                Result.failure(e)
+            }
+        }
+    }
+    
+    // ============================================
+    // NOTIFICAÇÕES
+    // ============================================
+    
+    /**
+     * Salva uma notificação no Firestore para um usuário específico
+     */
+    suspend fun salvarNotificacao(usuarioId: String, notificacao: Notificacao): Result<Unit> {
+        return RetryHelper.withNetworkRetry {
+            try {
+                val data = hashMapOf<String, Any>(
+                    "id" to notificacao.id,
+                    "tipo" to notificacao.tipo.name,
+                    "titulo" to notificacao.titulo,
+                    "mensagem" to notificacao.mensagem,
+                    "lida" to notificacao.lida,
+                    "criadaEm" to com.google.firebase.Timestamp(notificacao.criadaEm),
+                    "relacionadoId" to (notificacao.relacionadoId ?: ""),
+                    "dadosExtras" to (notificacao.dadosExtras as? Map<String, Any> ?: emptyMap<String, Any>())
+                )
+                
+                notificacoesCollection(usuarioId)
+                    .document(notificacao.id)
+                    .set(data)
+                    .await()
+                
+                Timber.d("✅ Notificação salva no Firestore para usuário $usuarioId: ${notificacao.titulo}")
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao salvar notificação no Firestore")
+                Result.failure(e)
+            }
+        }
+    }
+
+    /**
+     * Registra um evento analítico simples relacionado a notificações
+     */
+    suspend fun registrarEventoNotificacao(
+        usuarioId: String,
+        notificacaoId: String,
+        evento: String,
+        extras: Map<String, Any> = emptyMap()
+    ): Result<Unit> {
+        return RetryHelper.withNetworkRetry {
+            try {
+                val data = hashMapOf<String, Any>(
+                    "usuarioId" to usuarioId,
+                    "notificacaoId" to notificacaoId,
+                    "evento" to evento,
+                    "criadoEm" to com.google.firebase.Timestamp.now()
+                ) + extras
+
+                firestore
+                    .collection("analytics_notificacoes")
+                    .add(data)
+                    .await()
+
+                Timber.d("✅ Evento '$evento' registrado para notificação $notificacaoId")
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao registrar evento analítico")
+                Result.failure(e)
+            }
+        }
+    }
+    
+    /**
+     * Busca todas as notificações de um usuário do Firestore
+     */
+    suspend fun buscarNotificacoes(usuarioId: String): Result<List<Notificacao>> {
+        return RetryHelper.withNetworkRetry {
+            try {
+                val snapshot = notificacoesCollection(usuarioId)
+                    .orderBy("criadaEm", Query.Direction.DESCENDING)
+                    .get()
+                    .await()
+                
+                val notificacoes = snapshot.documents.mapNotNull { doc ->
+                    try {
+                        val data = doc.data ?: return@mapNotNull null
+                        
+                        val tipo = try {
+                            TipoNotificacao.valueOf(data["tipo"] as? String ?: "OUTRO")
+                        } catch (e: Exception) {
+                            TipoNotificacao.OUTRO
+                        }
+                        
+                        val timestamp = data["criadaEm"] as? com.google.firebase.Timestamp
+                        val criadaEm = timestamp?.toDate() ?: JavaDate()
+                        
+                        // Converter dadosExtras do Firestore
+                        val dadosExtrasMap = when (val dadosExtras = data["dadosExtras"]) {
+                            is Map<*, *> -> dadosExtras.mapKeys { it.key.toString() }.mapValues { it.value.toString() }
+                            else -> emptyMap<String, String>()
+                        }
+                        
+                        Notificacao(
+                            id = data["id"] as? String ?: doc.id,
+                            tipo = tipo,
+                            titulo = data["titulo"] as? String ?: "",
+                            mensagem = data["mensagem"] as? String ?: "",
+                            lida = data["lida"] as? Boolean ?: false,
+                            criadaEm = criadaEm,
+                            relacionadoId = (data["relacionadoId"] as? String)?.takeIf { it.isNotBlank() },
+                            dadosExtras = dadosExtrasMap
+                        )
+                    } catch (e: Exception) {
+                        Timber.e(e, "❌ Erro ao converter notificação do Firestore: ${doc.id}")
+                        null
+                    }
+                }
+                
+                Timber.d("✅ ${notificacoes.size} notificação(ões) encontrada(s) para usuário $usuarioId")
+                Result.success(notificacoes)
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao buscar notificações do Firestore")
+                Result.failure(e)
+            }
+        }
+    }
+    
+    /**
+     * Marca uma notificação como lida no Firestore
+     */
+    suspend fun marcarNotificacaoComoLida(usuarioId: String, notificacaoId: String): Result<Unit> {
+        return RetryHelper.withNetworkRetry {
+            try {
+                notificacoesCollection(usuarioId)
+                    .document(notificacaoId)
+                    .update("lida", true)
+                    .await()
+                
+                Timber.d("✅ Notificação marcada como lida no Firestore: $notificacaoId")
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao marcar notificação como lida no Firestore")
                 Result.failure(e)
             }
         }

@@ -20,6 +20,7 @@ data class Usuario(
     
     // Permissões
     val ehAdministrador: Boolean = false,
+    val ehAdministradorSenior: Boolean = false,  // Admin com poderes absolutos
     
     // Referência rápida à Família Zero
     val familiaZeroPai: String? = null,   // ID do patriarca
@@ -42,5 +43,39 @@ data class Usuario(
      */
     val familiaZeroDefinida: Boolean
         get() = familiaZeroPai != null && familiaZeroMae != null
+    
+    /**
+     * Retorna o nível de permissão do usuário
+     */
+    val nivelPermissao: NivelPermissao
+        get() = when {
+            ehAdministradorSenior -> NivelPermissao.FAMILIAR_ADMIN_SR
+            ehAdministrador -> NivelPermissao.FAMILIAR_ADMIN
+            else -> NivelPermissao.FAMILIAR
+        }
+    
+    /**
+     * Verifica se é apenas familiar (sem privilégios de admin)
+     */
+    val ehFamiliar: Boolean
+        get() = !ehAdministrador && !ehAdministradorSenior
+    
+    /**
+     * Verifica se é admin (admin comum ou sênior)
+     */
+    val ehAdmin: Boolean
+        get() = ehAdministrador || ehAdministradorSenior
+    
+    /**
+     * Verifica se é admin sênior (poderes absolutos)
+     */
+    val ehAdminSenior: Boolean
+        get() = ehAdministradorSenior
+    
+    /**
+     * Verifica se pode editar absolutamente (apenas admin sênior)
+     */
+    val podeEditarAbsolutamente: Boolean
+        get() = ehAdministradorSenior
 }
 

@@ -17,6 +17,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.raizesvivas.app.domain.model.Usuario
+import com.raizesvivas.app.domain.model.NivelPermissao
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -446,9 +447,17 @@ private fun UsuarioCard(
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(
-                        imageVector = if (usuario.ehAdministrador) Icons.Default.AdminPanelSettings else Icons.Default.Person,
+                        imageVector = when {
+                            usuario.ehAdministradorSenior -> Icons.Default.AdminPanelSettings
+                            usuario.ehAdministrador -> Icons.Default.AdminPanelSettings
+                            else -> Icons.Default.Person
+                        },
                         contentDescription = null,
-                        tint = if (usuario.ehAdministrador) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = when {
+                            usuario.ehAdministradorSenior -> MaterialTheme.colorScheme.primary
+                            usuario.ehAdministrador -> MaterialTheme.colorScheme.primary
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                         modifier = Modifier.size(24.dp)
                     )
                     Column(modifier = Modifier.weight(1f)) {
@@ -465,18 +474,36 @@ private fun UsuarioCard(
                     }
                 }
                 
-                if (usuario.ehAdministrador) {
-                    Surface(
-                        shape = MaterialTheme.shapes.small,
-                        color = MaterialTheme.colorScheme.primaryContainer
-                    ) {
-                        Text(
-                            text = "ADMIN",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
+                // Badge de classificação
+                val (textoClassificacao, corContainer, corTexto) = when {
+                    usuario.ehAdministradorSenior -> Triple(
+                        "ADMIN SR",
+                        MaterialTheme.colorScheme.primaryContainer,
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    usuario.ehAdministrador -> Triple(
+                        "ADMIN",
+                        MaterialTheme.colorScheme.secondaryContainer,
+                        MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    else -> Triple(
+                        "FAMILIAR",
+                        MaterialTheme.colorScheme.surfaceVariant,
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                
+                Surface(
+                    shape = MaterialTheme.shapes.small,
+                    color = corContainer
+                ) {
+                    Text(
+                        text = textoClassificacao,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = corTexto,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
                 }
             }
             

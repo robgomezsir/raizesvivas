@@ -23,6 +23,8 @@ import com.raizesvivas.app.data.local.entities.*
  * Versão 9: Adiciona campo telefone na tabela pessoas
  * Versão 10: Renomeia campos de conquistas (desbloqueada → concluida, progressoAtual → progresso) e adiciona nivel e pontuacaoTotal
  * Versão 11: Adiciona coluna apelido na tabela pessoas
+ * Versão 12: Adiciona coluna ehAdministradorSenior na tabela usuarios
+ * Versão 13: Adiciona tabela amigos para gerenciar amigos da família
  */
 @Database(
     entities = [
@@ -34,9 +36,10 @@ import com.raizesvivas.app.data.local.entities.*
         NotificacaoEntity::class,
         ConquistaEntity::class,
         PerfilGamificacaoEntity::class,
-        FamiliaPersonalizadaEntity::class
+        FamiliaPersonalizadaEntity::class,
+        AmigoEntity::class
     ],
-    version = 11,
+    version = 13,
     exportSchema = true,
     autoMigrations = []
 )
@@ -87,6 +90,11 @@ abstract class RaizesVivasDatabase : RoomDatabase() {
      * DAO para nomes personalizados de famílias
      */
     abstract fun familiaPersonalizadaDao(): FamiliaPersonalizadaDao
+    
+    /**
+     * DAO para operações com amigos da família
+     */
+    abstract fun amigoDao(): AmigoDao
     
     companion object {
         /**

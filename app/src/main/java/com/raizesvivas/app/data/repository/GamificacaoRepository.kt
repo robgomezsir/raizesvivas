@@ -694,7 +694,7 @@ class GamificacaoRepository @Inject constructor(
      * Retorna lista de usuários com suas posições no ranking
      * IMPORTANTE: Sempre busca do Firestore para garantir consistência entre dispositivos
      */
-    suspend fun buscarRanking(usuarioIdAtual: String): Result<List<RankingUsuario>> {
+    suspend fun buscarRanking(@Suppress("UNUSED_PARAMETER") usuarioIdAtual: String): Result<List<RankingUsuario>> {
         return try {
             // Buscar todos os usuários
             val usuariosResult = usuarioRepository.buscarTodosUsuarios()

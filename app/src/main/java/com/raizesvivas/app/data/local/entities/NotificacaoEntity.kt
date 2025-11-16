@@ -3,6 +3,8 @@ package com.raizesvivas.app.data.local.entities
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.raizesvivas.app.domain.model.Notificacao
 import com.raizesvivas.app.domain.model.TipoNotificacao
 
@@ -30,15 +32,20 @@ data class NotificacaoEntity(
     val precisaSincronizar: Boolean
 ) {
     fun toDomain(): Notificacao {
+        val gson = Gson()
         val tipoEnum = try {
             TipoNotificacao.valueOf(tipo)
         } catch (e: IllegalArgumentException) {
             TipoNotificacao.OUTRO
         }
         
-        val dadosMap = try {
-            // Parse JSON string to Map (simplificado - usar Gson se necessário)
-            emptyMap<String, String>() // TODO: Implementar parsing se necessário
+        val dadosMap: Map<String, String> = try {
+            if (dadosExtras.isBlank()) {
+                emptyMap()
+            } else {
+                val type = object : TypeToken<Map<String, String>>() {}.type
+                gson.fromJson<Map<String, String>>(dadosExtras, type) ?: emptyMap()
+            }
         } catch (e: Exception) {
             emptyMap()
         }
@@ -61,7 +68,12 @@ data class NotificacaoEntity(
             sincronizadoEm: Long = System.currentTimeMillis(),
             precisaSincronizar: Boolean = false
         ): NotificacaoEntity {
-            val dadosExtrasJson = "" // TODO: Serializar Map para JSON se necessário
+            val gson = Gson()
+            val dadosExtrasJson = try {
+                gson.toJson(notificacao.dadosExtras)
+            } catch (e: Exception) {
+                ""
+            }
             
             return NotificacaoEntity(
                 id = notificacao.id,
