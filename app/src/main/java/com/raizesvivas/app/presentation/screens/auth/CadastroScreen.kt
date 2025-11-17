@@ -26,6 +26,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.MaterialTheme
@@ -60,7 +61,8 @@ import com.raizesvivas.app.presentation.ui.theme.inputColorsSuaves
 fun CadastroScreen(
     viewModel: CadastroViewModel = hiltViewModel(),
     onCadastroSuccess: () -> Unit,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToLogin: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
     val focusManager = LocalFocusManager.current
@@ -268,18 +270,39 @@ fun CadastroScreen(
                     )
 
                     state.error?.let { error ->
+                        val isEmailInUse = error.contains("já está cadastrado", ignoreCase = true) ||
+                                          error.contains("already in use", ignoreCase = true) ||
+                                          error.contains("já está em uso", ignoreCase = true)
+                        
                         Surface(
                             color = colorScheme.errorContainer.copy(alpha = 0.85f),
                             shape = MaterialTheme.shapes.medium,
                             tonalElevation = 1.dp,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(
-                                text = error,
-                                color = colorScheme.onErrorContainer,
-                                style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-                            )
+                            Column(
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = error,
+                                    color = colorScheme.onErrorContainer,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                
+                                if (isEmailInUse) {
+                                    TextButton(
+                                        onClick = onNavigateToLogin,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text(
+                                            text = "Ir para Login",
+                                            style = MaterialTheme.typography.labelLarge,
+                                            color = colorScheme.onErrorContainer
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
 

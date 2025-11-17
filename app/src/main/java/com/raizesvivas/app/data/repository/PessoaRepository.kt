@@ -413,11 +413,10 @@ class PessoaRepository @Inject constructor(
         
         // Contar casais homoafetivos (mesmo gênero)
         val homoafetivas = grupos.count { grupo ->
-            !grupo.ehFamiliaZero && 
-            !grupo.ehFamiliaMonoparental &&
-            grupo.conjugue1?.genero != null &&
-            grupo.conjugue2?.genero != null &&
-            grupo.conjugue1?.genero == grupo.conjugue2?.genero
+            if (grupo.ehFamiliaZero || grupo.ehFamiliaMonoparental) return@count false
+            val g1 = grupo.conjugue1?.genero
+            val g2 = grupo.conjugue2?.genero
+            g1 != null && g2 != null && g1 == g2
         }
         
         return EstatisticasFamilias(

@@ -26,6 +26,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.raizesvivas.app.domain.model.Pessoa
 import com.raizesvivas.app.domain.model.StatusConvite
 import com.raizesvivas.app.presentation.screens.cadastro.PessoaSelector
+import com.raizesvivas.app.presentation.ui.theme.InputShapeSuave
+import com.raizesvivas.app.presentation.ui.theme.inputColorsSuaves
+import com.raizesvivas.app.presentation.ui.theme.RaizesVivasButtonDefaults
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -43,6 +46,7 @@ fun GerenciarConvitesScreen(
     val state by viewModel.state.collectAsState()
     val convites by viewModel.convites.collectAsState()
     val pessoasDisponiveis by viewModel.pessoasDisponiveis.collectAsState()
+    val pedidos by viewModel.pedidos.collectAsState()
     val context = LocalContext.current
     
     val dateFormatter = remember { SimpleDateFormat("dd/MM/yyyy HH:mm", Locale("pt", "BR")) }
@@ -187,19 +191,34 @@ fun GerenciarConvitesScreen(
             // Formulário de novo convite
             Card(
                 modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                )
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.4f)
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    modifier = Modifier.padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
-                    Text(
-                        text = "Novo Convite",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AddCircle,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(28.dp)
+                        )
+                        Text(
+                            text = "Novo Convite",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                     
                     OutlinedTextField(
                         value = state.emailConvidado,
@@ -207,14 +226,20 @@ fun GerenciarConvitesScreen(
                         label = { Text("Email do Convidado") },
                         placeholder = { Text("exemplo@email.com") },
                         leadingIcon = {
-                            Icon(Icons.Default.Email, contentDescription = null)
+                            Icon(
+                                Icons.Default.Email, 
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
                         },
                         singleLine = true,
                         isError = state.emailError != null,
                         supportingText = state.emailError?.let { { Text(it) } },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = !state.isLoading
+                        enabled = !state.isLoading,
+                        shape = InputShapeSuave,
+                        colors = inputColorsSuaves()
                     )
                     
                     // Seletor de pessoa vinculada (opcional)
@@ -228,36 +253,58 @@ fun GerenciarConvitesScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
                     
+                    // Botões em linha horizontal
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         // Botão para compartilhar template de email
                         OutlinedButton(
                             onClick = { viewModel.gerarTemplateEmail() },
                             enabled = !state.isLoading && state.emailConvidado.isNotBlank(),
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            shape = RaizesVivasButtonDefaults.Shape,
+                            border = RaizesVivasButtonDefaults.outlineStroke(),
+                            contentPadding = RaizesVivasButtonDefaults.ContentPadding
                         ) {
-                            Icon(Icons.Default.Share, contentDescription = null)
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Compartilhar")
+                            Icon(
+                                Icons.Default.Share, 
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                "Compartilhar",
+                                style = MaterialTheme.typography.labelLarge
+                            )
                         }
                         
                         // Botão para criar convite
                         Button(
                             onClick = { viewModel.criarConvite() },
                             enabled = !state.isLoading && state.emailConvidado.isNotBlank(),
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            shape = RaizesVivasButtonDefaults.Shape,
+                            colors = RaizesVivasButtonDefaults.primaryColors(),
+                            contentPadding = RaizesVivasButtonDefaults.ContentPadding
                         ) {
                             if (state.isLoading) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(20.dp),
-                                    color = MaterialTheme.colorScheme.onPrimary
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    strokeWidth = 2.dp
                                 )
                             } else {
-                                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null)
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Criar Convite")
+                                Icon(
+                                    Icons.AutoMirrored.Filled.Send, 
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    "Criar Convite",
+                                    style = MaterialTheme.typography.labelLarge
+                                )
                             }
                         }
                     }
@@ -266,6 +313,103 @@ fun GerenciarConvitesScreen(
             
             Spacer(modifier = Modifier.height(24.dp))
             
+            // Pedidos de Convite (novos)
+            Text(
+                text = "Pedidos de Convite (${pedidos.size})",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp, top = 8.dp)
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    value = viewModel.filtroEmail.collectAsState().value,
+                    onValueChange = { viewModel.atualizarFiltroEmail(it) },
+                    label = { Text("Filtrar por e-mail") },
+                    placeholder = { Text("Buscar...") },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Search,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        )
+                    },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                    shape = InputShapeSuave,
+                    colors = inputColorsSuaves()
+                )
+                FilterChip(
+                    selected = viewModel.filtroStatus == "pending",
+                    onClick = { 
+                        viewModel.atualizarFiltroStatus(
+                            if (viewModel.filtroStatus == "pending") "" else "pending"
+                        ) 
+                    },
+                    label = { 
+                        Text(
+                            if (viewModel.filtroStatus == "pending") "Pendentes" else "Todos",
+                            style = MaterialTheme.typography.labelMedium
+                        ) 
+                    },
+                    shape = MaterialTheme.shapes.medium
+                )
+            }
+            if (pedidos.isEmpty()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Text(
+                        text = "Nenhum pedido pendente",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+            } else {
+                pedidos.forEach { req ->
+                    PedidoConviteCard(
+                        request = req,
+                        pessoasDisponiveis = pessoasDisponiveis,
+                        onAprovar = { pessoaId -> viewModel.aprovarPedido(req, pessoaId) },
+                        onRejeitar = { viewModel.rejeitarPedido(req.id) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                    )
+                }
+                if (viewModel.pedidosHasMore.collectAsState().value) {
+                    OutlinedButton(
+                        onClick = { viewModel.carregarPedidos(reset = false) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                        shape = RaizesVivasButtonDefaults.Shape,
+                        border = RaizesVivasButtonDefaults.outlineStroke(),
+                        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Refresh,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "Carregar mais",
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
             // Convites Pendentes
             val convitesPendentes = convites.filter { it.status == StatusConvite.PENDENTE }
             Text(
@@ -419,13 +563,15 @@ private fun ConviteCard(
     
     Card(
         modifier = modifier,
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
-        )
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -496,6 +642,121 @@ private fun ConviteCard(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.error
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PedidoConviteCard(
+    request: com.raizesvivas.app.domain.model.AccessRequest,
+    pessoasDisponiveis: List<Pessoa>,
+    onAprovar: (String?) -> Unit,
+    onRejeitar: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var pessoaSelecionada by remember { mutableStateOf<Pessoa?>(null) }
+
+    Card(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp), 
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically, 
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Person, 
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Text(
+                        request.email, 
+                        style = MaterialTheme.typography.titleSmall, 
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                FilterChip(
+                    selected = true,
+                    onClick = {},
+                    enabled = false,
+                    label = { 
+                        Text(
+                            request.status.uppercase(),
+                            style = MaterialTheme.typography.labelSmall
+                        ) 
+                    },
+                    shape = MaterialTheme.shapes.small
+                )
+            }
+            if (!request.nome.isNullOrBlank()) {
+                Text("Nome: ${request.nome}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            if (!request.telefone.isNullOrBlank()) {
+                Text("Telefone: ${request.telefone}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+
+            PessoaSelector(
+                label = "Vincular a (opcional)",
+                pessoaId = pessoaSelecionada?.id,
+                pessoasDisponiveis = pessoasDisponiveis,
+                onPessoaSelecionada = { pessoa -> pessoaSelecionada = pessoa },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onRejeitar, 
+                    modifier = Modifier.weight(1f),
+                    shape = RaizesVivasButtonDefaults.Shape,
+                    border = RaizesVivasButtonDefaults.outlineStroke(),
+                    contentPadding = RaizesVivasButtonDefaults.ContentPadding
+                ) {
+                    Icon(
+                        Icons.Default.Close, 
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        "Rejeitar",
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
+                Button(
+                    onClick = { onAprovar(pessoaSelecionada?.id) }, 
+                    modifier = Modifier.weight(1f),
+                    shape = RaizesVivasButtonDefaults.Shape,
+                    colors = RaizesVivasButtonDefaults.primaryColors(),
+                    contentPadding = RaizesVivasButtonDefaults.ContentPadding
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.Send, 
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        "Aprovar",
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
             }
         }
     }

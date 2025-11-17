@@ -127,13 +127,27 @@ class AuthService @Inject constructor(
                 Result.failure(Exception("Erro ao criar conta"))
             }
             
+        } catch (e: com.google.firebase.auth.FirebaseAuthUserCollisionException) {
+            Timber.e(e, "❌ Email já está em uso: $email")
+            Result.failure(Exception("Este email já está cadastrado. Faça login em vez de criar uma nova conta.", e))
         } catch (e: Exception) {
             Timber.e(e, "❌ Erro ao criar conta")
             
             // Mensagem mais amigável para erros de configuração do Firebase
             val mensagemErro = when {
+                e.message?.contains("email-already-in-use") == true ||
+                e.message?.contains("EMAIL_EXISTS") == true ||
+                e.message?.contains("The email address is already in use") == true -> {
+                    "Este email já está cadastrado. Faça login em vez de criar uma nova conta."
+                }
                 e.message?.contains("CONFIGURATION_NOT_FOUND") == true -> {
                     "Erro de configuração do Firebase. Verifique se SHA-1 e SHA-256 estão configurados no Firebase Console. Consulte ORIENTAÇÕES/CORRIGIR_ERRO_FIREBASE_AUTH.md"
+                }
+                e.message?.contains("weak-password") == true -> {
+                    "Senha muito fraca. Use pelo menos 6 caracteres."
+                }
+                e.message?.contains("invalid-email") == true -> {
+                    "Email inválido. Verifique o formato do email."
                 }
                 else -> e.message ?: "Erro desconhecido ao criar conta"
             }

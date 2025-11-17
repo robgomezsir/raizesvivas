@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -87,7 +88,7 @@ fun ModalNovaMensagem(
                 ) {
                     // Ícone de mensagem
                     Icon(
-                        imageVector = Icons.Default.Message,
+                    imageVector = Icons.AutoMirrored.Filled.Message,
                         contentDescription = null,
                         modifier = Modifier.size(64.dp),
                         tint = MaterialTheme.colorScheme.secondary
@@ -148,7 +149,7 @@ fun ModalNovaMensagem(
                             )
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Chat,
+                            imageVector = Icons.AutoMirrored.Filled.Chat,
                                 contentDescription = null,
                                 modifier = Modifier.size(20.dp)
                             )

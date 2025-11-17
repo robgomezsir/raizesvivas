@@ -29,6 +29,7 @@ sealed class Screen(val route: String) {
     // Convites
     object AceitarConvites : Screen("aceitar_convites")
     object GerenciarConvites : Screen("gerenciar_convites")
+    object PedirConvite : Screen("pedir_convite")
     
     // Edições Pendentes
     object GerenciarEdicoes : Screen("gerenciar_edicoes")

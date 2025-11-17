@@ -13,6 +13,32 @@ service cloud.firestore {
     }
 
     // ==============================
+    // 📩 Coleção: access_requests (pedidos de convite)
+    // ==============================
+    match /access_requests/{requestId} {
+      // CRIAÇÃO: permitir para qualquer usuário (não autenticado) com validação de shape
+      allow create: if request.time != null && validarAccessRequest();
+
+      // LEITURA/LISTA: apenas ADMIN SÊNIOR com queries eficientes
+      allow read, list: if isAdminSenior() && isEfficientQuery();
+
+      // UPDATE/DELETE: apenas ADMIN SÊNIOR
+      allow update, delete: if isAdminSenior();
+
+      function validarAccessRequest() {
+        let dados = request.resource.data;
+        return dados.keys().hasAll(['email', 'criadoEm', 'status']) &&
+               dados.email is string &&
+               dados.email.size() > 3 &&
+               dados.criadoEm is timestamp &&
+               dados.status is string &&
+               // Campos opcionais com tipos controlados
+               (!dados.keys().hasAny(['nome']) || dados.nome == null || dados.nome is string) &&
+               (!dados.keys().hasAny(['telefone']) || dados.telefone == null || dados.telefone is string);
+      }
+    }
+
+    // ==============================
     // 📊 Coleção: analytics_notificacoes
     // ==============================
     match /analytics_notificacoes/{eventId} {
@@ -93,8 +119,36 @@ service cloud.firestore {
     // ==============================
     match /users/{userId} {
       allow read: if isAuthenticated(); // todos podem ver perfis (mantido)
-      allow create, update: if isOwner(userId) || isAdmin();
+      
+      // CRIAÇÃO: Permitir que usuário crie seu próprio documento durante cadastro
+      // Validação: userId deve ser o mesmo do auth.uid e dados devem ser válidos
+      allow create: if isAuthenticated() &&
+                     request.auth.uid == userId &&
+                     validarUsuarioNovo();
+      
+      // Atualizações: dono pode manter seu perfil; ADMIN pode administrar
+      allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
+      
+      // Função para validar dados de usuário novo
+      function validarUsuarioNovo() {
+        let dados = request.resource.data;
+        return dados.keys().hasAll(['nome', 'email', 'ehAdministrador', 'ehAdministradorSenior', 'primeiroAcesso', 'criadoEm']) &&
+               dados.nome is string &&
+               dados.nome.size() > 0 &&
+               dados.email is string &&
+               dados.email.size() > 0 &&
+               dados.ehAdministrador is bool &&
+               dados.ehAdministradorSenior is bool &&
+               dados.primeiroAcesso is bool &&
+               dados.criadoEm is timestamp &&
+               // Campos opcionais com tipos controlados
+               (!dados.keys().hasAny(['fotoUrl']) || dados.fotoUrl == null || dados.fotoUrl is string) &&
+               (!dados.keys().hasAny(['posicaoRanking']) || dados.posicaoRanking == null || dados.posicaoRanking is int) &&
+               (!dados.keys().hasAny(['pessoaVinculada']) || dados.pessoaVinculada == null || dados.pessoaVinculada is string) &&
+               (!dados.keys().hasAny(['familiaZeroPai']) || dados.familiaZeroPai == null || dados.familiaZeroPai is string) &&
+               (!dados.keys().hasAny(['familiaZeroMae']) || dados.familiaZeroMae == null || dados.familiaZeroMae is string);
+      }
     }
 
     // ==============================

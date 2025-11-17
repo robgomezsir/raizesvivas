@@ -67,11 +67,7 @@ class AdicionarAmigoViewModel @Inject constructor(
             try {
                 _state.update { it.copy(isLoading = true, erro = null) }
                 
-                val familiaresVinculados = if (currentState.familiarSelecionado != null) {
-                    listOf(currentState.familiarSelecionado!!)
-                } else {
-                    emptyList()
-                }
+                val familiaresVinculados = listOfNotNull(currentState.familiarSelecionado)
                 
                 val amigo = Amigo(
                     id = UUID.randomUUID().toString(),

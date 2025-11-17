@@ -663,6 +663,58 @@ class FamiliaViewModel @Inject constructor(
             }
         }
     }
+
+    /**
+     * Remove um familiar vinculado de um amigo
+     */
+    fun removerFamiliarDoAmigo(amigoId: String, familiarId: String) {
+        viewModelScope.launch {
+            try {
+                val amigo = amigoRepository.buscarPorId(amigoId)
+                if (amigo != null) {
+                    val familiaresAtualizados = amigo.familiaresVinculados.filterNot { it == familiarId }
+                    if (familiaresAtualizados != amigo.familiaresVinculados) {
+                        val amigoAtualizado = amigo.copy(
+                            familiaresVinculados = familiaresAtualizados,
+                            modificadoEm = Date()
+                        )
+                        amigoRepository.salvar(amigoAtualizado)
+                        Timber.d("✅ Familiar removido do amigo: ${amigo.nome}")
+                    }
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao remover familiar do amigo")
+            }
+        }
+    }
+
+    /**
+     * Atualiza os dados do amigo (nome e telefone)
+     */
+    fun atualizarAmigo(amigoId: String, novoNome: String, novoTelefone: String?) {
+        val nomeLimpo = novoNome.trim()
+        if (nomeLimpo.isEmpty()) {
+            _state.update { it.copy(erro = "Nome do amigo não pode ficar vazio") }
+            return
+        }
+        viewModelScope.launch {
+            try {
+                val amigo = amigoRepository.buscarPorId(amigoId)
+                if (amigo != null) {
+                    val amigoAtualizado = amigo.copy(
+                        nome = nomeLimpo,
+                        telefone = novoTelefone?.trim()?.ifBlank { null },
+                        modificadoEm = Date()
+                    )
+                    amigoRepository.salvar(amigoAtualizado)
+                    Timber.d("✅ Amigo atualizado: ${amigoAtualizado.nome}")
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao atualizar amigo")
+                _state.update { it.copy(erro = "Erro ao atualizar amigo: ${e.message}") }
+            }
+        }
+    }
     
     /**
      * Exclui um amigo

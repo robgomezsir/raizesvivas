@@ -356,6 +356,12 @@ fun HomeScreen(
     val isAdmin = state.usuario?.ehAdministrador == true
     val isAdminSenior = state.usuario?.ehAdministradorSenior == true
     
+    // Contador de pedidos pendentes para badge na sidebar (admins)
+    val pedidosPendentes by viewModel.pedidosPendentes.collectAsState()
+    LaunchedEffect(isAdmin || isAdminSenior) {
+        viewModel.atualizarPedidosPendentes()
+    }
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -363,6 +369,7 @@ fun HomeScreen(
                 isAdmin = isAdmin,
                 isAdminSenior = isAdminSenior,
                 notificacoesNaoLidas = contadorNaoLidas,
+                pedidosPendentes = pedidosPendentes,
                 onClose = { scope.launch { drawerState.close() } },
                 onOpenNotificacoes = {
                     scope.launch {
@@ -570,7 +577,7 @@ fun HomeScreen(
                                 color = MaterialTheme.colorScheme.onSecondaryContainer
                             )
                             Text(
-                                text = if (minhaFamiliaNome != null) "Família personalizada" else "Toque para selecionar",
+                                text = if (minhaFamiliaNome != null) "Minha família" else "Toque para selecionar",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
                             )
@@ -1347,6 +1354,7 @@ fun HomeDrawerContent(
     isAdmin: Boolean,
     isAdminSenior: Boolean = false,
     notificacoesNaoLidas: Int,
+    pedidosPendentes: Int,
     onClose: () -> Unit,
     onOpenNotificacoes: () -> Unit,
     onGerenciarConvites: () -> Unit,
@@ -1391,12 +1399,17 @@ fun HomeDrawerContent(
 
             DrawerSectionTitle("Ações rápidas")
 
-            if (isAdmin) {
+            if (isAdmin || isAdminSenior) {
                 NavigationDrawerItem(
                     label = { Text("Gerenciar convites") },
                     selected = false,
                     onClick = onGerenciarConvites,
                     icon = { Icon(Icons.Default.Group, contentDescription = null) },
+                    badge = {
+                        if (pedidosPendentes > 0) {
+                            Badge { Text(if (pedidosPendentes > 99) "99+" else pedidosPendentes.toString()) }
+                        }
+                    },
                     modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                 )
 

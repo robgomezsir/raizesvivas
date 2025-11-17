@@ -59,6 +59,8 @@ import com.raizesvivas.app.presentation.theme.PastelSuccess
 import com.raizesvivas.app.presentation.theme.PastelWarning
 import java.text.SimpleDateFormat
 import java.util.*
+import com.raizesvivas.app.presentation.components.ExpandableFab
+import com.raizesvivas.app.presentation.components.FabAction
 
 /**
  * Tela do Mural de Recados Comunitário
@@ -164,36 +166,24 @@ fun MuralScreen(
             )
         },
         floatingActionButton = {
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // FAB do Chat
-                FloatingActionButton(
-                    onClick = onNavigateToChat,
-                    containerColor = colorScheme.secondary,
-                    contentColor = colorScheme.onSecondary,
-                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
-                ) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.Chat,
-                        contentDescription = "Chat"
+            ExpandableFab(
+                actions = listOf(
+                    FabAction(
+                        label = "Chat",
+                        icon = Icons.AutoMirrored.Filled.Chat,
+                        onClick = onNavigateToChat,
+                        containerColor = colorScheme.secondary,
+                        contentColor = colorScheme.onSecondary
+                    ),
+                    FabAction(
+                        label = "Novo Recado",
+                        icon = Icons.Default.Add,
+                        onClick = { viewModel.abrirModalNovoRecado() },
+                        containerColor = colorScheme.primary,
+                        contentColor = colorScheme.onPrimary
                     )
-                }
-                
-                // FAB principal - Novo Recado
-                FloatingActionButton(
-                    onClick = { viewModel.abrirModalNovoRecado() },
-                    containerColor = colorScheme.primary,
-                    contentColor = colorScheme.onPrimary,
-                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Add,
-                        contentDescription = "Novo Recado"
-                    )
-                }
-            }
+                )
+            )
         }
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize()) {

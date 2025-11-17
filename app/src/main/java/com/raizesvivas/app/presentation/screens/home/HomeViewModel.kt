@@ -6,6 +6,7 @@ import com.raizesvivas.app.data.remote.firebase.AuthService
 import com.raizesvivas.app.data.repository.FamiliaZeroRepository
 import com.raizesvivas.app.data.repository.PessoaRepository
 import com.raizesvivas.app.data.repository.UsuarioRepository
+import com.raizesvivas.app.data.remote.firebase.FirestoreService
 import com.raizesvivas.app.domain.model.Pessoa
 import com.raizesvivas.app.domain.model.Usuario
 import com.raizesvivas.app.domain.model.Genero
@@ -48,6 +49,7 @@ class HomeViewModel @Inject constructor(
     private val pessoaRepository: PessoaRepository,
     private val familiaZeroRepository: FamiliaZeroRepository,
     private val gerarDadosTesteUseCase: GerarDadosTesteUseCase,
+    private val firestoreService: FirestoreService,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
     
@@ -309,6 +311,10 @@ class HomeViewModel @Inject constructor(
     
     // Cache de parentescos para evitar recálculos desnecessários
     private var parentescosCache: Pair<String?, List<Pair<Pessoa, ParentescoCalculator.ResultadoParentesco>>>? = null
+
+    // Contador de pedidos de convite pendentes (para badge)
+    private val _pedidosPendentes = MutableStateFlow(0)
+    val pedidosPendentes = _pedidosPendentes.asStateFlow()
     
     // Parentescos calculados para o usuário vinculado
     // Otimizado: cálculos pesados executados em background thread + cache
@@ -365,6 +371,7 @@ class HomeViewModel @Inject constructor(
         observarEstatisticasGenero()
         promoverPrimeiroAdminSenior()
         carregarMinhaFamilia()
+        atualizarPedidosPendentes()
     }
     
     /**
@@ -830,6 +837,23 @@ class HomeViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Erro ao atualizar estatísticas")
+            }
+        }
+    }
+
+    fun atualizarPedidosPendentes() {
+        viewModelScope.launch {
+            try {
+                val usuario = _state.value.usuario
+                val podeVer = (usuario?.ehAdministrador == true) || (usuario?.ehAdministradorSenior == true)
+                if (!podeVer) {
+                    _pedidosPendentes.value = 0
+                    return@launch
+                }
+                val resultado = firestoreService.contarPedidosConvitePendentes()
+                _pedidosPendentes.value = resultado.getOrElse { 0 }
+            } catch (_: Exception) {
+                _pedidosPendentes.value = 0
             }
         }
     }

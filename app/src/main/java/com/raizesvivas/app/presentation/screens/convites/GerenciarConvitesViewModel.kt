@@ -6,6 +6,8 @@ import com.raizesvivas.app.data.remote.firebase.AuthService
 import com.raizesvivas.app.data.repository.ConviteRepository
 import com.raizesvivas.app.data.repository.PessoaRepository
 import com.raizesvivas.app.data.repository.UsuarioRepository
+import com.raizesvivas.app.data.remote.firebase.FirestoreService
+import com.raizesvivas.app.domain.model.AccessRequest
 import com.raizesvivas.app.domain.model.Convite
 import com.raizesvivas.app.domain.model.Pessoa
 import com.raizesvivas.app.utils.NetworkUtils
@@ -28,7 +30,8 @@ class GerenciarConvitesViewModel @Inject constructor(
     private val pessoaRepository: PessoaRepository,
     private val usuarioRepository: UsuarioRepository,
     private val authService: AuthService,
-    private val networkUtils: NetworkUtils
+    private val networkUtils: NetworkUtils,
+    private val firestoreService: FirestoreService
 ) : ViewModel() {
     
     private val _state = MutableStateFlow(GerenciarConvitesState())
@@ -36,12 +39,23 @@ class GerenciarConvitesViewModel @Inject constructor(
     
     private val _convites = MutableStateFlow<List<Convite>>(emptyList())
     val convites = _convites.asStateFlow()
+
+    private val _pedidos = MutableStateFlow<List<AccessRequest>>(emptyList())
+    val pedidos = _pedidos.asStateFlow()
+    private val _pedidosHasMore = MutableStateFlow(false)
+    val pedidosHasMore = _pedidosHasMore.asStateFlow()
+    private var pedidosCursor: Date? = null
+    private val pageSize = 20
+    var filtroStatus = "pending"
+        private set
+    var filtroEmail = MutableStateFlow("")
     
     val pessoasDisponiveis = pessoaRepository.observarTodasPessoas()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     
     init {
         carregarConvites()
+        carregarPedidos(reset = true)
         verificarPermissoes()
     }
     
@@ -60,7 +74,7 @@ class GerenciarConvitesViewModel @Inject constructor(
             }
             
             val usuario = usuarioRepository.buscarPorId(currentUser.uid)
-            val ehAdmin = usuario?.ehAdministrador ?: false
+            val ehAdmin = (usuario?.ehAdministrador == true) || (usuario?.ehAdministradorSenior == true)
             
             _state.update { it.copy(ehAdmin = ehAdmin) }
             
@@ -106,6 +120,46 @@ class GerenciarConvitesViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun carregarPedidos(reset: Boolean = false) {
+        viewModelScope.launch {
+            try {
+                if (reset) {
+                    pedidosCursor = null
+                    _pedidos.value = emptyList()
+                }
+                val resultado = firestoreService.buscarPedidosConvitePaginado(
+                    limit = pageSize,
+                    startAfterDate = pedidosCursor,
+                    status = if (filtroStatus.isNotBlank()) filtroStatus else null
+                )
+                resultado.onSuccess { (lista, last) ->
+                    val filtrada = lista.filter { req ->
+                        val f = filtroEmail.value.trim().lowercase()
+                        f.isBlank() || req.email.lowercase().contains(f)
+                    }
+                    _pedidos.value = _pedidos.value + filtrada
+                    pedidosCursor = last
+                    _pedidosHasMore.value = lista.size >= pageSize
+                }
+                resultado.onFailure { e ->
+                    _state.update { it.copy(erro = "Erro ao carregar pedidos: ${e.message}") }
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao carregar pedidos de convite")
+            }
+        }
+    }
+
+    fun atualizarFiltroEmail(novo: String) {
+        filtroEmail.value = novo
+        carregarPedidos(reset = true)
+    }
+
+    fun atualizarFiltroStatus(novo: String) {
+        filtroStatus = novo
+        carregarPedidos(reset = true)
     }
     
     /**
@@ -188,6 +242,40 @@ class GerenciarConvitesViewModel @Inject constructor(
                     )
                 }
             }
+        }
+    }
+
+    /**
+     * Aprova um pedido gerando um convite e atualiza o status
+     */
+    fun aprovarPedido(request: AccessRequest, pessoaVinculadaId: String?) {
+        viewModelScope.launch {
+            try {
+                _state.update { it.copy(isLoading = true) }
+                val resultado = conviteRepository.criarConvite(
+                    emailConvidado = request.email,
+                    pessoaVinculada = pessoaVinculadaId
+                )
+                resultado.onSuccess {
+                    firestoreService.atualizarStatusPedidoConvite(request.id, "approved")
+                    _state.update { it.copy(isLoading = false, sucesso = true) }
+                    carregarConvites()
+                    carregarPedidos()
+                }
+                resultado.onFailure { e ->
+                    _state.update { it.copy(isLoading = false, erro = "Erro ao aprovar: ${e.message}") }
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao aprovar pedido")
+                _state.update { it.copy(isLoading = false, erro = "Erro ao aprovar: ${e.message}") }
+            }
+        }
+    }
+
+    fun rejeitarPedido(requestId: String) {
+        viewModelScope.launch {
+            firestoreService.atualizarStatusPedidoConvite(requestId, "rejected")
+            carregarPedidos()
         }
     }
     
@@ -277,12 +365,19 @@ class GerenciarConvitesViewModel @Inject constructor(
             
             Olá,
             
-            Você foi convidado(a) para participar de uma árvore genealógica no aplicativo Raízes Vivas!$pessoaText
+            Seu pedido de convite foi aprovado! Você foi convidado(a) para participar de uma árvore genealógica no aplicativo Raízes Vivas!$pessoaText
             
-            Para aceitar o convite:
-            1. Baixe o aplicativo Raízes Vivas
-            2. Faça login com este email: $emailConvidado
-            3. Vá em "Convites Pendentes" e aceite o convite
+            Para acessar o aplicativo:
+            1. Baixe o aplicativo Raízes Vivas (se ainda não tiver)
+            2. CRIE SUA CONTA usando este e-mail: $emailConvidado
+               - Vá na tela de Cadastro
+               - Use este mesmo e-mail: $emailConvidado
+               - Crie uma senha
+               - Preencha seu nome completo
+            3. Após criar a conta, faça login
+            4. Vá em "Aceitar Convites" e confirme seu convite
+            
+            ⚠️ IMPORTANTE: Você precisa criar uma conta primeiro antes de fazer login!
             
             O convite expira em 7 dias.
             

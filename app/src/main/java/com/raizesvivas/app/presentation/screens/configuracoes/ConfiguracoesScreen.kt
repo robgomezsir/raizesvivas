@@ -6,6 +6,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -222,7 +223,7 @@ fun ConfiguracoesScreen(
                         Text("Enviando...")
                     } else {
                         Icon(
-                            Icons.Default.Send,
+                            Icons.AutoMirrored.Filled.Send,
                             contentDescription = null,
                             modifier = Modifier.size(20.dp)
                         )
@@ -335,7 +336,7 @@ fun ConfiguracoesScreen(
                         Text("Publicando aviso...")
                     } else {
                         Icon(
-                            Icons.Default.Send,
+                            Icons.AutoMirrored.Filled.Send,
                             contentDescription = null,
                             modifier = Modifier.size(20.dp)
                         )

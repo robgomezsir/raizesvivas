@@ -15,6 +15,7 @@ import com.raizesvivas.app.presentation.screens.auth.RecuperarSenhaScreen
 import com.raizesvivas.app.presentation.screens.cadastro.CadastroPessoaScreen
 import com.raizesvivas.app.presentation.screens.convites.AceitarConvitesScreen
 import com.raizesvivas.app.presentation.screens.convites.GerenciarConvitesScreen
+import com.raizesvivas.app.presentation.screens.convites.PedirConviteScreen
 import com.raizesvivas.app.presentation.screens.edicoes.GerenciarEdicoesScreen
 import com.raizesvivas.app.presentation.screens.detalhes.DetalhesPessoaScreen
 import com.raizesvivas.app.presentation.screens.duplicatas.ResolverDuplicatasScreen
@@ -45,7 +46,6 @@ fun NavGraph(
         if (authState == null) {
             // Usuário fez logout - navegar para login
             if (currentRoute != Screen.Login.route && 
-                currentRoute != Screen.Cadastro.route && 
                 currentRoute != Screen.RecuperarSenha.route) {
                 Timber.d("👋 Usuário deslogado, navegando para Login")
                 // Limpar toda a pilha de navegação e ir para login
@@ -79,11 +79,17 @@ fun NavGraph(
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 },
-                onNavigateToCadastro = {
-                    navController.navigate(Screen.Cadastro.route)
-                },
                 onNavigateToRecuperarSenha = {
                     navController.navigate(Screen.RecuperarSenha.route)
+                },
+                onNavigateToAceitarConvite = {
+                    navController.navigate(Screen.AceitarConvites.route)
+                },
+                onNavigateToPedirConvite = {
+                    navController.navigate(Screen.PedirConvite.route)
+                },
+                onNavigateToCadastro = {
+                    navController.navigate(Screen.Cadastro.route)
                 }
             )
         }
@@ -97,13 +103,18 @@ fun NavGraph(
         ) {
             CadastroScreen(
                 onCadastroSuccess = {
-                    // Verificar se precisa criar Família Zero
+                    // Após cadastro bem-sucedido, ir para home
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 },
                 onNavigateBack = {
                     navController.popBackStack()
+                },
+                onNavigateToLogin = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(Screen.Cadastro.route) { inclusive = true }
+                    }
                 }
             )
         }
@@ -270,6 +281,20 @@ fun NavGraph(
             popExitTransition = { Transitions.popExitTransition() }
         ) {
             GerenciarConvitesScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        composable(
+            route = Screen.PedirConvite.route,
+            enterTransition = { Transitions.modalEnterTransition() },
+            exitTransition = { Transitions.modalExitTransition() },
+            popEnterTransition = { Transitions.popEnterTransition() },
+            popExitTransition = { Transitions.popExitTransition() }
+        ) {
+            PedirConviteScreen(
                 onNavigateBack = {
                     navController.popBackStack()
                 }

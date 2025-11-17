@@ -1,6 +1,7 @@
 package com.raizesvivas.app.presentation.screens.auth
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,9 +11,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -59,8 +62,10 @@ import timber.log.Timber
 fun LoginScreen(
     viewModel: LoginViewModel = hiltViewModel(),
     onLoginSuccess: () -> Unit,
-    onNavigateToCadastro: () -> Unit,
-    onNavigateToRecuperarSenha: () -> Unit
+    onNavigateToRecuperarSenha: () -> Unit,
+    onNavigateToAceitarConvite: () -> Unit,
+    onNavigateToPedirConvite: () -> Unit,
+    onNavigateToCadastro: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
     val focusManager = LocalFocusManager.current
@@ -251,11 +256,45 @@ fun LoginScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    TextButton(
-                        onClick = onNavigateToRecuperarSenha,
-                        modifier = Modifier.align(Alignment.End)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("Esqueci minha senha")
+                        TextButton(onClick = onNavigateToPedirConvite) {
+                            Text("Pedir convite")
+                        }
+                        TextButton(onClick = onNavigateToAceitarConvite) {
+                            Text("Aceitar convite")
+                        }
+                        TextButton(onClick = onNavigateToRecuperarSenha) {
+                            Text("Esqueci minha senha")
+                        }
+                    }
+                    
+                    // Link para cadastro
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Foi convidado? ",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colorScheme.onSurfaceVariant
+                        )
+                        TextButton(
+                            onClick = onNavigateToCadastro,
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = "Criar conta",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = colorScheme.primary
+                            )
+                        }
                     }
 
                     if (state.biometricAvailable && state.biometricEnabled && state.lastEmail != null && activity != null) {
@@ -322,19 +361,7 @@ fun LoginScreen(
                         }
                     }
 
-                    Row(
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = "Não tem uma conta?",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        TextButton(onClick = onNavigateToCadastro) {
-                            Text("Cadastre-se")
-                        }
-                    }
+                    // Cadastro aberto removido. Fluxo agora usa convites/aprovação.
                 }
             }
         }

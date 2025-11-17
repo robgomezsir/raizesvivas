@@ -7,6 +7,7 @@ import com.raizesvivas.app.data.local.BiometricPreferences
 import com.raizesvivas.app.data.local.BiometricService
 import com.raizesvivas.app.data.remote.firebase.AuthService
 import com.raizesvivas.app.data.repository.GamificacaoRepository
+import com.raizesvivas.app.data.repository.UsuarioRepository
 import com.raizesvivas.app.domain.model.TipoAcao
 import com.raizesvivas.app.utils.ValidationUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,7 +27,8 @@ class LoginViewModel @Inject constructor(
     private val biometricService: BiometricService,
     private val biometricPreferences: BiometricPreferences,
     private val biometricCrypto: BiometricCrypto,
-    private val gamificacaoRepository: GamificacaoRepository
+    private val gamificacaoRepository: GamificacaoRepository,
+    private val usuarioRepository: UsuarioRepository
 ) : ViewModel() {
     
     private val _state = MutableStateFlow(LoginState())
@@ -205,11 +207,113 @@ class LoginViewModel @Inject constructor(
             
             result.onFailure { error ->
                 Timber.e(error, "❌ Erro no login")
+                
+                // EXCEÇÃO ESPECIAL: robgomez.sir@gmail.com sempre pode fazer login se for admin
+                // Verificar diretamente se o usuário existe e é admin, independente de outros admins
+                val email = _state.value.email.trim().lowercase()
+                val isRobgomez = email == "robgomez.sir@gmail.com"
+                val isPermissionDenied = error.message?.contains("PERMISSION_DENIED") == true ||
+                    error.message?.contains("Cadastro permitido apenas por convite") == true
+                
+                Timber.d("🔐 Verificando exceção para robgomez: isRobgomez=$isRobgomez, isPermissionDenied=$isPermissionDenied")
+                
+                if (isRobgomez && isPermissionDenied) {
+                    Timber.d("🔐 EXCEÇÃO ATIVADA: robgomez.sir@gmail.com tentando login - verificando se usuário existe e é admin no Firestore")
+                    
+                    viewModelScope.launch {
+                        // Buscar todos os usuários para encontrar o robgomez
+                        val resultadoUsuarios = usuarioRepository.buscarTodosUsuarios()
+                        resultadoUsuarios.onSuccess { usuarios ->
+                            Timber.d("🔐 Total de usuários encontrados: ${usuarios.size}")
+                            val usuarioRobgomez = usuarios.find { 
+                                it.email.trim().lowercase() == "robgomez.sir@gmail.com" 
+                            }
+                            
+                            Timber.d("🔐 Usuário robgomez encontrado: ${usuarioRobgomez != null}")
+                            if (usuarioRobgomez != null) {
+                                Timber.d("🔐 Usuário robgomez - ehAdministrador: ${usuarioRobgomez.ehAdministrador}, ehAdministradorSenior: ${usuarioRobgomez.ehAdministradorSenior}")
+                            }
+                            
+                            if (usuarioRobgomez != null && 
+                                (usuarioRobgomez.ehAdministrador || usuarioRobgomez.ehAdministradorSenior)) {
+                                Timber.d("✅ Usuário robgomez.sir@gmail.com encontrado e é admin - permitindo login automático")
+                                
+                                // Verificar se o usuário já está autenticado no Firebase Auth
+                                val currentUser = authService.currentUser
+                                if (currentUser != null && currentUser.email?.trim()?.lowercase() == "robgomez.sir@gmail.com") {
+                                    // Usuário já está autenticado, prosseguir com o fluxo normal
+                                    Timber.d("✅ Usuário já autenticado - prosseguindo com login automático")
+                                    // Simular sucesso de login
+                                    _state.update { 
+                                        it.copy(
+                                            isLoading = false, 
+                                            loginSuccess = true,
+                                            lastEmail = email
+                                        ) 
+                                    }
+                                } else {
+                                    // Firebase Auth bloqueou, mas usuário é admin no Firestore
+                                    // Como é uma exceção especial, vamos tentar permitir o login mesmo assim
+                                    // Verificando se podemos usar o token de autenticação existente
+                                    Timber.w("⚠️ Firebase Auth bloqueou login, mas usuário é admin - tentando contornar")
+                                    
+                                    // Como não podemos contornar o bloqueio do Firebase Auth diretamente,
+                                    // vamos mostrar uma mensagem mais clara e sugerir verificar a Cloud Function
+                                    _state.update { 
+                                        it.copy(
+                                            isLoading = false,
+                                            error = "Seu usuário é administrador, mas a Cloud Function está bloqueando o login. Por favor, verifique as configurações da Cloud Function do Firebase para permitir login de administradores existentes."
+                                        ) 
+                                    }
+                                }
+                            } else {
+                                // Usuário não encontrado ou não é admin
+                                val errorMessage = if (usuarioRobgomez == null) {
+                                    "Usuário não encontrado no sistema. Por favor, faça o cadastro primeiro."
+                                } else {
+                                    "Usuário encontrado mas não possui permissões de administrador."
+                                }
+                                _state.update { it.copy(isLoading = false, error = errorMessage) }
+                            }
+                        }
+                        
+                        resultadoUsuarios.onFailure {
+                            // Se não conseguir buscar, mostrar mensagem padrão
+                            val errorMessage = when {
+                                error.message?.contains("PERMISSION_DENIED") == true ||
+                                error.message?.contains("Cadastro permitido apenas por convite") == true -> {
+                                    val message = error.message ?: ""
+                                    val jsonMatch = Regex("""["']message["']\s*:\s*["']([^"']+)""").find(message)
+                                    jsonMatch?.groupValues?.getOrNull(1) ?: "Acesso negado. Verifique as configurações do Firebase."
+                                }
+                                else -> error.message ?: "Erro ao fazer login. Tente novamente"
+                            }
+                            _state.update { it.copy(isLoading = false, error = errorMessage) }
+                        }
+                    }
+                    return@onFailure
+                }
+                
+                // Tratamento de erro padrão
                 val errorMessage = when {
-                    error.message?.contains("password") == true -> "Senha incorreta"
+                    // Erro de permissão (Cloud Function bloqueando login)
+                    error.message?.contains("PERMISSION_DENIED") == true ||
+                    error.message?.contains("Cadastro permitido apenas por convite") == true -> {
+                        // Tentar extrair a mensagem do JSON do erro
+                        val message = error.message ?: ""
+                        // Procurar por "message":"..." no JSON
+                        val jsonMatch = Regex("""["']message["']\s*:\s*["']([^"']+)""").find(message)
+                        val extractedMessage = jsonMatch?.groupValues?.getOrNull(1)
+                        extractedMessage ?: "Acesso negado. Entre em contato com o administrador."
+                    }
+                    error.message?.contains("password") == true ||
+                    error.message?.contains("wrong-password") == true ||
+                    error.message?.contains("invalid-credential") == true -> "Senha incorreta"
                     error.message?.contains("user-not-found") == true -> "Usuário não encontrado"
-                    error.message?.contains("network") == true -> "Erro de conexão. Verifique sua internet"
-                    else -> "Erro ao fazer login. Tente novamente"
+                    error.message?.contains("network") == true ||
+                    error.message?.contains("network_error") == true -> "Erro de conexão. Verifique sua internet"
+                    error.message?.contains("too-many-requests") == true -> "Muitas tentativas. Aguarde alguns minutos"
+                    else -> error.message ?: "Erro ao fazer login. Tente novamente"
                 }
                 _state.update { it.copy(isLoading = false, error = errorMessage) }
             }

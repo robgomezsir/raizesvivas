@@ -93,6 +93,11 @@ import com.raizesvivas.app.domain.model.Pessoa
 import com.raizesvivas.app.presentation.components.TreeNodeData
 import java.text.SimpleDateFormat
 import java.util.Locale
+import com.raizesvivas.app.presentation.theme.LocalThemeController
+import com.raizesvivas.app.presentation.theme.ThemeMode
+import com.raizesvivas.app.presentation.components.ExpandableFab
+import com.raizesvivas.app.presentation.components.FabAction
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -129,6 +134,9 @@ fun FamiliaScreen(
     val amigosExpandidos = rememberSaveable { mutableStateOf(false) }
     val amigoParaVincular = remember { mutableStateOf<com.raizesvivas.app.domain.model.Amigo?>(null) }
     val amigoParaExcluir = remember { mutableStateOf<com.raizesvivas.app.domain.model.Amigo?>(null) }
+    val amigoParaEditar = remember { mutableStateOf<com.raizesvivas.app.domain.model.Amigo?>(null) }
+    val nomeAmigoEditado = remember { mutableStateOf("") }
+    val telefoneAmigoEditado = remember { mutableStateOf("") }
     val nomeEditado = remember { mutableStateOf("") }
     var mostrarBusca by rememberSaveable { mutableStateOf(false) }
     var termoBusca by rememberSaveable { mutableStateOf("") }
@@ -218,15 +226,24 @@ fun FamiliaScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = onNavigateToCadastroPessoa,
-                containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Add,
-                    contentDescription = "Adicionar Pessoa"
+            ExpandableFab(
+                actions = listOf(
+                    FabAction(
+                        label = "Adicionar Amigo",
+                        icon = Icons.Outlined.GroupAdd,
+                        onClick = onNavigateToAdicionarAmigo,
+                        containerColor = MaterialTheme.colorScheme.secondary,
+                        contentColor = MaterialTheme.colorScheme.onSecondary
+                    ),
+                    FabAction(
+                        label = "Adicionar Pessoa",
+                        icon = Icons.Filled.Person,
+                        onClick = onNavigateToCadastroPessoa,
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
                 )
-            }
+            )
         }
     ) { padding ->
         Box(
@@ -731,6 +748,14 @@ fun FamiliaScreen(
                                                         },
                                                         onExcluirAmigo = {
                                                             amigoParaExcluir.value = amigo
+                                                        },
+                                                        onEditarAmigo = {
+                                                            amigoParaEditar.value = amigo
+                                                            nomeAmigoEditado.value = amigo.nome
+                                                            telefoneAmigoEditado.value = amigo.telefone ?: ""
+                                                        },
+                                                        onRemoverVinculo = { familiarId ->
+                                                            viewModel.removerFamiliarDoAmigo(amigo.id, familiarId)
                                                         }
                                                     )
                                                 }
@@ -750,20 +775,6 @@ fun FamiliaScreen(
                 modifier = Modifier.align(Alignment.TopCenter)
             )
             
-            // FAB secundário para adicionar amigo (posicionado acima do FAB principal)
-            FloatingActionButton(
-                onClick = onNavigateToAdicionarAmigo,
-                containerColor = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(bottom = 80.dp, end = 16.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.GroupAdd,
-                    contentDescription = "Adicionar Amigo"
-                )
-            }
-
             state.erro?.let { mensagemErro ->
                 Box(
                     modifier = Modifier
@@ -1309,6 +1320,57 @@ fun FamiliaScreen(
             }
         )
     }
+
+    // Modal para editar amigo (nome e telefone)
+    amigoParaEditar.value?.let { amigo ->
+        AlertDialog(
+            onDismissRequest = { amigoParaEditar.value = null },
+            title = {
+                Text(
+                    text = "Editar Amigo",
+                    style = MaterialTheme.typography.titleLarge
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(
+                        value = nomeAmigoEditado.value,
+                        onValueChange = { nomeAmigoEditado.value = it },
+                        label = { Text("Nome") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = telefoneAmigoEditado.value,
+                        onValueChange = { telefoneAmigoEditado.value = it },
+                        label = { Text("Telefone (opcional)") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.atualizarAmigo(
+                            amigoId = amigo.id,
+                            novoNome = nomeAmigoEditado.value,
+                            novoTelefone = telefoneAmigoEditado.value
+                        )
+                        amigoParaEditar.value = null
+                    },
+                    enabled = nomeAmigoEditado.value.trim().isNotEmpty() && !state.isLoading
+                ) {
+                    Text("Salvar")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { amigoParaEditar.value = null }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -1316,7 +1378,9 @@ private fun AmigoCard(
     amigo: Amigo,
     pessoasDisponiveis: List<Pessoa>,
     onVincularFamiliar: () -> Unit,
-    onExcluirAmigo: () -> Unit
+    onExcluirAmigo: () -> Unit,
+    onEditarAmigo: () -> Unit,
+    onRemoverVinculo: (String) -> Unit
 ) {
     val familiaresVinculados = remember(amigo.familiaresVinculados, pessoasDisponiveis) {
         pessoasDisponiveis
@@ -1361,6 +1425,14 @@ private fun AmigoCard(
                 
                 // Botões de ação
                 Row {
+                    // Botão editar
+                    IconButton(onClick = onEditarAmigo) {
+                        Icon(
+                            imageVector = Icons.Filled.Edit,
+                            contentDescription = "Editar Amigo",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
                     // Botão de excluir
                     IconButton(onClick = onExcluirAmigo) {
                         Icon(
@@ -1388,15 +1460,34 @@ private fun AmigoCard(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     familiaresVinculados.forEach { familiar ->
-                        Text(
-                            text = "• ${familiar.getNomeExibicao()}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = familiar.getNomeExibicao(),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                IconButton(onClick = { onRemoverVinculo(familiar.id) }) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Close,
+                                        contentDescription = "Remover vínculo",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }

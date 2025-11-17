@@ -87,6 +87,7 @@ class CadastroViewModel @Inject constructor(
             
             result.onSuccess { user ->
                 try {
+                    // REGRA ESPECIAL: O primeiro cadastro de usuário (o mais antigo) SEMPRE será ADMIN SÊNIOR
                     // Verificar se é o primeiro usuário (nenhum admin existe ainda)
                     val ehPrimeiroUsuario = usuarioRepository.ehPrimeiroUsuario()
                     
@@ -96,6 +97,7 @@ class CadastroViewModel @Inject constructor(
                         nome = _state.value.nomeCompleto.trim(),
                         email = _state.value.email.trim(),
                         ehAdministrador = ehPrimeiroUsuario, // Primeiro usuário = admin
+                        ehAdministradorSenior = ehPrimeiroUsuario, // EXCEÇÃO: Primeiro usuário = ADMIN SÊNIOR automaticamente
                         primeiroAcesso = true,
                         criadoEm = Date()
                     )
@@ -103,16 +105,22 @@ class CadastroViewModel @Inject constructor(
                     val resultadoSalvar = usuarioRepository.salvar(usuario)
                     
                     resultadoSalvar.onSuccess {
-                        Timber.d("✅ Usuário criado no Firestore: ${user.uid} (Admin: $ehPrimeiroUsuario)")
+                        if (ehPrimeiroUsuario) {
+                            Timber.d("✅ Primeiro usuário criado no Firestore: ${user.uid} (ADMIN SÊNIOR)")
+                        } else {
+                            Timber.d("✅ Usuário criado no Firestore: ${user.uid}")
+                        }
                         _state.update { it.copy(isLoading = false, cadastroSuccess = true) }
                     }
                     
                     resultadoSalvar.onFailure { error ->
                         Timber.e(error, "❌ Erro ao salvar usuário no Firestore")
+                        // Usar a mensagem de erro mais específica se disponível
+                        val errorMessage = error.message ?: "Erro ao salvar dados do usuário. Tente novamente."
                         _state.update { 
                             it.copy(
                                 isLoading = false, 
-                                error = "Erro ao salvar dados do usuário. Tente novamente."
+                                error = errorMessage
                             ) 
                         }
                     }
@@ -130,9 +138,15 @@ class CadastroViewModel @Inject constructor(
             
             result.onFailure { error ->
                 Timber.e(error, "❌ Erro no cadastro")
-                val errorMessage = when {
-                    error.message?.contains("email-already-in-use") == true -> "Este email já está em uso"
-                    error.message?.contains("weak-password") == true -> "Senha muito fraca"
+                // Usar a mensagem de erro já formatada pelo AuthService
+                val errorMessage = error.message ?: when {
+                    error.message?.contains("email-already-in-use") == true ||
+                    error.message?.contains("EMAIL_EXISTS") == true ||
+                    error.message?.contains("already in use") == true -> {
+                        "Este email já está cadastrado. Faça login em vez de criar uma nova conta."
+                    }
+                    error.message?.contains("weak-password") == true -> "Senha muito fraca. Use pelo menos 6 caracteres."
+                    error.message?.contains("invalid-email") == true -> "Email inválido. Verifique o formato do email."
                     error.message?.contains("network") == true -> "Erro de conexão. Verifique sua internet"
                     else -> "Erro ao criar conta. Tente novamente"
                 }

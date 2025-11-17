@@ -83,19 +83,21 @@ class FirestoreService @Inject constructor(
                     )
                 }
                 
-                val data = hashMapOf(
+                val data = hashMapOf<String, Any>(
                     "nome" to usuario.nome,
                     "email" to usuario.email,
-                    "fotoUrl" to usuario.fotoUrl,
-                    "posicaoRanking" to usuario.posicaoRanking,
-                    "pessoaVinculada" to usuario.pessoaVinculada,
                     "ehAdministrador" to usuario.ehAdministrador,
                     "ehAdministradorSenior" to usuario.ehAdministradorSenior,
-                    "familiaZeroPai" to usuario.familiaZeroPai,
-                    "familiaZeroMae" to usuario.familiaZeroMae,
                     "primeiroAcesso" to usuario.primeiroAcesso,
-                    "criadoEm" to usuario.criadoEm
+                    "criadoEm" to com.google.firebase.Timestamp(usuario.criadoEm)
                 )
+                
+                // Adicionar campos opcionais apenas se não forem null/vazios
+                usuario.fotoUrl?.takeIf { it.isNotBlank() }?.let { data["fotoUrl"] = it }
+                usuario.posicaoRanking?.let { data["posicaoRanking"] = it }
+                usuario.pessoaVinculada?.takeIf { it.isNotBlank() }?.let { data["pessoaVinculada"] = it }
+                usuario.familiaZeroPai?.takeIf { it.isNotBlank() }?.let { data["familiaZeroPai"] = it }
+                usuario.familiaZeroMae?.takeIf { it.isNotBlank() }?.let { data["familiaZeroMae"] = it }
                 
                 usersCollection.document(usuario.id)
                     .set(data)
@@ -104,6 +106,26 @@ class FirestoreService @Inject constructor(
                 Timber.d("✅ Usuário salvo: ${usuario.id}")
                 Result.success(Unit)
                 
+            } catch (e: com.google.firebase.firestore.FirebaseFirestoreException) {
+                Timber.e(e, "❌ Erro ao salvar usuário no Firestore")
+                
+                // Mensagens mais específicas baseadas no código de erro
+                val errorMessage = when (e.code) {
+                    com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED -> {
+                        "Permissão negada. Verifique as regras de segurança do Firestore."
+                    }
+                    com.google.firebase.firestore.FirebaseFirestoreException.Code.UNAVAILABLE -> {
+                        "Serviço temporariamente indisponível. Tente novamente."
+                    }
+                    com.google.firebase.firestore.FirebaseFirestoreException.Code.DEADLINE_EXCEEDED -> {
+                        "Tempo de espera esgotado. Verifique sua conexão e tente novamente."
+                    }
+                    else -> {
+                        "Erro ao salvar dados do usuário: ${e.message ?: "Erro desconhecido"}"
+                    }
+                }
+                
+                Result.failure(Exception(errorMessage, e))
             } catch (e: Exception) {
                 Timber.e(e, "❌ Erro ao salvar usuário")
                 Result.failure(e)
@@ -3016,6 +3038,168 @@ class FirestoreService @Inject constructor(
         }
     }
 
+    // ============================================
+    // ACCESS REQUESTS (PEDIR CONVITE)
+    // ============================================
+    /**
+     * Salva um pedido de convite (acesso) no Firestore
+     */
+    suspend fun salvarPedidoConvite(
+        email: String,
+        nome: String?,
+        telefone: String?
+    ): Result<Unit> {
+        return RetryHelper.withNetworkRetry {
+            try {
+                val data = hashMapOf<String, Any>(
+                    "email" to email.trim().lowercase(),
+                    "nome" to (nome ?: ""),
+                    "telefone" to (telefone ?: ""),
+                    "status" to "pending",
+                    "criadoEm" to com.google.firebase.Timestamp.now()
+                )
+                firestore
+                    .collection("access_requests")
+                    .add(data)
+                    .await()
+                Timber.d("✅ Pedido de convite salvo: $email")
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao salvar pedido de convite")
+                Result.failure(e)
+            }
+        }
+    }
+
+    /**
+     * Busca pedidos de convite
+     */
+    suspend fun buscarPedidosConvite(): Result<List<com.raizesvivas.app.domain.model.AccessRequest>> {
+        return RetryHelper.withNetworkRetry {
+            try {
+                val snapshot = firestore
+                    .collection("access_requests")
+                    .orderBy("criadoEm", Query.Direction.DESCENDING)
+                    .get()
+                    .await()
+                val lista = snapshot.documents.mapNotNull { doc ->
+                    val data = doc.data ?: return@mapNotNull null
+                    val email = data["email"] as? String ?: return@mapNotNull null
+                    val status = data["status"] as? String ?: "pending"
+                    val ts = data["criadoEm"] as? com.google.firebase.Timestamp
+                    val criadoEm = ts?.toDate() ?: JavaDate()
+                    com.raizesvivas.app.domain.model.AccessRequest(
+                        id = doc.id,
+                        email = email,
+                        nome = (data["nome"] as? String)?.ifBlank { null },
+                        telefone = (data["telefone"] as? String)?.ifBlank { null },
+                        status = status,
+                        criadoEm = criadoEm
+                    )
+                }
+                Result.success(lista)
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao buscar pedidos de convite")
+                Result.failure(e)
+            }
+        }
+    }
+
+    suspend fun buscarPedidosConvitePaginado(
+        limit: Int,
+        startAfterDate: JavaDate? = null,
+        status: String? = null
+    ): Result<Pair<List<com.raizesvivas.app.domain.model.AccessRequest>, JavaDate?>> {
+        return RetryHelper.withNetworkRetry {
+            try {
+                // SOLUÇÃO: Evitar índice composto fazendo orderBy no Firestore
+                // e filtrando por status em memória
+                // Isso evita a necessidade de criar um índice composto
+                var query: Query = firestore.collection("access_requests")
+                
+                // Aplicar orderBy (não precisa de índice composto se não houver whereEqualTo)
+                query = query.orderBy("criadoEm", Query.Direction.DESCENDING)
+                
+                // Buscar mais itens do que necessário para compensar a filtragem em memória
+                // Se houver filtro de status, buscamos 3x mais para garantir que teremos itens suficientes
+                val limitToFetch = if (status != null) (limit * 3).toLong() else limit.toLong()
+                query = query.limit(limitToFetch)
+                
+                // Aplicar o startAfter (se houver)
+                if (startAfterDate != null) {
+                    query = query.startAfter(com.google.firebase.Timestamp(startAfterDate))
+                }
+                
+                val snapshot = query.get().await()
+                val listaCompleta = snapshot.documents.mapNotNull { doc ->
+                    val data = doc.data ?: return@mapNotNull null
+                    val email = data["email"] as? String ?: return@mapNotNull null
+                    val st = data["status"] as? String ?: "pending"
+                    val ts = data["criadoEm"] as? com.google.firebase.Timestamp
+                    val criadoEm = ts?.toDate() ?: JavaDate()
+                    com.raizesvivas.app.domain.model.AccessRequest(
+                        id = doc.id,
+                        email = email,
+                        nome = (data["nome"] as? String)?.ifBlank { null },
+                        telefone = (data["telefone"] as? String)?.ifBlank { null },
+                        status = st,
+                        criadoEm = criadoEm
+                    )
+                }
+                
+                // Filtrar por status em memória (se necessário)
+                val listaFiltrada = if (status != null) {
+                    listaCompleta.filter { it.status == status }.take(limit)
+                } else {
+                    listaCompleta
+                }
+                
+                val last = listaFiltrada.lastOrNull()?.criadoEm
+                Result.success(listaFiltrada to last)
+            } catch (e: com.google.firebase.firestore.FirebaseFirestoreException) {
+                // Tratamento específico para erro de índice faltante
+                if (e.code == com.google.firebase.firestore.FirebaseFirestoreException.Code.FAILED_PRECONDITION) {
+                    val errorMessage = e.message ?: ""
+                    // Extrair URL do índice se presente na mensagem de erro
+                    val indexUrlRegex = Regex("https://console\\.firebase\\.google\\.com[^\\s]+")
+                    val indexUrl = indexUrlRegex.find(errorMessage)?.value
+                    
+                    val mensagemErro = if (indexUrl != null) {
+                        "A query requer um índice composto no Firestore. Crie o índice aqui: $indexUrl"
+                    } else {
+                        "A query requer um índice composto no Firestore. Verifique o console do Firebase para criar o índice necessário."
+                    }
+                    
+                    Timber.e(e, "❌ Erro ao buscar pedidos paginados: índice faltante")
+                    Result.failure(Exception(mensagemErro, e))
+                } else {
+                    Timber.e(e, "❌ Erro ao buscar pedidos paginados")
+                    Result.failure(e)
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao buscar pedidos paginados")
+                Result.failure(e)
+            }
+        }
+    }
+    /**
+     * Marca pedido de convite como aprovado/rejeitado ou remove
+     */
+    suspend fun atualizarStatusPedidoConvite(requestId: String, status: String): Result<Unit> {
+        return RetryHelper.withNetworkRetry {
+            try {
+                firestore.collection("access_requests")
+                    .document(requestId)
+                    .update(mapOf("status" to status))
+                    .await()
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao atualizar status do pedido: $requestId")
+                Result.failure(e)
+            }
+        }
+    }
+
     /**
      * Registra um evento analítico simples relacionado a notificações
      */
@@ -3044,6 +3228,25 @@ class FirestoreService @Inject constructor(
             } catch (e: Exception) {
                 Timber.e(e, "❌ Erro ao registrar evento analítico")
                 Result.failure(e)
+            }
+        }
+    }
+
+    // ============================================
+    // CONTAGEM DE PEDIDOS PENDENTES (para badge)
+    // ============================================
+    suspend fun contarPedidosConvitePendentes(): Result<Int> {
+        return RetryHelper.withNetworkRetry {
+            try {
+                val count = firestore.collection("access_requests")
+                    .whereEqualTo("status", "pending")
+                    .get()
+                    .await()
+                    .size()
+                Result.success(count)
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao contar pedidos pendentes")
+                Result.success(0)
             }
         }
     }
