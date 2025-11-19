@@ -378,6 +378,12 @@ fun HomeScreen(
                     @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
                     mostrarModalNotificacoes = true
                 },
+                onNavigateToPerfil = {
+                    scope.launch {
+                        drawerState.close()
+                        onNavigateToPerfil()
+                    }
+                },
                 onGerenciarConvites = {
                     scope.launch {
                         drawerState.close()
@@ -548,7 +554,7 @@ fun HomeScreen(
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 
                 // 2. Card "Minha família" - Segundo
                 Card(
@@ -597,7 +603,7 @@ fun HomeScreen(
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 
                 // 3. Card do usuário vinculado (parentesco) - Terceiro
                 pessoaVinculada?.let { pessoa ->
@@ -705,16 +711,16 @@ fun HomeScreen(
                         }
                     }
                     
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                 }
                 
                 // 3. Demais cards de estatísticas - "Paredão de cards"
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 
                 // Primeira linha
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     StatCard(
                         title = "Pessoas",
@@ -761,12 +767,12 @@ fun HomeScreen(
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 
                 // Segunda linha
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     StatCard(
                         title = "Meninas",
@@ -790,12 +796,12 @@ fun HomeScreen(
                     )
                 }
                 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 
                 // Terceira linha (Ranking e Sobrinhos)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     StatCard(
                         title = "Posição",
@@ -1357,6 +1363,7 @@ fun HomeDrawerContent(
     pedidosPendentes: Int,
     onClose: () -> Unit,
     onOpenNotificacoes: () -> Unit,
+    onNavigateToPerfil: () -> Unit = {},
     onGerenciarConvites: () -> Unit,
     onGerenciarEdicoes: () -> Unit,
     onResolverDuplicatas: () -> Unit,
@@ -1394,6 +1401,14 @@ fun HomeDrawerContent(
                         }
                     }
                 },
+                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+            )
+
+            NavigationDrawerItem(
+                label = { Text("Perfil") },
+                selected = false,
+                onClick = onNavigateToPerfil,
+                icon = { Icon(Icons.Default.Person, contentDescription = null) },
                 modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
             )
 

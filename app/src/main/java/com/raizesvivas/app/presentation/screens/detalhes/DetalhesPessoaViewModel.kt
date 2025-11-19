@@ -3,7 +3,9 @@ package com.raizesvivas.app.presentation.screens.detalhes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.raizesvivas.app.data.repository.PessoaRepository
+import com.raizesvivas.app.data.repository.FotoAlbumRepository
 import com.raizesvivas.app.domain.model.Pessoa
+import com.raizesvivas.app.domain.model.FotoAlbum
 import java.util.Locale
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,7 +21,8 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class DetalhesPessoaViewModel @Inject constructor(
-    private val pessoaRepository: PessoaRepository
+    private val pessoaRepository: PessoaRepository,
+    private val fotoAlbumRepository: FotoAlbumRepository
 ) : ViewModel() {
     
     private val _state = MutableStateFlow(DetalhesPessoaState())
@@ -115,6 +118,11 @@ class DetalhesPessoaViewModel @Inject constructor(
                         )
                     val filhosNomes = filhosUnicos.map { it.getNomeExibicao() }
                     
+                    // Buscar fotos do álbum da pessoa
+                    val fotosResult = fotoAlbumRepository.buscarFotosPorPessoa(pessoaId)
+                    val fotos = fotosResult.getOrNull() ?: emptyList()
+                    Timber.d("📸 Fotos do álbum carregadas: ${fotos.size} fotos para pessoa ${pessoa.nome}")
+                    
                     _state.update {
                         it.copy(
                             isLoading = false,
@@ -122,7 +130,8 @@ class DetalhesPessoaViewModel @Inject constructor(
                             paiNome = paiNome,
                             maeNome = maeNome,
                             conjugeNome = conjugeNome,
-                            filhosNomes = filhosNomes
+                            filhosNomes = filhosNomes,
+                            fotosAlbum = fotos
                         )
                     }
                 } else {
@@ -156,6 +165,7 @@ data class DetalhesPessoaState(
     val paiNome: String? = null,
     val maeNome: String? = null,
     val conjugeNome: String? = null,
-    val filhosNomes: List<String> = emptyList()
+    val filhosNomes: List<String> = emptyList(),
+    val fotosAlbum: List<FotoAlbum> = emptyList()
 )
 

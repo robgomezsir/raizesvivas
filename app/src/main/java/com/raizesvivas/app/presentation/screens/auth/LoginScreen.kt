@@ -48,7 +48,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.raizesvivas.app.MainActivity
 import com.raizesvivas.app.presentation.ui.theme.RaizesVivasButtonDefaults
 import com.raizesvivas.app.presentation.ui.theme.InputShapeSuave
-import com.raizesvivas.app.presentation.ui.theme.inputColorsSuaves
+import com.raizesvivas.app.presentation.ui.theme.inputColorsPastel
 import kotlinx.coroutines.delay
 import timber.log.Timber
 
@@ -198,7 +198,7 @@ fun LoginScreen(
                         }
                     }
 
-                    OutlinedTextField(
+                    TextField(
                         value = state.email,
                         onValueChange = { viewModel.onEmailChanged(it) },
                         label = { Text("Email") },
@@ -209,7 +209,7 @@ fun LoginScreen(
                         isError = state.emailError != null,
                         supportingText = state.emailError?.let { { Text(it) } },
                         shape = InputShapeSuave,
-                        colors = inputColorsSuaves(),
+                        colors = inputColorsPastel(),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Email,
                             imeAction = ImeAction.Next
@@ -222,7 +222,7 @@ fun LoginScreen(
 
                     var senhaVisivel by remember { mutableStateOf(false) }
 
-                    OutlinedTextField(
+                    TextField(
                         value = state.senha,
                         onValueChange = { viewModel.onSenhaChanged(it) },
                         label = { Text("Senha") },
@@ -242,7 +242,7 @@ fun LoginScreen(
                         isError = state.senhaError != null,
                         supportingText = state.senhaError?.let { { Text(it) } },
                         shape = InputShapeSuave,
-                        colors = inputColorsSuaves(),
+                        colors = inputColorsPastel(),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Password,
                             imeAction = ImeAction.Done

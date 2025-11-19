@@ -17,6 +17,7 @@ sealed class Screen(val route: String) {
     object Familia : Screen("familia")
     object Conquistas : Screen("conquistas")
     object Mural : Screen("mural")
+    object AlbumFamilia : Screen("album_familia")
     object CadastroPessoa : Screen("cadastro_pessoa")
     object EditarPessoa : Screen("cadastro_pessoa/{pessoaId}") {
         fun createRoute(pessoaId: String) = "cadastro_pessoa/$pessoaId"

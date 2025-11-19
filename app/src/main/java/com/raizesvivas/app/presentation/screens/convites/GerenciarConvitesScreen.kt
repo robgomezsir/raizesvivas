@@ -27,7 +27,7 @@ import com.raizesvivas.app.domain.model.Pessoa
 import com.raizesvivas.app.domain.model.StatusConvite
 import com.raizesvivas.app.presentation.screens.cadastro.PessoaSelector
 import com.raizesvivas.app.presentation.ui.theme.InputShapeSuave
-import com.raizesvivas.app.presentation.ui.theme.inputColorsSuaves
+import com.raizesvivas.app.presentation.ui.theme.inputColorsPastel
 import com.raizesvivas.app.presentation.ui.theme.RaizesVivasButtonDefaults
 import java.text.SimpleDateFormat
 import java.util.*
@@ -220,7 +220,7 @@ fun GerenciarConvitesScreen(
                         )
                     }
                     
-                    OutlinedTextField(
+                    TextField(
                         value = state.emailConvidado,
                         onValueChange = { viewModel.onEmailConvidadoChanged(it) },
                         label = { Text("Email do Convidado") },
@@ -239,7 +239,7 @@ fun GerenciarConvitesScreen(
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !state.isLoading,
                         shape = InputShapeSuave,
-                        colors = inputColorsSuaves()
+                        colors = inputColorsPastel()
                     )
                     
                     // Seletor de pessoa vinculada (opcional)
@@ -325,7 +325,7 @@ fun GerenciarConvitesScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                OutlinedTextField(
+                TextField(
                     value = viewModel.filtroEmail.collectAsState().value,
                     onValueChange = { viewModel.atualizarFiltroEmail(it) },
                     label = { Text("Filtrar por e-mail") },
@@ -340,7 +340,7 @@ fun GerenciarConvitesScreen(
                     singleLine = true,
                     modifier = Modifier.weight(1f),
                     shape = InputShapeSuave,
-                    colors = inputColorsSuaves()
+                    colors = inputColorsPastel()
                 )
                 FilterChip(
                     selected = viewModel.filtroStatus == "pending",

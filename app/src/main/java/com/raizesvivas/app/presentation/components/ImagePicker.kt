@@ -31,7 +31,8 @@ fun ImagePicker(
     imagePath: String?,
     onImageSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
-    size: Int = 120
+    size: Int = 120,
+    imageUrl: String? = null // URL da imagem remota (Firebase Storage)
 ) {
     val context = LocalContext.current
     
@@ -39,27 +40,39 @@ fun ImagePicker(
     val galeriaLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        uri?.let {
+        if (uri != null) {
+            Timber.d("📷 Imagem selecionada da galeria: $uri")
             // Copiar arquivo para cache local
-            val arquivoLocal = copiarParaCache(context, it)
-            arquivoLocal?.let { file ->
-                onImageSelected(file.absolutePath)
+            val arquivoLocal = copiarParaCache(context, uri)
+            if (arquivoLocal != null) {
+                Timber.d("✅ Arquivo copiado para cache: ${arquivoLocal.absolutePath}")
+                onImageSelected(arquivoLocal.absolutePath)
+            } else {
+                Timber.e("❌ Erro ao copiar arquivo para cache")
             }
+        } else {
+            Timber.d("⚠️ Nenhuma imagem selecionada")
         }
     }
     
     // Launcher para câmera
     var imageUri by remember { mutableStateOf<Uri?>(null) }
-    rememberLauncherForActivityResult(
+    val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
         if (success) {
             imageUri?.let { uri ->
+                Timber.d("📷 Foto tirada da câmera: $uri")
                 val arquivoLocal = copiarParaCache(context, uri)
-                arquivoLocal?.let { file ->
-                    onImageSelected(file.absolutePath)
+                if (arquivoLocal != null) {
+                    Timber.d("✅ Arquivo copiado para cache: ${arquivoLocal.absolutePath}")
+                    onImageSelected(arquivoLocal.absolutePath)
+                } else {
+                    Timber.e("❌ Erro ao copiar arquivo para cache")
                 }
-            }
+            } ?: Timber.e("❌ URI da imagem é null")
+        } else {
+            Timber.d("⚠️ Foto não foi capturada")
         }
     }
     
@@ -76,12 +89,14 @@ fun ImagePicker(
                 },
             contentAlignment = Alignment.Center
         ) {
-            if (imagePath != null && File(imagePath).exists()) {
-                // Mostrar imagem selecionada
+            // Mostrar imagem se houver caminho local ou URL remota
+            val imageData = imagePath?.takeIf { File(it).exists() } ?: imageUrl
+            if (imageData != null) {
+                // Mostrar imagem selecionada (local ou remota)
                 Image(
                     painter = rememberAsyncImagePainter(
                         ImageRequest.Builder(LocalContext.current)
-                            .data(imagePath)
+                            .data(imageData)
                             .build()
                     ),
                     contentDescription = "Foto da pessoa",

@@ -152,6 +152,31 @@ service cloud.firestore {
     }
 
     // ==============================
+    // 👤 Coleção: usuarios (NOVA ESTRUTURA - Gamificação)
+    // ==============================
+    match /usuarios/{userId} {
+      allow read: if isAuthenticated(); // todos podem ver perfis
+      
+      // CRIAÇÃO: Permitir que usuário crie seu próprio documento durante cadastro
+      allow create: if isAuthenticated() &&
+                     request.auth.uid == userId;
+      
+      // Atualizações: 
+      // - Dono pode atualizar apenas o campo posicaoRanking
+      // - ADMIN pode atualizar qualquer campo
+      allow update: if isAuthenticated() && (
+                      // Dono pode atualizar apenas posicaoRanking
+                      (isOwner(userId) && 
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['posicaoRanking']) &&
+                       (!request.resource.data.keys().hasAny(['posicaoRanking']) || request.resource.data.posicaoRanking == null || request.resource.data.posicaoRanking is int)) ||
+                      // Admin pode atualizar qualquer campo
+                      isAdmin()
+                    );
+      
+      allow delete: if isAdmin();
+    }
+
+    // ==============================
     // 🧍 Coleção: people
     // ==============================
     match /people/{pessoaId} {
@@ -349,6 +374,7 @@ service cloud.firestore {
                      validarProgressoConquista();
       
       // ATUALIZAÇÃO: Apenas o próprio usuário pode atualizar seu progresso
+      // Permite usar .set() que cria ou atualiza
       allow update: if isAuthenticated() && 
                      request.auth.uid == userId &&
                      validarProgressoConquista();
@@ -356,30 +382,30 @@ service cloud.firestore {
       // DELEÇÃO: Apenas o próprio usuário pode deletar seu progresso
       allow delete: if isAuthenticated() && request.auth.uid == userId;
       
-      // Função auxiliar para validar dados de progresso
+      // Função auxiliar para validar dados de progresso (usada tanto em create quanto update)
       function validarProgressoConquista() {
         let dados = request.resource.data;
+        // Validar campos obrigatórios
         return dados.keys().hasAll(['conquistaId', 'progresso', 'concluida', 'progressoTotal']) &&
+               // Validar tipos básicos
+               dados.conquistaId is string &&
+               dados.conquistaId.size() > 0 &&
+               dados.progresso is int &&
+               dados.progressoTotal is int &&
+               dados.concluida is bool &&
                // Progresso deve ser >= 0 e <= progressoTotal
                dados.progresso >= 0 &&
                dados.progresso <= dados.progressoTotal &&
                // progressoTotal deve ser > 0
                dados.progressoTotal > 0 &&
-               // concluida deve ser boolean
-               dados.concluida is bool &&
                // Se concluída, desbloqueadaEm deve estar presente e ser um timestamp válido
-               // Se não concluída, desbloqueadaEm pode não estar presente
+               // Se não concluída, desbloqueadaEm pode não estar presente ou ser null
                (!dados.concluida || (dados.keys().hasAny(['desbloqueadaEm']) && dados.desbloqueadaEm != null && dados.desbloqueadaEm is timestamp)) &&
                // nivel deve ser >= 1 (se presente)
-               (!dados.keys().hasAny(['nivel']) || dados.nivel >= 1) &&
+               (!dados.keys().hasAny(['nivel']) || (dados.nivel is int && dados.nivel >= 1)) &&
                // pontuacaoTotal deve ser >= 0 (se presente)
-               (!dados.keys().hasAny(['pontuacaoTotal']) || dados.pontuacaoTotal >= 0) &&
-               // Validar tipos básicos
-               dados.conquistaId is string &&
-               dados.progresso is int &&
-               dados.progressoTotal is int &&
+               (!dados.keys().hasAny(['pontuacaoTotal']) || (dados.pontuacaoTotal is int && dados.pontuacaoTotal >= 0)) &&
                // desbloqueadaEm pode não estar presente, ser null ou ser timestamp
-               // (mas se concluída, deve estar presente e ser timestamp)
                (!dados.keys().hasAny(['desbloqueadaEm']) || dados.desbloqueadaEm == null || dados.desbloqueadaEm is timestamp);
       }
     }
@@ -445,6 +471,54 @@ service cloud.firestore {
                dados.totalConquistas is int &&
                dados.totalConquistas >= 0 &&
                (!dados.keys().hasAny(['atualizadoEm']) || dados.atualizadoEm is timestamp);
+      }
+    }
+
+    // ==============================
+    // 📸 Coleção: fotos_album (FOTOS DO ÁLBUM DE FAMÍLIA)
+    // ==============================
+    match /fotos_album/{fotoId} {
+      // LEITURA: Qualquer usuário autenticado pode ver fotos do álbum
+      allow read: if isAuthenticated();
+      
+      // LISTAGEM: Queries eficientes (com orderBy obrigatório)
+      // Permite queries com whereEqualTo + orderBy (para observação em tempo real)
+      allow list: if isAuthenticated() && 
+                     (request.query.orderBy.size() > 0 || 
+                      request.query.limit <= 100);
+      
+      // CRIAÇÃO: Usuário autenticado pode criar fotos do álbum
+      allow create: if isAuthenticated() &&
+                     validarFotoAlbum();
+      
+      // ATUALIZAÇÃO: Apenas o criador ou admin pode atualizar
+      allow update: if isAuthenticated() &&
+                     (resource.data.criadoPor == request.auth.uid || isAdmin()) &&
+                     validarFotoAlbum();
+      
+      // DELEÇÃO: Apenas o criador ou admin pode deletar
+      allow delete: if isAuthenticated() &&
+                     (resource.data.criadoPor == request.auth.uid || isAdmin());
+      
+      // Função auxiliar para validar dados de foto do álbum
+      function validarFotoAlbum() {
+        let dados = request.resource.data;
+        return dados.keys().hasAll(['familiaId', 'pessoaId', 'pessoaNome', 'url', 'criadoPor', 'criadoEm']) &&
+               dados.familiaId is string &&
+               dados.familiaId.size() > 0 &&
+               dados.pessoaId is string &&
+               dados.pessoaId.size() > 0 &&
+               dados.pessoaNome is string &&
+               dados.pessoaNome.size() > 0 &&
+               dados.url is string &&
+               dados.url.size() > 0 &&
+               dados.criadoPor is string &&
+               dados.criadoPor == request.auth.uid &&
+               dados.criadoEm is timestamp &&
+               // Campos opcionais: descricao pode ser string (incluindo vazia) ou null
+               (!dados.keys().hasAny(['descricao']) || dados.descricao == null || dados.descricao is string) &&
+               // ordem pode ser int (incluindo 0) ou null
+               (!dados.keys().hasAny(['ordem']) || dados.ordem == null || dados.ordem is int);
       }
     }
 

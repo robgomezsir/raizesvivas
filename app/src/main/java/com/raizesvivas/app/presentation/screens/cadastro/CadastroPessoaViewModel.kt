@@ -287,10 +287,37 @@ class CadastroPessoaViewModel @Inject constructor(
                 )
                 
                 // Se há foto para fazer upload, fazer antes de salvar
-                val fotoUrl = estadoParaSalvar.fotoPath?.takeIf { !estadoParaSalvar.isEditing }
-                    ?.let { path ->
-                        fazerUploadFoto(path, pessoaId).getOrNull()
-                    } ?: pessoa.fotoUrl
+                // Sempre fazer upload se houver fotoPath (nova foto selecionada)
+                val fotoUrl = if (estadoParaSalvar.fotoPath != null) {
+                    val fotoPath = estadoParaSalvar.fotoPath!!
+                    // Validar se o arquivo existe
+                    val arquivo = java.io.File(fotoPath)
+                    if (!arquivo.exists()) {
+                        Timber.e("❌ Arquivo de imagem não existe: $fotoPath")
+                        _state.update { it.copy(
+                            isLoading = false,
+                            erro = "Arquivo de imagem não encontrado. Tente selecionar a imagem novamente."
+                        ) }
+                        return@launch
+                    }
+                    
+                    Timber.d("📤 Fazendo upload da foto do perfil...")
+                    val uploadResult = fazerUploadFoto(fotoPath, pessoaId)
+                    uploadResult.getOrNull()?.also {
+                        Timber.d("✅ Upload da foto concluído: $it")
+                    } ?: run {
+                        val exception = uploadResult.exceptionOrNull()
+                        Timber.e(exception, "❌ Erro no upload da foto")
+                        _state.update { it.copy(
+                            isLoading = false,
+                            erro = "Erro ao fazer upload da foto: ${exception?.message ?: "Erro desconhecido"}"
+                        ) }
+                        return@launch
+                    }
+                } else {
+                    // Se não há nova foto, manter a fotoUrl existente
+                    estadoParaSalvar.fotoUrl ?: pessoa.fotoUrl
+                }
                 
                 val pessoaComFoto = pessoa.copy(fotoUrl = fotoUrl)
                 
@@ -381,7 +408,15 @@ class CadastroPessoaViewModel @Inject constructor(
                 }
             }
             
-            _state.update { it.copy(isLoading = false, sucesso = true) }
+            // Atualizar estado com fotoUrl após salvar com sucesso
+            _state.update { 
+                it.copy(
+                    isLoading = false, 
+                    sucesso = true,
+                    fotoUrl = pessoa.fotoUrl, // Atualizar com a URL da foto salva
+                    fotoPath = null // Limpar caminho local após upload bem-sucedido
+                ) 
+            }
         }
         
         resultado.onFailure { error ->
@@ -654,16 +689,26 @@ class CadastroPessoaViewModel @Inject constructor(
      */
     private suspend fun fazerUploadFoto(path: String, pessoaId: String): Result<String> {
         return try {
-            // Comprimir imagem antes de fazer upload
-            val compressedFile = ImageCompressor.compressToFile(path, 10240) // 10KB
+            Timber.d("🗜️ Comprimindo imagem do perfil...")
+            // Comprimir imagem antes de fazer upload (250KB para perfil)
+            val compressedFile = ImageCompressor.compressToFile(path, targetSizeKB = 250, paraPerfil = true)
             if (compressedFile == null) {
-                return Result.failure(Exception("Erro ao comprimir imagem"))
+                Timber.e("❌ Erro ao comprimir imagem")
+                return Result.failure(Exception("Erro ao comprimir imagem. Verifique se o arquivo é uma imagem válida."))
             }
+            Timber.d("✅ Imagem comprimida: ${compressedFile.absolutePath}")
             
             // Upload para Storage
-            storageService.uploadPessoaPhoto(compressedFile, pessoaId)
+            Timber.d("📤 Fazendo upload para Storage...")
+            val result = storageService.uploadPessoaPhoto(compressedFile, pessoaId)
+            result.onSuccess {
+                Timber.d("✅ Upload concluído: $it")
+            }.onFailure { e ->
+                Timber.e(e, "❌ Erro no upload para Storage")
+            }
+            result
         } catch (e: Exception) {
-            Timber.e(e, "Erro ao fazer upload da foto")
+            Timber.e(e, "❌ Erro ao fazer upload da foto")
             Result.failure(e)
         }
     }

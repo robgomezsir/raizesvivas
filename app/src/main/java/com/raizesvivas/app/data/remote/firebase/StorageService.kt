@@ -1,6 +1,7 @@
 package com.raizesvivas.app.data.remote.firebase
 
 import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.storage.StorageMetadata
 import com.google.firebase.storage.UploadTask
 import com.raizesvivas.app.utils.RetryHelper
 import kotlinx.coroutines.tasks.await
@@ -26,24 +27,48 @@ class StorageService @Inject constructor(
      * 
      * @param bytes ByteArray da imagem comprimida
      * @param caminho Caminho no Storage (ex: "pessoas/pessoaId/foto.jpg")
+     * @param contentType Tipo MIME da imagem (padrão: "image/jpeg")
      * @return Result com URL da imagem ou erro
      */
     suspend fun uploadImagem(
         bytes: ByteArray,
-        caminho: String
+        caminho: String,
+        contentType: String = "image/jpeg"
     ): Result<String> {
         return RetryHelper.withNetworkRetry {
             try {
+                // Validar tipo de arquivo
+                if (!validarTipoImagem(contentType)) {
+                    return@withNetworkRetry Result.failure(
+                        IllegalArgumentException("Tipo de arquivo inválido. Apenas imagens são permitidas.")
+                    )
+                }
+                
+                // Validar tamanho (máximo 5MB conforme storage.rules)
+                val tamanhoMaximo = 5 * 1024 * 1024L // 5MB
+                if (bytes.size > tamanhoMaximo) {
+                    return@withNetworkRetry Result.failure(
+                        IllegalArgumentException("Imagem muito grande. Tamanho máximo: 5MB")
+                    )
+                }
+                
                 val imageRef = bucket.child(caminho)
                 
+                // Criar metadata com contentType
+                val metadata = StorageMetadata.Builder()
+                    .setContentType(contentType)
+                    .setCacheControl("public, max-age=31536000") // Cache por 1 ano
+                    .build()
+                
                 // Upload com metadata
-                imageRef.putBytes(bytes)
+                imageRef.putBytes(bytes, metadata)
                     .await()
                 
                 // Obter URL de download
                 val downloadUrl = imageRef.downloadUrl.await()
                 
-                Timber.d("✅ Imagem enviada: $caminho (${bytes.size} bytes)")
+                Timber.d("✅ Imagem enviada: $caminho (${bytes.size} bytes, ${bytes.size / 1024}KB)")
+                Timber.d("✅ Content-Type: $contentType")
                 Timber.d("✅ URL: $downloadUrl")
                 
                 Result.success(downloadUrl.toString())
@@ -60,22 +85,69 @@ class StorageService @Inject constructor(
      * 
      * @param file Arquivo de imagem
      * @param caminho Caminho no Storage
+     * @param contentType Tipo MIME da imagem (padrão: detectado automaticamente)
      * @return Result com URL da imagem ou erro
      */
     suspend fun uploadImagem(
         file: File,
-        caminho: String
+        caminho: String,
+        contentType: String? = null
     ): Result<String> {
         return RetryHelper.withNetworkRetry {
             try {
+                // Validar que o arquivo existe
+                if (!file.exists() || !file.isFile) {
+                    return@withNetworkRetry Result.failure(
+                        IllegalArgumentException("Arquivo não encontrado: ${file.absolutePath}")
+                    )
+                }
+                
+                // Validar tamanho (máximo 5MB conforme storage.rules)
+                val tamanhoMaximo = 5 * 1024 * 1024L // 5MB
+                val tamanhoArquivo = file.length()
+                if (tamanhoArquivo > tamanhoMaximo) {
+                    return@withNetworkRetry Result.failure(
+                        IllegalArgumentException("Imagem muito grande (${tamanhoArquivo / 1024 / 1024}MB). Tamanho máximo: 5MB")
+                    )
+                }
+                
+                // Detectar contentType se não fornecido
+                val mimeType = contentType ?: detectarContentType(file)
+                
+                // Validar tipo de arquivo
+                if (!validarTipoImagem(mimeType)) {
+                    return@withNetworkRetry Result.failure(
+                        IllegalArgumentException("Tipo de arquivo inválido: $mimeType. Apenas imagens são permitidas.")
+                    )
+                }
+                
+                // Ler arquivo como bytes para garantir que o contentType seja aplicado corretamente
+                val bytes = file.readBytes()
+                
+                // Validar tamanho dos bytes (reutilizar tamanhoMaximo já declarado)
+                if (bytes.size > tamanhoMaximo) {
+                    return@withNetworkRetry Result.failure(
+                        IllegalArgumentException("Imagem muito grande. Tamanho máximo: 5MB")
+                    )
+                }
+                
                 val imageRef = bucket.child(caminho)
                 
-                imageRef.putFile(android.net.Uri.fromFile(file))
+                // Criar metadata com contentType
+                val metadata = StorageMetadata.Builder()
+                    .setContentType(mimeType)
+                    .setCacheControl("public, max-age=31536000") // Cache por 1 ano
+                    .build()
+                
+                // Upload com metadata
+                imageRef.putBytes(bytes, metadata)
                     .await()
                 
+                // Obter URL de download
                 val downloadUrl = imageRef.downloadUrl.await()
                 
-                Timber.d("✅ Imagem enviada: $caminho (${file.length()} bytes)")
+                Timber.d("✅ Imagem enviada: $caminho (${bytes.size} bytes, ${bytes.size / 1024}KB)")
+                Timber.d("✅ Content-Type: $mimeType")
                 Timber.d("✅ URL: $downloadUrl")
                 
                 Result.success(downloadUrl.toString())
@@ -189,7 +261,68 @@ class StorageService @Inject constructor(
      */
     suspend fun uploadPessoaPhoto(file: File, pessoaId: String): Result<String> {
         val caminho = gerarCaminhoFotoPessoa(pessoaId)
-        return uploadImagem(file, caminho)
+        return uploadImagem(file, caminho, "image/jpeg")
+    }
+    
+    /**
+     * Gera caminho para foto do álbum
+     */
+    fun gerarCaminhoFotoAlbum(pessoaId: String, fotoId: String): String {
+        return "album_familia/$pessoaId/$fotoId.jpg"
+    }
+    
+    /**
+     * Faz upload de foto do álbum de família
+     * 
+     * @param file Arquivo de imagem comprimida
+     * @param pessoaId ID da pessoa
+     * @param fotoId ID único da foto (geralmente timestamp ou UUID)
+     * @return Result com URL da imagem ou erro
+     */
+    suspend fun uploadFotoAlbum(file: File, pessoaId: String, fotoId: String): Result<String> {
+        val caminho = gerarCaminhoFotoAlbum(pessoaId, fotoId)
+        
+        // Validar tamanho específico para fotos do álbum (máximo 500KB conforme storage.rules)
+        val tamanhoMaximoAlbum = 500 * 1024L // 500KB
+        val tamanhoArquivo = file.length()
+        
+        if (tamanhoArquivo > tamanhoMaximoAlbum) {
+            val tamanhoKB = tamanhoArquivo / 1024
+            return Result.failure(
+                IllegalArgumentException(
+                    "Imagem muito grande para o álbum (${tamanhoKB}KB). " +
+                    "Tamanho máximo permitido: 500KB. " +
+                    "A imagem foi comprimida, mas ainda está acima do limite. " +
+                    "Tente usar uma imagem menor ou com menos detalhes."
+                )
+            )
+        }
+        
+        return uploadImagem(file, caminho, "image/jpeg")
+    }
+    
+    /**
+     * Valida se o tipo MIME é uma imagem válida
+     */
+    private fun validarTipoImagem(contentType: String): Boolean {
+        return contentType.startsWith("image/") && when (contentType.lowercase()) {
+            "image/jpeg", "image/jpg", "image/png", "image/webp" -> true
+            else -> false
+        }
+    }
+    
+    /**
+     * Detecta o tipo MIME de um arquivo baseado na extensão
+     */
+    private fun detectarContentType(file: File): String {
+        val extensao = file.extension.lowercase()
+        return when (extensao) {
+            "jpg", "jpeg" -> "image/jpeg"
+            "png" -> "image/png"
+            "webp" -> "image/webp"
+            "gif" -> "image/gif"
+            else -> "image/jpeg" // Padrão
+        }
     }
 }
 

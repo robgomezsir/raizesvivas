@@ -7,8 +7,11 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -24,6 +27,58 @@ import com.raizesvivas.app.presentation.screens.conquistas.ConquistasScreen
 import com.raizesvivas.app.presentation.screens.mural.MuralScreen
 import com.raizesvivas.app.presentation.screens.chat.ChatContactsScreen
 import com.raizesvivas.app.presentation.screens.chat.ChatConversationScreen
+import com.raizesvivas.app.presentation.screens.album.AlbumFamiliaScreen
+
+/**
+ * Calcula o tamanho de fonte único para todos os labels da NavigationBar
+ * Baseado no texto mais longo para garantir que todos caibam em uma única linha
+ */
+@Composable
+fun rememberAdaptiveNavigationFontSize(): androidx.compose.ui.unit.TextUnit {
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp
+    
+    // Lista de todos os textos possíveis na navigation bar
+    val allLabels = listOf("Home", "Mural", "Família", "Álbum", "Conquistas")
+    
+    // Encontrar o texto mais longo
+    val longestText = allLabels.maxByOrNull { it.length } ?: "Conquistas"
+    
+    return remember(screenWidth) {
+        // Calcular largura disponível por item (assumindo 5 itens na navigation bar)
+        // Usar 80% da largura disponível para dar margem de segurança
+        val availableWidthPerItem = (screenWidth / 5) * 0.80f
+        
+        // Calcular tamanho da fonte baseado no texto mais longo
+        // Fator de 1.5 para dar mais espaço e permitir fonte maior
+        // Estimativa: cada caractere ocupa aproximadamente fontSize * 0.6 em dp
+        val maxFontSize = (availableWidthPerItem / longestText.length) * 1.5f
+        
+        // Limitar entre 10sp (mínimo legível) e 16sp (máximo aumentado)
+        maxFontSize.coerceAtMost(16f).coerceAtLeast(10f).sp
+    }
+}
+
+/**
+ * Texto adaptativo que ajusta o tamanho da fonte para caber em uma única linha
+ * Todos os labels usam o mesmo tamanho de fonte para manter consistência
+ */
+@Composable
+fun AdaptiveNavigationLabel(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    // Usar o mesmo tamanho de fonte para todos os labels
+    val fontSize = rememberAdaptiveNavigationFontSize()
+    
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelSmall.copy(fontSize = fontSize),
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = modifier
+    )
+}
 
 /**
  * Navegação principal do app com Bottom Navigation persistente
@@ -69,13 +124,19 @@ fun MainNavigation(
                                 modifier = Modifier.size(24.dp)
                             )
                         },
-                        label = {},
+                        label = { AdaptiveNavigationLabel("Home") },
                         selected = currentDestination?.hierarchy?.any { it.route == Screen.Home.route } == true,
                         onClick = {
-                            navController.navigate(Screen.Home.route) {
-                                popUpTo(Screen.Home.route) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
+                            if (currentDestination?.route != Screen.Home.route) {
+                                // Sempre limpar o back stack e ir para Home
+                                // Isso garante que Home seja a rota raiz, mesmo após navegar para Perfil
+                                navController.navigate(Screen.Home.route) {
+                                    // Limpar todo o back stack até a rota inicial
+                                    popUpTo(navController.graph.startDestinationId) {
+                                        inclusive = true
+                                    }
+                                    launchSingleTop = true
+                                }
                             }
                         }
                     )
@@ -89,11 +150,11 @@ fun MainNavigation(
                                 modifier = Modifier.size(24.dp)
                             )
                         },
-                        label = {},
+                        label = { AdaptiveNavigationLabel("Mural") },
                         selected = currentDestination?.hierarchy?.any { it.route == Screen.Mural.route } == true,
                         onClick = {
                             navController.navigate(Screen.Mural.route) {
-                                popUpTo(Screen.Home.route) { saveState = true }
+                                popUpTo(Screen.Home.route) { inclusive = false }
                                 launchSingleTop = true
                                 restoreState = true
                             }
@@ -109,11 +170,25 @@ fun MainNavigation(
                                 modifier = Modifier.size(24.dp)
                             )
                         },
-                        label = {},
+                        label = { AdaptiveNavigationLabel("Família") },
                         selected = currentDestination?.hierarchy?.any { it.route == Screen.Familia.route } == true,
                         onClick = {
                             navController.navigate(Screen.Familia.route) {
-                                popUpTo(Screen.Home.route) { saveState = true }
+                                popUpTo(Screen.Home.route) { inclusive = false }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
+                    )
+                    
+                    // Álbum de Família
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Default.PhotoLibrary, contentDescription = "Álbum de Família") },
+                        label = { AdaptiveNavigationLabel("Álbum") },
+                        selected = currentDestination?.hierarchy?.any { it.route == Screen.AlbumFamilia.route } == true,
+                        onClick = {
+                            navController.navigate(Screen.AlbumFamilia.route) {
+                                popUpTo(Screen.Home.route) { inclusive = false }
                                 launchSingleTop = true
                                 restoreState = true
                             }
@@ -123,25 +198,11 @@ fun MainNavigation(
                     // Conquistas
                     NavigationBarItem(
                         icon = { Icon(Icons.Default.Star, contentDescription = "Conquistas") },
-                        label = {},
+                        label = { AdaptiveNavigationLabel("Conquistas") },
                         selected = currentDestination?.hierarchy?.any { it.route == Screen.Conquistas.route } == true,
                         onClick = {
                             navController.navigate(Screen.Conquistas.route) {
-                                popUpTo(Screen.Home.route) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }
-                    )
-                    
-                    // Perfil
-                    NavigationBarItem(
-                        icon = { Icon(Icons.Default.Person, contentDescription = "Perfil") },
-                        label = {},
-                        selected = currentDestination?.hierarchy?.any { it.route == Screen.Perfil.route } == true,
-                        onClick = {
-                            navController.navigate(Screen.Perfil.route) {
-                                popUpTo(Screen.Home.route) { saveState = true }
+                                popUpTo(Screen.Home.route) { inclusive = false }
                                 launchSingleTop = true
                                 restoreState = true
                             }
@@ -165,7 +226,10 @@ fun MainNavigation(
                         navControllerPrincipal.navigate(Screen.EditarPessoa.createRoute(pessoaId))
                     },
                     onNavigateToPerfil = {
-                        navController.navigate(Screen.Perfil.route)
+                        navController.navigate(Screen.Perfil.route) {
+                            // Manter Home no back stack para poder voltar
+                            launchSingleTop = true
+                        }
                     },
                     onNavigateToFamiliaZero = {
                         navControllerPrincipal.navigate(Screen.FamiliaZero.route)
@@ -266,6 +330,10 @@ fun MainNavigation(
                         navControllerPrincipal.navigate(Screen.CadastroPessoa.route)
                     }
                 )
+            }
+            
+            composable(Screen.AlbumFamilia.route) {
+                AlbumFamiliaScreen()
             }
         }
     }

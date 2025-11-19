@@ -53,7 +53,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextField
 import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -182,7 +182,7 @@ fun FamiliaScreen(
                             )
                         }
                     } else {
-                        OutlinedTextField(
+                        TextField(
                             value = termoBusca,
                             onValueChange = { termoBusca = it },
                             placeholder = { Text("Buscar familiar...") },
@@ -809,7 +809,7 @@ fun FamiliaScreen(
             },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(
+                    TextField(
                         value = nomeEditado.value,
                         onValueChange = { nomeEditado.value = it },
                         label = { Text("Nome da família") },
@@ -1333,14 +1333,14 @@ fun FamiliaScreen(
             },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(
+                    TextField(
                         value = nomeAmigoEditado.value,
                         onValueChange = { nomeAmigoEditado.value = it },
                         label = { Text("Nome") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
-                    OutlinedTextField(
+                    TextField(
                         value = telefoneAmigoEditado.value,
                         onValueChange = { telefoneAmigoEditado.value = it },
                         label = { Text("Telefone (opcional)") },
@@ -1612,11 +1612,17 @@ private fun FamiliaCard(
                             )
                         }
                         
-                        // Identificar casal homoafetivo (mesmo gênero)
-                        val ehHomoafetivo = familia.conjuguePrincipal?.genero != null &&
-                                           familia.conjugueSecundario?.genero != null &&
-                                           familia.conjuguePrincipal.genero == familia.conjugueSecundario.genero &&
-                                           !familia.ehFamiliaMonoparental
+                        // Identificar casal homoafetivo (mesmo gênero) - otimizar com remember
+                        val ehHomoafetivo = remember(
+                            familia.conjuguePrincipal?.genero,
+                            familia.conjugueSecundario?.genero,
+                            familia.ehFamiliaMonoparental
+                        ) {
+                            familia.conjuguePrincipal?.genero != null &&
+                            familia.conjugueSecundario?.genero != null &&
+                            familia.conjuguePrincipal.genero == familia.conjugueSecundario.genero &&
+                            !familia.ehFamiliaMonoparental
+                        }
                         
                         if (ehHomoafetivo) {
                             AssistChip(
@@ -1918,16 +1924,19 @@ private fun FamiliaHierarquiaNode(
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.SemiBold
                             )
+                            // Otimizar: usar remember para cálculos pesados
                             val dateFormat = remember { SimpleDateFormat("dd/MM/yyyy", Locale("pt", "BR")) }
-                            val idade = node.pessoa.calcularIdade()
-                            val idadeTexto = idade?.let { "$it anos" }
-                                ?: node.pessoa.dataNascimento?.let { data -> "Desde ${dateFormat.format(data).takeLast(4)}" }
-                                ?: "Idade não informada"
-                            val apelido = node.pessoa.apelido?.takeIf { it.isNotBlank() }
-                            val linhaSecundaria = when {
-                                apelido != null && idadeTexto.isNotBlank() -> "$apelido - $idadeTexto"
-                                apelido != null -> apelido
-                                else -> idadeTexto
+                            val linhaSecundaria = remember(node.pessoa.id, node.pessoa.dataNascimento, node.pessoa.apelido) {
+                                val idade = node.pessoa.calcularIdade()
+                                val idadeTexto = idade?.let { "$it anos" }
+                                    ?: node.pessoa.dataNascimento?.let { data -> "Desde ${dateFormat.format(data).takeLast(4)}" }
+                                    ?: "Idade não informada"
+                                val apelido = node.pessoa.apelido?.takeIf { it.isNotBlank() }
+                                when {
+                                    apelido != null && idadeTexto.isNotBlank() -> "$apelido - $idadeTexto"
+                                    apelido != null -> apelido
+                                    else -> idadeTexto
+                                }
                             }
                             Text(
                                 text = linhaSecundaria,
@@ -1940,26 +1949,32 @@ private fun FamiliaHierarquiaNode(
 
                 node.conjuge?.let { parceiro ->
                     HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant, thickness = 1.dp)
+                    // Otimizar: reutilizar dateFormat e usar remember para cálculos
                     val dateFormat = remember { SimpleDateFormat("dd/MM/yyyy", Locale("pt", "BR")) }
-                    val idadeParceiro = parceiro.calcularIdade()
-                    val idadeParceiroTexto = idadeParceiro?.let { "$it anos" }
-                        ?: parceiro.dataNascimento?.let { data -> "Desde ${dateFormat.format(data).takeLast(4)}" }
-                        ?: "Idade não informada"
-                    val apelidoParceiro = parceiro.apelido?.takeIf { it.isNotBlank() }
-                    val linhaSecundariaConjuge = when {
-                        apelidoParceiro != null && idadeParceiroTexto.isNotBlank() -> "$apelidoParceiro - $idadeParceiroTexto"
-                        apelidoParceiro != null -> apelidoParceiro
-                        else -> idadeParceiroTexto
+                    val linhaSecundariaConjuge = remember(parceiro.id, parceiro.dataNascimento, parceiro.apelido) {
+                        val idadeParceiro = parceiro.calcularIdade()
+                        val idadeParceiroTexto = idadeParceiro?.let { "$it anos" }
+                            ?: parceiro.dataNascimento?.let { data -> "Desde ${dateFormat.format(data).takeLast(4)}" }
+                            ?: "Idade não informada"
+                        val apelidoParceiro = parceiro.apelido?.takeIf { it.isNotBlank() }
+                        when {
+                            apelidoParceiro != null && idadeParceiroTexto.isNotBlank() -> "$apelidoParceiro - $idadeParceiroTexto"
+                            apelidoParceiro != null -> apelidoParceiro
+                            else -> idadeParceiroTexto
+                        }
                     }
 
-                    val labelConjuge = if (node.nivel == 0) {
-                        when (parceiro.genero) {
-                            Genero.FEMININO -> "MÃE"
-                            Genero.MASCULINO -> "PAI"
-                            else -> "RESPONSÁVEL"
+                    // Otimizar: usar remember para label do cônjuge
+                    val labelConjuge = remember(node.nivel, parceiro.genero) {
+                        if (node.nivel == 0) {
+                            when (parceiro.genero) {
+                                Genero.FEMININO -> "MÃE"
+                                Genero.MASCULINO -> "PAI"
+                                else -> "RESPONSÁVEL"
+                            }
+                        } else {
+                            "CÔNJUGE"
                         }
-                    } else {
-                        "CÔNJUGE"
                     }
 
                     Column(

@@ -27,6 +27,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.raizesvivas.app.domain.model.MensagemChat
+import com.raizesvivas.app.presentation.ui.theme.FabDefaults
+import com.raizesvivas.app.presentation.ui.theme.fabContainerColor
+import com.raizesvivas.app.presentation.ui.theme.fabContentColor
+import com.raizesvivas.app.presentation.ui.theme.fabElevation
 import kotlinx.coroutines.flow.collectLatest
 import timber.log.Timber
 import java.text.SimpleDateFormat
@@ -530,7 +534,7 @@ private fun MessageInputBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 8.dp),
+                .padding(horizontal = 4.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -559,17 +563,17 @@ private fun MessageInputBar(
                         onSendClick()
                     }
                 },
-                modifier = Modifier.size(56.dp),
                 containerColor = if (texto.isNotBlank() && enabled) {
-                    colorScheme.primary
+                    fabContainerColor()
                 } else {
                     colorScheme.surfaceVariant
                 },
                 contentColor = if (texto.isNotBlank() && enabled) {
-                    colorScheme.onPrimary
+                    fabContentColor()
                 } else {
                     colorScheme.onSurfaceVariant
-                }
+                },
+                elevation = fabElevation()
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Send,

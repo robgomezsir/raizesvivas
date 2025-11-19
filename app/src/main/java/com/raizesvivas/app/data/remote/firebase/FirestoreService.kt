@@ -43,6 +43,7 @@ class FirestoreService @Inject constructor(
     private val duplicatesCollection = firestore.collection("duplicates")
     private val recadosCollection = firestore.collection("recados")
     private val familiasPersonalizadasCollection = firestore.collection("familias_personalizadas")
+    private val fotosAlbumCollection = firestore.collection("fotos_album")
     
     // NOVA ESTRUTURA: Coleções de conquistas
     private val usuariosCollection = firestore.collection("usuarios")
@@ -3323,6 +3324,231 @@ class FirestoreService @Inject constructor(
                 Timber.e(e, "❌ Erro ao marcar notificação como lida no Firestore")
                 Result.failure(e)
             }
+        }
+    }
+    
+    // ============================================
+    // FOTOS DO ÁLBUM DE FAMÍLIA
+    // ============================================
+    
+    /**
+     * Busca todas as fotos do álbum de uma família
+     */
+    suspend fun buscarFotosAlbum(familiaId: String): Result<List<FotoAlbum>> {
+        return RetryHelper.withNetworkRetry {
+            try {
+                val snapshot = fotosAlbumCollection
+                    .whereEqualTo("familiaId", familiaId)
+                    .orderBy("criadoEm", Query.Direction.DESCENDING)
+                    .get()
+                    .await()
+                
+                val fotos = snapshot.documents.mapNotNull { doc ->
+                    try {
+                        val data = doc.data ?: return@mapNotNull null
+                        FotoAlbum(
+                            id = doc.id,
+                            familiaId = data["familiaId"] as? String ?: "",
+                            pessoaId = data["pessoaId"] as? String ?: "",
+                            pessoaNome = data["pessoaNome"] as? String ?: "",
+                            url = data["url"] as? String ?: "",
+                            descricao = data["descricao"] as? String ?: "",
+                            criadoPor = data["criadoPor"] as? String ?: "",
+                            criadoEm = (data["criadoEm"] as? com.google.firebase.Timestamp)?.toDate() ?: JavaDate(),
+                            ordem = (data["ordem"] as? Long)?.toInt() ?: 0
+                        )
+                    } catch (e: Exception) {
+                        Timber.e(e, "Erro ao converter foto do álbum: ${doc.id}")
+                        null
+                    }
+                }
+                
+                Timber.d("✅ ${fotos.size} fotos encontradas para família $familiaId")
+                Result.success(fotos)
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao buscar fotos do álbum")
+                Result.failure(e)
+            }
+        }
+    }
+    
+    /**
+     * Busca fotos de uma pessoa específica
+     */
+    suspend fun buscarFotosAlbumPorPessoa(pessoaId: String): Result<List<FotoAlbum>> {
+        return RetryHelper.withNetworkRetry {
+            try {
+                val snapshot = fotosAlbumCollection
+                    .whereEqualTo("pessoaId", pessoaId)
+                    .orderBy("criadoEm", Query.Direction.DESCENDING)
+                    .get()
+                    .await()
+                
+                val fotos = snapshot.documents.mapNotNull { doc ->
+                    try {
+                        val data = doc.data ?: return@mapNotNull null
+                        FotoAlbum(
+                            id = doc.id,
+                            familiaId = data["familiaId"] as? String ?: "",
+                            pessoaId = data["pessoaId"] as? String ?: "",
+                            pessoaNome = data["pessoaNome"] as? String ?: "",
+                            url = data["url"] as? String ?: "",
+                            descricao = data["descricao"] as? String ?: "",
+                            criadoPor = data["criadoPor"] as? String ?: "",
+                            criadoEm = (data["criadoEm"] as? com.google.firebase.Timestamp)?.toDate() ?: JavaDate(),
+                            ordem = (data["ordem"] as? Long)?.toInt() ?: 0
+                        )
+                    } catch (e: Exception) {
+                        Timber.e(e, "Erro ao converter foto do álbum: ${doc.id}")
+                        null
+                    }
+                }
+                
+                Timber.d("✅ ${fotos.size} fotos encontradas para pessoa $pessoaId")
+                Result.success(fotos)
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao buscar fotos da pessoa")
+                Result.failure(e)
+            }
+        }
+    }
+    
+    /**
+     * Salva uma nova foto no álbum
+     */
+    suspend fun salvarFotoAlbum(foto: FotoAlbum): Result<String> {
+        return RetryHelper.withNetworkRetry {
+            try {
+                val data = hashMapOf<String, Any>(
+                    "familiaId" to foto.familiaId,
+                    "pessoaId" to foto.pessoaId,
+                    "pessoaNome" to foto.pessoaNome,
+                    "url" to foto.url,
+                    "descricao" to foto.descricao,
+                    "criadoPor" to foto.criadoPor,
+                    "criadoEm" to com.google.firebase.Timestamp(foto.criadoEm),
+                    "ordem" to foto.ordem
+                )
+                
+                val docRef = if (foto.id.isBlank()) {
+                    fotosAlbumCollection.add(data).await()
+                } else {
+                    fotosAlbumCollection.document(foto.id).set(data).await()
+                    fotosAlbumCollection.document(foto.id)
+                }
+                
+                Timber.d("✅ Foto salva no álbum: ${docRef.id}")
+                Result.success(docRef.id)
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao salvar foto no álbum")
+                Result.failure(e)
+            }
+        }
+    }
+    
+    /**
+     * Deleta uma foto do álbum
+     */
+    suspend fun deletarFotoAlbum(fotoId: String): Result<Unit> {
+        return RetryHelper.withNetworkRetry {
+            try {
+                fotosAlbumCollection.document(fotoId).delete().await()
+                Timber.d("✅ Foto deletada do álbum: $fotoId")
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao deletar foto do álbum")
+                Result.failure(e)
+            }
+        }
+    }
+    
+    /**
+     * Observa fotos do álbum em tempo real
+     */
+    fun observarFotosAlbum(familiaId: String): Flow<List<FotoAlbum>> = callbackFlow {
+        Timber.d("🔍 Observando fotos do álbum para familiaId: $familiaId")
+        val listenerRegistration = fotosAlbumCollection
+            .whereEqualTo("familiaId", familiaId)
+            .orderBy("criadoEm", Query.Direction.DESCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Timber.e(error, "❌ Erro ao observar fotos do álbum para familiaId: $familiaId")
+                    trySend(emptyList())
+                    return@addSnapshotListener
+                }
+                
+                if (snapshot == null) {
+                    Timber.w("⚠️ Snapshot é null, enviando lista vazia")
+                    trySend(emptyList())
+                    return@addSnapshotListener
+                }
+                
+                // Verificar se há mudanças (documentChanges) para detectar deleções
+                val hasChanges = snapshot.documentChanges.isNotEmpty()
+                if (hasChanges) {
+                    Timber.d("📸 Mudanças detectadas: ${snapshot.documentChanges.size} mudanças")
+                    snapshot.documentChanges.forEach { change ->
+                        when (change.type) {
+                            com.google.firebase.firestore.DocumentChange.Type.ADDED -> {
+                                Timber.d("➕ Foto adicionada: ${change.document.id}")
+                            }
+                            com.google.firebase.firestore.DocumentChange.Type.MODIFIED -> {
+                                Timber.d("✏️ Foto modificada: ${change.document.id}")
+                            }
+                            com.google.firebase.firestore.DocumentChange.Type.REMOVED -> {
+                                Timber.d("🗑️ Foto removida: ${change.document.id}")
+                            }
+                        }
+                    }
+                }
+                
+                // Processar apenas documentos que ainda existem (não deletados)
+                // snapshot.documents já contém apenas documentos existentes
+                Timber.d("📸 Snapshot recebido: ${snapshot.documents.size} documentos ativos para familiaId: $familiaId")
+                
+                val fotos = snapshot.documents.mapNotNull { doc ->
+                    try {
+                        val data = doc.data ?: return@mapNotNull null
+                        val fotoFamiliaId = data["familiaId"] as? String ?: ""
+                        
+                        // Verificar se a URL ainda é válida (foto não foi deletada do Storage)
+                        val url = data["url"] as? String ?: ""
+                        if (url.isBlank()) {
+                            Timber.w("⚠️ Foto sem URL, ignorando: ${doc.id}")
+                            return@mapNotNull null
+                        }
+                        
+                        Timber.d("📷 Foto válida: id=${doc.id}, familiaId=$fotoFamiliaId, pessoaId=${data["pessoaId"]}, pessoaNome=${data["pessoaNome"]}")
+                        FotoAlbum(
+                            id = doc.id,
+                            familiaId = fotoFamiliaId,
+                            pessoaId = data["pessoaId"] as? String ?: "",
+                            pessoaNome = data["pessoaNome"] as? String ?: "",
+                            url = url,
+                            descricao = data["descricao"] as? String ?: "",
+                            criadoPor = data["criadoPor"] as? String ?: "",
+                            criadoEm = (data["criadoEm"] as? com.google.firebase.Timestamp)?.toDate() ?: JavaDate(),
+                            ordem = (data["ordem"] as? Long)?.toInt() ?: 0
+                        )
+                    } catch (e: Exception) {
+                        Timber.e(e, "Erro ao converter foto do álbum: ${doc.id}")
+                        null
+                    }
+                }
+                
+                // Deduplicar por ID (segurança extra)
+                val fotosDeduplicadas = fotos.distinctBy { it.id }
+                if (fotosDeduplicadas.size != fotos.size) {
+                    Timber.w("⚠️ Fotos duplicadas removidas: ${fotos.size} -> ${fotosDeduplicadas.size}")
+                }
+                
+                Timber.d("✅ ${fotosDeduplicadas.size} fotos válidas processadas e enviadas para familiaId: $familiaId")
+                trySend(fotosDeduplicadas)
+            }
+        
+        awaitClose { 
+            Timber.d("🛑 Parando observação de fotos para familiaId: $familiaId")
+            listenerRegistration.remove() 
         }
     }
 }

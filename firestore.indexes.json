@@ -99,6 +99,22 @@
         { "fieldPath": "categoria", "order": "ASCENDING" },
         { "fieldPath": "pontosRecompensa", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "fotos_album",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "familiaId", "order": "ASCENDING" },
+        { "fieldPath": "criadoEm", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "fotos_album",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "pessoaId", "order": "ASCENDING" },
+        { "fieldPath": "criadoEm", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

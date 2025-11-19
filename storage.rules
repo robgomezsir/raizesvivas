@@ -3,34 +3,54 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     
-    // Helper function: verifica se usuário está autenticado
+    // Verifica se está autenticado
     function isAuthenticated() {
       return request.auth != null;
     }
     
-    // Helper function: verifica se usuário é admin
-    function isAdmin() {
-      return isAuthenticated() && 
-             firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.ehAdministrador == true;
-    }
-    
-    // ============================================
-    // PASTA: pessoas/{pessoaId}/
-    // ============================================
+    // PASTA: pessoas/{pessoaId}/arquivo
     match /pessoas/{pessoaId}/{fileName} {
-      // Qualquer usuário autenticado pode ler fotos
+      
+      // Todos autenticados podem LER fotos de qualquer cadastro
       allow read: if isAuthenticated();
       
-      // Apenas admin ou dono da pessoa pode fazer upload
-      allow write: if isAuthenticated() && 
-                     (isAdmin() || 
-                      firestore.get(/databases/(default)/documents/people/$(pessoaId)).data.criadoPor == request.auth.uid);
+      // Todos autenticados podem ENVIAR ou ATUALIZAR fotos
+      allow write: if isAuthenticated()
+                   &&
+                   // Só imagens
+                   (
+                     request.resource.contentType == "image/jpeg" ||
+                     request.resource.contentType == "image/jpg"  ||
+                     request.resource.contentType == "image/png"  ||
+                     request.resource.contentType == "image/webp"
+                   )
+                   &&
+                   // Máximo 250 KB
+                   request.resource.size < 250 * 1024;
+    }
+    
+    // PASTA: album_familia/{pessoaId}/{fotoId}.jpg
+    match /album_familia/{pessoaId}/{fileName} {
       
-      // Validar tipo de arquivo (apenas imagens)
-      allow write: if request.resource.contentType.matches('image/.*');
+      // Todos autenticados podem LER fotos do álbum
+      allow read: if isAuthenticated();
       
-      // Validar tamanho máximo (5MB)
-      allow write: if request.resource.size < 5 * 1024 * 1024;
+      // Todos autenticados podem CRIAR ou ATUALIZAR fotos do álbum
+      allow create, update: if isAuthenticated()
+                   &&
+                   // Só imagens
+                   (
+                     request.resource.contentType == "image/jpeg" ||
+                     request.resource.contentType == "image/jpg"  ||
+                     request.resource.contentType == "image/png"  ||
+                     request.resource.contentType == "image/webp"
+                   )
+                   &&
+                   // Máximo 500 KB (fotos do álbum podem ser um pouco maiores)
+                   request.resource.size < 500 * 1024;
+      
+      // Todos autenticados podem DELETAR fotos do álbum
+      allow delete: if isAuthenticated();
     }
   }
 }

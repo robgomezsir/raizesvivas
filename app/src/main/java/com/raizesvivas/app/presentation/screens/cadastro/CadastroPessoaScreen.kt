@@ -27,6 +27,8 @@ import com.raizesvivas.app.domain.model.EstadoCivil
 import com.raizesvivas.app.domain.model.Genero
 import com.raizesvivas.app.presentation.components.DatePickerDialog
 import com.raizesvivas.app.presentation.components.ImagePicker
+import com.raizesvivas.app.presentation.ui.theme.inputColorsPastel
+import com.raizesvivas.app.presentation.ui.theme.InputShapeSuave
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -156,6 +158,7 @@ fun CadastroPessoaScreen(
             ) {
                 ImagePicker(
                     imagePath = state.fotoPath,
+                    imageUrl = state.fotoUrl, // Passar URL da foto salva
                     onImageSelected = { path ->
                         if (path.isBlank()) {
                             viewModel.removerFoto()
@@ -168,7 +171,7 @@ fun CadastroPessoaScreen(
             }
             
             // Nome (obrigatório)
-            OutlinedTextField(
+            TextField(
                 value = state.nome,
                 onValueChange = { viewModel.onNomeChanged(it) },
                 label = { Text("Nome Completo *") },
@@ -178,6 +181,8 @@ fun CadastroPessoaScreen(
                 singleLine = true,
                 isError = state.nomeError != null,
                 supportingText = state.nomeError?.let { { Text(it) } },
+                shape = InputShapeSuave,
+                colors = inputColorsPastel(),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Text,
                     imeAction = ImeAction.Next
@@ -190,7 +195,7 @@ fun CadastroPessoaScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
 
-            OutlinedTextField(
+            TextField(
                 value = state.apelido,
                 onValueChange = { viewModel.onApelidoChanged(it) },
                 label = { Text("Apelido") },
@@ -198,6 +203,8 @@ fun CadastroPessoaScreen(
                     Icon(Icons.Default.Star, contentDescription = null)
                 },
                 singleLine = true,
+                shape = InputShapeSuave,
+                colors = inputColorsPastel(),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Text,
                     imeAction = ImeAction.Next
@@ -213,8 +220,10 @@ fun CadastroPessoaScreen(
             // Data de Nascimento
             val dataNascTexto = state.dataNascimento?.let { dateFormatter.format(it) } ?: ""
             
-            OutlinedTextField(
+            TextField(
                 value = dataNascTexto,
+                shape = InputShapeSuave,
+                colors = inputColorsPastel(),
                 onValueChange = { },
                 readOnly = true,
                 label = { Text("Data de Nascimento") },
@@ -241,7 +250,7 @@ fun CadastroPessoaScreen(
             // Data de Falecimento
             val dataFalecTexto = state.dataFalecimento?.let { dateFormatter.format(it) } ?: ""
             
-            OutlinedTextField(
+            TextField(
                 value = dataFalecTexto,
                 onValueChange = { },
                 readOnly = true,
@@ -273,7 +282,7 @@ fun CadastroPessoaScreen(
                 modifier = Modifier.padding(bottom = 8.dp)
             )
             
-            OutlinedTextField(
+            TextField(
                 value = state.localNascimento,
                 onValueChange = { viewModel.onLocalNascimentoChanged(it) },
                 label = { Text("Local de Nascimento") },
@@ -293,7 +302,7 @@ fun CadastroPessoaScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            OutlinedTextField(
+            TextField(
                 value = state.localResidencia,
                 onValueChange = { viewModel.onLocalResidenciaChanged(it) },
                 label = { Text("Local de Residência") },
@@ -320,7 +329,7 @@ fun CadastroPessoaScreen(
                 modifier = Modifier.padding(bottom = 8.dp)
             )
             
-            OutlinedTextField(
+            TextField(
                 value = state.profissao,
                 onValueChange = { viewModel.onProfissaoChanged(it) },
                 label = { Text("Profissão") },
@@ -340,7 +349,7 @@ fun CadastroPessoaScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            OutlinedTextField(
+            TextField(
                 value = state.telefone,
                 onValueChange = { viewModel.onTelefoneChanged(it) },
                 label = { Text("Telefone/Celular") },
@@ -361,7 +370,7 @@ fun CadastroPessoaScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            OutlinedTextField(
+            TextField(
                 value = state.biografia,
                 onValueChange = { viewModel.onBiografiaChanged(it) },
                 label = { Text("Biografia") },
@@ -391,7 +400,7 @@ fun CadastroPessoaScreen(
                 onExpandedChange = { expandedGenero = !expandedGenero },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                OutlinedTextField(
+                TextField(
                     value = state.genero?.label ?: "",
                     onValueChange = {},
                     label = { Text("Gênero") },
@@ -449,7 +458,7 @@ fun CadastroPessoaScreen(
                 onExpandedChange = { expandedEstadoCivil = !expandedEstadoCivil },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                OutlinedTextField(
+                TextField(
                     value = state.estadoCivil?.label ?: "",
                     onValueChange = {},
                     label = { Text("Estado Civil") },
@@ -608,7 +617,7 @@ fun PessoaSelector(
         onExpandedChange = { expanded = !expanded },
         modifier = modifier
     ) {
-        OutlinedTextField(
+        TextField(
             value = pessoaSelecionada?.nome ?: "",
             onValueChange = {},
             label = { Text(label) },

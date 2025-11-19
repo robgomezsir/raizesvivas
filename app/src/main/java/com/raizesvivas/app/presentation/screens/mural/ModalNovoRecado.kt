@@ -37,7 +37,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -57,7 +57,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.raizesvivas.app.domain.model.Pessoa
 import com.raizesvivas.app.presentation.ui.theme.RaizesVivasButtonDefaults
 import com.raizesvivas.app.presentation.ui.theme.InputShapeSuave
-import com.raizesvivas.app.presentation.ui.theme.inputColorsSuaves
+import com.raizesvivas.app.presentation.ui.theme.inputColorsPastel
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 
@@ -79,7 +79,7 @@ fun ModalNovoRecado(
     var mostrarSeletorDestinatario by remember { mutableStateOf(false) }
     
     // Obter cores dos inputs uma vez (dentro do contexto @Composable)
-    val inputColors = inputColorsSuaves()
+    val inputColors = inputColorsPastel()
     
     val coresDisponiveis = listOf(
         "primary" to "Brisa Hortelã",
@@ -172,7 +172,7 @@ fun ModalNovoRecado(
                         .verticalScroll(scrollState)
                 ) {
                     // Título
-                    OutlinedTextField(
+                    TextField(
                         value = titulo,
                         onValueChange = { novoValor: String -> titulo = novoValor },
                         modifier = Modifier.fillMaxWidth(),
@@ -191,7 +191,7 @@ fun ModalNovoRecado(
                     Spacer(modifier = Modifier.height(12.dp))
                     
                     // Mensagem
-                    OutlinedTextField(
+                    TextField(
                         value = mensagem,
                         onValueChange = { novoValor: String -> mensagem = novoValor },
                         modifier = Modifier
@@ -222,7 +222,7 @@ fun ModalNovoRecado(
                         Spacer(modifier = Modifier.height(6.dp))
                         
                         Box {
-                            OutlinedTextField(
+                            TextField(
                                 value = destinatarioSelecionado?.nome ?: "Todos (Recado Geral)",
                                 onValueChange = { },
                                 modifier = Modifier.fillMaxWidth(),

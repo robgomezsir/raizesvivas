@@ -22,7 +22,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -51,7 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.raizesvivas.app.presentation.ui.theme.RaizesVivasButtonDefaults
 import com.raizesvivas.app.presentation.ui.theme.InputShapeSuave
-import com.raizesvivas.app.presentation.ui.theme.inputColorsSuaves
+import com.raizesvivas.app.presentation.ui.theme.inputColorsPastel
 
 /**
  * Tela de Cadastro de nova conta
@@ -144,7 +144,7 @@ fun CadastroScreen(
                         )
                     }
 
-                    OutlinedTextField(
+                    TextField(
                         value = state.nomeCompleto,
                         onValueChange = { viewModel.onNomeCompletoChanged(it) },
                         label = { Text("Nome Completo") },
@@ -158,7 +158,7 @@ fun CadastroScreen(
                         isError = state.nomeCompletoError != null,
                         supportingText = state.nomeCompletoError?.let { { Text(it) } },
                         shape = InputShapeSuave,
-                        colors = inputColorsSuaves(),
+                        colors = inputColorsPastel(),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Text,
                             imeAction = ImeAction.Next
@@ -169,7 +169,7 @@ fun CadastroScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    OutlinedTextField(
+                    TextField(
                         value = state.email,
                         onValueChange = { viewModel.onEmailChanged(it) },
                         label = { Text("Email") },
@@ -183,7 +183,7 @@ fun CadastroScreen(
                         isError = state.emailError != null,
                         supportingText = state.emailError?.let { { Text(it) } },
                         shape = InputShapeSuave,
-                        colors = inputColorsSuaves(),
+                        colors = inputColorsPastel(),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Email,
                             imeAction = ImeAction.Next
@@ -196,7 +196,7 @@ fun CadastroScreen(
 
                     var senhaVisivel by remember { mutableStateOf(false) }
 
-                    OutlinedTextField(
+                    TextField(
                         value = state.senha,
                         onValueChange = { viewModel.onSenhaChanged(it) },
                         label = { Text("Senha (mínimo 8 caracteres)") },
@@ -219,7 +219,7 @@ fun CadastroScreen(
                         isError = state.senhaError != null,
                         supportingText = state.senhaError?.let { { Text(it) } },
                         shape = InputShapeSuave,
-                        colors = inputColorsSuaves(),
+                        colors = inputColorsPastel(),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Password,
                             imeAction = ImeAction.Next
@@ -232,7 +232,7 @@ fun CadastroScreen(
 
                     var confirmarSenhaVisivel by remember { mutableStateOf(false) }
 
-                    OutlinedTextField(
+                    TextField(
                         value = state.confirmarSenha,
                         onValueChange = { viewModel.onConfirmarSenhaChanged(it) },
                         label = { Text("Confirmar Senha") },
@@ -255,7 +255,7 @@ fun CadastroScreen(
                         isError = state.confirmarSenhaError != null,
                         supportingText = state.confirmarSenhaError?.let { { Text(it) } },
                         shape = InputShapeSuave,
-                        colors = inputColorsSuaves(),
+                        colors = inputColorsPastel(),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Password,
                             imeAction = ImeAction.Done
