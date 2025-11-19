@@ -60,6 +60,10 @@ class HomeViewModel @Inject constructor(
         _mostrarModalEditarNome.value = false
     }
     
+    fun logout() {
+        authService.logout()
+    }
+    
     /**
      * Atualiza o nome da Família Zero
      */

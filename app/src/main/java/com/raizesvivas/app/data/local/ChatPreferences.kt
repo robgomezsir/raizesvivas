@@ -27,11 +27,11 @@ class ChatPreferences @Inject constructor(
 ) {
     private val Context.chatDataStore: DataStore<Preferences> by preferencesDataStore(name = "chat_prefs")
     private val gson = Gson()
-    
+
     companion object {
         private const val MENSAGENS_KEY_PREFIX = "mensagens_"
     }
-    
+
     /**
      * Salva uma mensagem no chat entre dois usuários
      */
@@ -39,92 +39,98 @@ class ChatPreferences @Inject constructor(
         try {
             val conversaId = gerarConversaId(mensagem.remetenteId, mensagem.destinatarioId)
             val key = stringPreferencesKey("${MENSAGENS_KEY_PREFIX}$conversaId")
-            
-            // Buscar mensagens existentes
-            val mensagensExistentes = buscarMensagens(conversaId)
+
+            val mensagensExistentes = buscarMensagensPorConversaId(conversaId)
             val mensagensAtualizadas = mensagensExistentes + mensagem
-            
-            // Salvar todas as mensagens
+
             context.chatDataStore.edit { preferences ->
                 val mensagensJson = gson.toJson(mensagensAtualizadas.map { it.toSerializable() })
                 preferences[key] = mensagensJson
             }
-            
+
             Timber.d("💬 Mensagem salva: ${mensagem.id} na conversa $conversaId")
         } catch (e: Exception) {
             Timber.e(e, "❌ Erro ao salvar mensagem")
         }
     }
-    
+
     /**
-     * Busca todas as mensagens de uma conversa
+     * Observa todas as mensagens de uma conversa
      */
     fun observarMensagens(remetenteId: String, destinatarioId: String): Flow<List<MensagemChat>> {
         val conversaId = gerarConversaId(remetenteId, destinatarioId)
         val key = stringPreferencesKey("${MENSAGENS_KEY_PREFIX}$conversaId")
-        
+
         return context.chatDataStore.data.map { preferences ->
-            val mensagensJson = preferences[key] ?: return@map emptyList()
+            val mensagensJson = preferences[key] ?: return@map emptyList<MensagemChat>()
             try {
                 val type = object : TypeToken<List<MensagemChatSerializable>>() {}.type
                 val mensagensSerializadas: List<MensagemChatSerializable> = gson.fromJson(mensagensJson, type)
                 mensagensSerializadas.map { it.toDomain() }
             } catch (e: Exception) {
                 Timber.e(e, "❌ Erro ao decodificar mensagens")
-                emptyList()
+                emptyList<MensagemChat>()
             }
         }
     }
-    
+
     /**
      * Busca todas as mensagens de uma conversa (suspend)
      */
     suspend fun buscarMensagens(remetenteId: String, destinatarioId: String): List<MensagemChat> {
         val conversaId = gerarConversaId(remetenteId, destinatarioId)
-        return buscarMensagens(conversaId)
+        return buscarMensagensPorConversaId(conversaId)
     }
-    
+
     /**
-     * Busca todas as mensagens de uma conversa por ID
+     * Busca todas as mensagens de uma conversa por ID interno
      */
-    private suspend fun buscarMensagens(conversaId: String): List<MensagemChat> {
+    private suspend fun buscarMensagensPorConversaId(conversaId: String): List<MensagemChat> {
         val key = stringPreferencesKey("${MENSAGENS_KEY_PREFIX}$conversaId")
         val preferences = context.chatDataStore.data.first()
-        val mensagensJson = preferences[key] ?: return emptyList()
-        
+        val mensagensJson = preferences[key] ?: return emptyList<MensagemChat>()
+
         return try {
             val type = object : TypeToken<List<MensagemChatSerializable>>() {}.type
             val mensagensSerializadas: List<MensagemChatSerializable> = gson.fromJson(mensagensJson, type)
             mensagensSerializadas.map { it.toDomain() }
         } catch (e: Exception) {
             Timber.e(e, "❌ Erro ao decodificar mensagens")
-            emptyList()
+            emptyList<MensagemChat>()
         }
     }
-    
+
     /**
-     * Busca todas as conversas (lista de IDs de usuários com quem há mensagens)
+     * Marca mensagens como lidas
      */
-    suspend fun buscarConversas(usuarioId: String): List<String> {
-        val preferences = context.chatDataStore.data.first()
-        val conversas = mutableSetOf<String>()
-        
-        // Iterar sobre todas as chaves conhecidas
-        // Como não podemos listar todas as chaves diretamente, vamos tentar buscar por padrão
-        // ou manter uma lista separada de conversas ativas
-        // Por enquanto, retornamos lista vazia - pode ser melhorado com uma chave separada
-        return conversas.toList()
+    suspend fun marcarMensagensComoLidas(remetenteId: String, destinatarioId: String) {
+        try {
+            val conversaId = gerarConversaId(remetenteId, destinatarioId)
+            val mensagens = buscarMensagensPorConversaId(conversaId)
+
+            val mensagensAtualizadas = mensagens.map { mensagem ->
+                if (mensagem.remetenteId == remetenteId && !mensagem.lida) {
+                    mensagem.copy(lida = true)
+                } else {
+                    mensagem
+                }
+            }
+
+            val key = stringPreferencesKey("${MENSAGENS_KEY_PREFIX}$conversaId")
+            context.chatDataStore.edit { preferences ->
+                val mensagensJson = gson.toJson(mensagensAtualizadas.map { it.toSerializable() })
+                preferences[key] = mensagensJson
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao marcar mensagens como lidas")
+        }
     }
-    
+
     /**
      * Limpa todas as mensagens (útil para logout)
-     * Como não podemos listar todas as chaves diretamente no DataStore,
-     * esta função limpa apenas as chaves conhecidas ou pode ser melhorada
-     * mantendo uma lista separada de conversas ativas
      */
     suspend fun limparMensagens() {
         try {
-            // Limpar todas as preferências do chat
             context.chatDataStore.edit { preferences ->
                 preferences.clear()
             }
@@ -133,7 +139,7 @@ class ChatPreferences @Inject constructor(
             Timber.e(e, "❌ Erro ao limpar mensagens")
         }
     }
-    
+
     /**
      * Gera um ID único para a conversa entre dois usuários
      * Sempre ordena os IDs para garantir consistência
@@ -145,37 +151,10 @@ class ChatPreferences @Inject constructor(
             "${id2}_${id1}"
         }
     }
-    
-    /**
-     * Marca mensagens como lidas
-     */
-    suspend fun marcarMensagensComoLidas(remetenteId: String, destinatarioId: String) {
-        try {
-            val conversaId = gerarConversaId(remetenteId, destinatarioId)
-            val mensagens = buscarMensagens(conversaId)
-            
-            // Marcar apenas mensagens do remetente que ainda não foram lidas
-            val mensagensAtualizadas = mensagens.map { mensagem ->
-                if (mensagem.remetenteId == remetenteId && !mensagem.lida) {
-                    mensagem.copy(lida = true)
-                } else {
-                    mensagem
-                }
-            }
-            
-            val key = stringPreferencesKey("${MENSAGENS_KEY_PREFIX}$conversaId")
-            context.chatDataStore.edit { preferences ->
-                val mensagensJson = gson.toJson(mensagensAtualizadas.map { it.toSerializable() })
-                preferences[key] = mensagensJson
-            }
-        } catch (e: Exception) {
-            Timber.e(e, "❌ Erro ao marcar mensagens como lidas")
-        }
-    }
 }
 
 /**
- * Versão serializável da mensagem para armazenamento
+ * Versão serializável da mensagem para armazenamento no DataStore
  */
 private data class MensagemChatSerializable(
     val id: String,
@@ -184,12 +163,12 @@ private data class MensagemChatSerializable(
     val destinatarioId: String,
     val destinatarioNome: String,
     val texto: String,
-    val enviadoEm: Long, // Timestamp em milissegundos
+    val enviadoEm: Long,
     val lida: Boolean
 )
 
 /**
- * Extensões para conversão entre domínio e serializável
+ * Converte MensagemChat para formato serializável
  */
 private fun MensagemChat.toSerializable(): MensagemChatSerializable {
     return MensagemChatSerializable(
@@ -204,6 +183,9 @@ private fun MensagemChat.toSerializable(): MensagemChatSerializable {
     )
 }
 
+/**
+ * Converte MensagemChatSerializable para formato de domínio
+ */
 private fun MensagemChatSerializable.toDomain(): MensagemChat {
     return MensagemChat(
         id = id,
@@ -216,4 +198,3 @@ private fun MensagemChatSerializable.toDomain(): MensagemChat {
         lida = lida
     )
 }
-

@@ -170,6 +170,36 @@ object RoomMigrations {
             """)
         }
     }
+    
+    val MIGRATION_6_7 = object : Migration(6, 7) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS familias_personalizadas (
+                    familiaId TEXT NOT NULL PRIMARY KEY,
+                    nome TEXT NOT NULL,
+                    conjuguePrincipalId TEXT,
+                    conjugueSecundarioId TEXT,
+                    ehFamiliaZero INTEGER NOT NULL,
+                    atualizadoPor TEXT,
+                    atualizadoEm INTEGER NOT NULL,
+                    sincronizadoEm INTEGER,
+                    precisaSincronizar INTEGER NOT NULL
+                )
+                """.trimIndent()
+            )
+        }
+    }
+
+    val MIGRATION_7_8 = object : Migration(7, 8) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                ALTER TABLE pessoas ADD COLUMN familias TEXT DEFAULT '[]'
+                """.trimIndent()
+            )
+        }
+    }
 
     fun getAllMigrations(): Array<Migration> {
         return arrayOf(
@@ -177,7 +207,9 @@ object RoomMigrations {
             MIGRATION_2_3,
             MIGRATION_3_4,
             MIGRATION_4_5,
-            MIGRATION_5_6
+            MIGRATION_5_6,
+            MIGRATION_6_7,
+            MIGRATION_7_8
         )
     }
 }

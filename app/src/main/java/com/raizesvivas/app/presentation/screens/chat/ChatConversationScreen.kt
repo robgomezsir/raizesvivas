@@ -38,21 +38,20 @@ fun ChatConversationScreen(
     val currentUserId = viewModel.currentUserId
     var textoMensagem by remember { mutableStateOf("") }
     val colorScheme = MaterialTheme.colorScheme
-    
+
     val listState = rememberLazyListState()
-    
-    // Scroll automático para a última mensagem
+
+    // Scroll automático para a última mensagem quando novas mensagens chegam
     LaunchedEffect(mensagens.size) {
         if (mensagens.isNotEmpty()) {
             listState.animateScrollToItem(mensagens.size - 1)
         }
     }
-    
-    // Abrir conversa quando a tela é criada
+
     LaunchedEffect(destinatarioId, destinatarioNome) {
         viewModel.abrirConversa(destinatarioId, destinatarioNome)
     }
-    
+
     val backgroundBrush = remember(colorScheme) {
         Brush.verticalGradient(
             colors = listOf(
@@ -61,7 +60,7 @@ fun ChatConversationScreen(
             )
         )
     }
-    
+
     Scaffold(
         containerColor = Color.Transparent,
         topBar = {
@@ -104,7 +103,6 @@ fun ChatConversationScreen(
                     .fillMaxSize()
                     .padding(paddingValues)
             ) {
-                // Lista de mensagens
                 LazyColumn(
                     state = listState,
                     modifier = Modifier
@@ -122,7 +120,7 @@ fun ChatConversationScreen(
                             isOwnMessage = mensagem.remetenteId == currentUserId
                         )
                     }
-                    
+
                     if (mensagens.isEmpty()) {
                         item {
                             Box(
@@ -155,8 +153,7 @@ fun ChatConversationScreen(
                         }
                     }
                 }
-                
-                // Campo de entrada de mensagem
+
                 MessageInputBar(
                     texto = textoMensagem,
                     onTextoChange = { textoMensagem = it },
@@ -186,7 +183,7 @@ private fun MessageBubble(
     val horaFormatada = remember(mensagem.enviadoEm) {
         dateFormat.format(mensagem.enviadoEm)
     }
-    
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (isOwnMessage) Arrangement.End else Arrangement.Start
@@ -210,15 +207,11 @@ private fun MessageBubble(
                     text = mensagem.remetenteNome,
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = if (isOwnMessage) {
-                        colorScheme.onPrimary
-                    } else {
-                        colorScheme.onSurfaceVariant
-                    }
+                    color = colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(4.dp))
             }
-            
+
             Text(
                 text = mensagem.texto,
                 style = MaterialTheme.typography.bodyMedium,
@@ -228,9 +221,9 @@ private fun MessageBubble(
                     colorScheme.onSurface
                 }
             )
-            
+
             Spacer(modifier = Modifier.height(4.dp))
-            
+
             Row(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -244,7 +237,7 @@ private fun MessageBubble(
                         colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     }
                 )
-                
+
                 if (isOwnMessage && mensagem.lida) {
                     Icon(
                         Icons.Default.DoneAll,
@@ -269,9 +262,11 @@ private fun MessageInputBar(
     enabled: Boolean = true
 ) {
     val colorScheme = MaterialTheme.colorScheme
-    
+
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .imePadding(),
         color = colorScheme.surface,
         tonalElevation = 8.dp
     ) {
@@ -300,7 +295,7 @@ private fun MessageInputBar(
                     unfocusedBorderColor = colorScheme.outline.copy(alpha = 0.5f)
                 )
             )
-            
+
             FloatingActionButton(
                 onClick = {
                     if (texto.isNotBlank() && enabled) {
@@ -327,4 +322,3 @@ private fun MessageInputBar(
         }
     }
 }
-

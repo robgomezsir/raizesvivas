@@ -8,6 +8,7 @@ import com.raizesvivas.app.data.repository.UsuarioRepository
 import com.raizesvivas.app.domain.model.MensagemChat
 import com.raizesvivas.app.domain.model.Usuario
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -15,92 +16,105 @@ import java.util.*
 import javax.inject.Inject
 
 /**
- * ViewModel para gerenciar o chat
+ * ViewModel para gerenciar o estado e lógica do chat
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class ChatViewModel @Inject constructor(
     private val chatPreferences: ChatPreferences,
     private val usuarioRepository: UsuarioRepository,
     private val authService: AuthService
 ) : ViewModel() {
-    
+
+    // Estado interno
     private val _state = MutableStateFlow(ChatState())
-    val state = _state.asStateFlow()
-    
+    val state: StateFlow<ChatState> = _state.asStateFlow()
+
+    // ID do usuário atual
     val currentUserId: String?
         get() = authService.currentUser?.uid
-    
-    val currentUserNome: StateFlow<String> = flow {
-        val userId = currentUserId
-        if (userId != null) {
-            val usuario = usuarioRepository.buscarPorId(userId)
-            emit(usuario?.nome?.takeIf { it.isNotBlank() } ?: "Usuário")
-        } else {
-            emit("Usuário")
-        }
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = "Usuário"
-    )
-    
-    // Lista de todos os usuários cadastrados
-    val usuarios: StateFlow<List<Usuario>> = flow {
-        val userId = currentUserId
-        val resultado = usuarioRepository.buscarTodosUsuarios()
-        resultado.onSuccess { lista ->
-            emit(lista.filter { it.id != userId }) // Excluir o próprio usuário
-        }.onFailure {
-            Timber.e(it, "❌ Erro ao buscar usuários")
-            emit(emptyList())
-        }
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = emptyList()
-    )
-    
+
+    // Nome do usuário atual
+    private val _currentUserNome = MutableStateFlow<String>("Usuário")
+    val currentUserNome: StateFlow<String> = _currentUserNome.asStateFlow()
+
+    // Lista de usuários disponíveis para chat
+    private val _usuarios = MutableStateFlow<List<Usuario>>(emptyList())
+    val usuarios: StateFlow<List<Usuario>> = _usuarios.asStateFlow()
+
     // Mensagens da conversa atual
     val mensagens: StateFlow<List<MensagemChat>> = combine(
         _state.map { it.destinatarioId },
-        flow {
-            emit(currentUserId)
-        }
-    ) { destinatarioId, remetenteId ->
-        if (destinatarioId != null && remetenteId != null) {
-            chatPreferences.observarMensagens(remetenteId, destinatarioId)
-        } else {
-            flowOf(emptyList())
+        flow { emit(currentUserId) }
+    ) { destinatarioId: String?, remetenteId: String? ->
+        when {
+            destinatarioId != null && remetenteId != null -> {
+                chatPreferences.observarMensagens(
+                    remetenteId = remetenteId,
+                    destinatarioId = destinatarioId
+                )
+            }
+            else -> {
+                flowOf(emptyList())
+            }
         }
     }.flatMapLatest { it }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = emptyList()
     )
-    
+
     init {
         carregarUsuarios()
         atualizarNomeRemetente()
     }
-    
+
+    /**
+     * Atualiza o nome do remetente (usuário atual)
+     */
     private fun atualizarNomeRemetente() {
         viewModelScope.launch {
-            currentUserNome.collect { nome ->
-                _state.update { it.copy(remetenteNome = nome) }
+            val userId = currentUserId
+            if (userId != null) {
+                try {
+                    val usuario = usuarioRepository.buscarPorId(userId)
+                    val nome = usuario?.nome?.takeIf { it.isNotBlank() } ?: "Usuário"
+                    _currentUserNome.value = nome
+                    _state.update { it.copy(remetenteNome = nome) }
+                } catch (e: Exception) {
+                    Timber.e(e, "❌ Erro ao buscar nome do usuário")
+                    _currentUserNome.value = "Usuário"
+                    _state.update { it.copy(remetenteNome = "Usuário") }
+                }
+            } else {
+                _currentUserNome.value = "Usuário"
+                _state.update { it.copy(remetenteNome = "Usuário") }
             }
         }
     }
-    
+
+    /**
+     * Carrega a lista de usuários disponíveis para chat
+     */
     private fun carregarUsuarios() {
         viewModelScope.launch {
             try {
                 _state.update { it.copy(isLoading = true) }
+                val userId = currentUserId
                 val resultado = usuarioRepository.buscarTodosUsuarios()
-                resultado.onSuccess {
+
+                resultado.onSuccess { lista ->
+                    val listaFiltrada = if (userId != null) {
+                        lista.filter { it.id != userId }
+                    } else {
+                        lista
+                    }
+                    _usuarios.value = listaFiltrada
                     _state.update { it.copy(isLoading = false) }
                 }.onFailure { error ->
                     Timber.e(error, "❌ Erro ao carregar usuários")
-                    _state.update { 
+                    _usuarios.value = emptyList()
+                    _state.update {
                         it.copy(
                             isLoading = false,
                             erro = "Erro ao carregar contatos: ${error.message}"
@@ -109,7 +123,8 @@ class ChatViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 Timber.e(e, "❌ Erro ao carregar usuários")
-                _state.update { 
+                _usuarios.value = emptyList()
+                _state.update {
                     it.copy(
                         isLoading = false,
                         erro = "Erro ao carregar contatos: ${e.message}"
@@ -118,27 +133,39 @@ class ChatViewModel @Inject constructor(
             }
         }
     }
-    
+
+    /**
+     * Abre uma conversa com um destinatário
+     */
     fun abrirConversa(destinatarioId: String, destinatarioNome: String) {
-        _state.update { 
+        _state.update {
             it.copy(
                 destinatarioId = destinatarioId,
                 destinatarioNome = destinatarioNome,
                 mostrarConversa = true
             )
         }
-        
-        // Marcar mensagens como lidas
-        viewModelScope.launch {
-            val remetenteId = currentUserId
-            if (remetenteId != null) {
-                chatPreferences.marcarMensagensComoLidas(destinatarioId, remetenteId)
+
+        val remetenteId = currentUserId
+        if (remetenteId != null) {
+            viewModelScope.launch {
+                try {
+                    chatPreferences.marcarMensagensComoLidas(
+                        remetenteId = remetenteId,
+                        destinatarioId = destinatarioId
+                    )
+                } catch (e: Exception) {
+                    Timber.e(e, "❌ Erro ao marcar mensagens como lidas")
+                }
             }
         }
     }
-    
+
+    /**
+     * Fecha a conversa atual
+     */
     fun fecharConversa() {
-        _state.update { 
+        _state.update {
             it.copy(
                 mostrarConversa = false,
                 destinatarioId = null,
@@ -146,41 +173,59 @@ class ChatViewModel @Inject constructor(
             )
         }
     }
-    
+
+    /**
+     * Envia uma mensagem
+     */
     fun enviarMensagem(texto: String) {
-        val remetenteId = currentUserId
-        val destinatarioId = _state.value.destinatarioId
-        val remetenteNome = _state.value.remetenteNome
-        val destinatarioNome = _state.value.destinatarioNome
-        
-        if (remetenteId == null || destinatarioId == null || texto.isBlank()) {
+        val textoLimpo = texto.trim()
+        if (textoLimpo.isBlank()) {
             return
         }
-        
+
+        val remetenteId = currentUserId
+        val stateAtual = _state.value
+        val destinatarioId = stateAtual.destinatarioId
+        val destinatarioNome = stateAtual.destinatarioNome
+        val remetenteNome = stateAtual.remetenteNome
+
+        if (remetenteId == null) {
+            _state.update { it.copy(erro = "Usuário não autenticado") }
+            return
+        }
+
+        if (destinatarioId == null || destinatarioNome == null) {
+            _state.update { it.copy(erro = "Destinatário não selecionado") }
+            return
+        }
+
+        val mensagem = MensagemChat(
+            id = UUID.randomUUID().toString(),
+            remetenteId = remetenteId,
+            remetenteNome = remetenteNome,
+            destinatarioId = destinatarioId,
+            destinatarioNome = destinatarioNome,
+            texto = textoLimpo,
+            enviadoEm = Date(),
+            lida = false
+        )
+
         viewModelScope.launch {
             try {
-                val mensagem = MensagemChat(
-                    id = UUID.randomUUID().toString(),
-                    remetenteId = remetenteId,
-                    remetenteNome = remetenteNome,
-                    destinatarioId = destinatarioId,
-                    destinatarioNome = destinatarioNome,
-                    texto = texto.trim(),
-                    enviadoEm = Date(),
-                    lida = false
-                )
-                
                 chatPreferences.salvarMensagem(mensagem)
                 Timber.d("💬 Mensagem enviada: ${mensagem.id}")
             } catch (e: Exception) {
                 Timber.e(e, "❌ Erro ao enviar mensagem")
-                _state.update { 
+                _state.update {
                     it.copy(erro = "Erro ao enviar mensagem: ${e.message}")
                 }
             }
         }
     }
-    
+
+    /**
+     * Limpa mensagens de erro
+     */
     fun limparErro() {
         _state.update { it.copy(erro = null) }
     }
@@ -197,4 +242,3 @@ data class ChatState(
     val destinatarioNome: String? = null,
     val remetenteNome: String = "Usuário"
 )
-

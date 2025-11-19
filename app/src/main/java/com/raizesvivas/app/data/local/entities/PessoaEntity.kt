@@ -36,6 +36,7 @@ data class PessoaEntity(
     val conjugeAtual: String?,
     val exConjuges: List<String>,
     val filhos: List<String>,
+    val familias: List<String>,
     
     // Metadados
     val fotoUrl: String?,
@@ -75,6 +76,7 @@ fun PessoaEntity.toDomain(): Pessoa {
         conjugeAtual = conjugeAtual,
         exConjuges = exConjuges,
         filhos = filhos,
+        familias = familias,
         fotoUrl = fotoUrl,
         criadoPor = criadoPor,
         criadoEm = criadoEm,
@@ -109,6 +111,7 @@ fun Pessoa.toEntity(
         conjugeAtual = conjugeAtual,
         exConjuges = exConjuges,
         filhos = filhos,
+        familias = familias,
         fotoUrl = fotoUrl,
         criadoPor = criadoPor,
         criadoEm = criadoEm,

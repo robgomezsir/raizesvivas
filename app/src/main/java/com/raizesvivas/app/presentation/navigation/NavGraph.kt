@@ -40,7 +40,8 @@ fun NavGraph(
         val currentRoute = navController.currentBackStackEntry?.destination?.route
         if (authState == null && currentRoute != Screen.Login.route && currentRoute != Screen.Cadastro.route && currentRoute != Screen.RecuperarSenha.route) {
             navController.navigate(Screen.Login.route) {
-                popUpTo(0) { inclusive = true }
+                popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                launchSingleTop = true
             }
         }
     }
@@ -142,17 +143,17 @@ fun NavGraph(
             )
         }
         
-        composable(Screen.Arvore.route) {
-            MainNavigation(
-                navControllerPrincipal = navController,
-                startDestination = Screen.Arvore.route
-            )
-        }
-        
         composable(Screen.Perfil.route) {
             MainNavigation(
                 navControllerPrincipal = navController,
                 startDestination = Screen.Perfil.route
+            )
+        }
+        
+        composable(Screen.Familia.route) {
+            MainNavigation(
+                navControllerPrincipal = navController,
+                startDestination = Screen.Familia.route
             )
         }
         

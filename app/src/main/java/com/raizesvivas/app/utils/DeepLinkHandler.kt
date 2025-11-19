@@ -39,7 +39,7 @@ object DeepLinkHandler {
                     "home" -> navController.navigate(Screen.Home.route) {
                         popUpTo(0) { inclusive = true }
                     }
-                    "arvore" -> navController.navigate(Screen.Arvore.route) {
+                    "familia" -> navController.navigate(Screen.Familia.route) {
                         popUpTo(0) { inclusive = true }
                     }
                     "perfil" -> navController.navigate(Screen.Perfil.route) {
@@ -86,7 +86,7 @@ object DeepLinkHandler {
                     "home" -> navController.navigate(Screen.Home.route) {
                         popUpTo(0) { inclusive = true }
                     }
-                    "arvore" -> navController.navigate(Screen.Arvore.route) {
+                    "familia" -> navController.navigate(Screen.Familia.route) {
                         popUpTo(0) { inclusive = true }
                     }
                     else -> {

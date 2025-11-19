@@ -19,6 +19,27 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
     
+    // Helper function: valida documento de família personalizada
+    function isValidFamiliaPersonalizada(data, familiaId) {
+      return data.keys().hasOnly([
+               'familiaId',
+               'nome',
+               'conjuguePrincipalId',
+               'conjugueSecundarioId',
+               'ehFamiliaZero',
+               'atualizadoPor',
+               'atualizadoEm'
+             ]) &&
+             data.familiaId == familiaId &&
+             data.nome is string &&
+             data.nome.size() > 0 &&
+             data.ehFamiliaZero is bool &&
+             (!data.keys().hasAny(['conjuguePrincipalId']) || data.conjuguePrincipalId == null || data.conjuguePrincipalId is string) &&
+             (!data.keys().hasAny(['conjugueSecundarioId']) || data.conjugueSecundarioId == null || data.conjugueSecundarioId is string) &&
+             (!data.keys().hasAny(['atualizadoPor']) || data.atualizadoPor == null || data.atualizadoPor is string) &&
+             data.atualizadoEm is timestamp;
+    }
+    
     // ============================================
     // COLEÇÃO: users
     // ============================================
@@ -70,6 +91,18 @@ service cloud.firestore {
       
       // Apenas admin pode atualizar/deletar
       allow update, delete: if isAdmin();
+    }
+    
+    // ============================================
+    // COLEÇÃO: familias_personalizadas
+    // ============================================
+    match /familias_personalizadas/{familiaId} {
+      allow read: if isAuthenticated();
+      
+      allow create, update: if isAdmin() &&
+                             isValidFamiliaPersonalizada(request.resource.data, familiaId);
+      
+      allow delete: if isAdmin();
     }
     
     // ============================================

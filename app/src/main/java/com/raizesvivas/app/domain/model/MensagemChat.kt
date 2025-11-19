@@ -22,4 +22,3 @@ data class MensagemChat(
         return remetenteId == usuarioId
     }
 }
-

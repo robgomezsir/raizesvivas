@@ -5,7 +5,6 @@ import androidx.room.Room
 import com.raizesvivas.app.data.local.BiometricCrypto
 import com.raizesvivas.app.data.local.BiometricPreferences
 import com.raizesvivas.app.data.local.BiometricService
-import com.raizesvivas.app.data.local.ChatPreferences
 import com.raizesvivas.app.data.local.RaizesVivasDatabase
 import com.raizesvivas.app.data.local.dao.PessoaDao
 import com.raizesvivas.app.data.local.dao.SubfamiliaDao
@@ -181,17 +180,6 @@ object DatabaseModule {
         @ApplicationContext context: Context
     ): BiometricCrypto {
         return BiometricCrypto(context)
-    }
-    
-    /**
-     * Provê instância do ChatPreferences
-     */
-    @Provides
-    @Singleton
-    fun provideChatPreferences(
-        @ApplicationContext context: Context
-    ): ChatPreferences {
-        return ChatPreferences(context)
     }
 }
 

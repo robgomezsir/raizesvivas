@@ -34,7 +34,7 @@ fun ChatContactsScreen(
     val state by viewModel.state.collectAsState()
     val usuarios by viewModel.usuarios.collectAsState()
     val colorScheme = MaterialTheme.colorScheme
-    
+
     val backgroundBrush = remember(colorScheme) {
         Brush.verticalGradient(
             colors = listOf(
@@ -43,11 +43,9 @@ fun ChatContactsScreen(
             )
         )
     }
-    
-    // Snackbar para mensagens de erro
+
     val snackbarHostState = remember { SnackbarHostState() }
-    
-    // Exibir mensagens de erro
+
     LaunchedEffect(state.erro) {
         state.erro?.let { mensagemErro ->
             snackbarHostState.showSnackbar(
@@ -57,7 +55,7 @@ fun ChatContactsScreen(
             viewModel.limparErro()
         }
     }
-    
+
     Scaffold(
         containerColor = Color.Transparent,
         snackbarHost = {
@@ -118,7 +116,7 @@ fun ChatContactsScreen(
                         }
                     }
                 }
-                
+
                 usuarios.isEmpty() -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
@@ -150,7 +148,7 @@ fun ChatContactsScreen(
                         }
                     }
                 }
-                
+
                 else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
@@ -164,7 +162,10 @@ fun ChatContactsScreen(
                             ContactItem(
                                 usuario = usuario,
                                 onClick = {
-                                    onOpenConversation(usuario.id, usuario.nome.ifBlank { "Usuário" })
+                                    onOpenConversation(
+                                        usuario.id,
+                                        usuario.nome.ifBlank { "Usuário" }
+                                    )
                                 }
                             )
                         }
@@ -184,7 +185,7 @@ private fun ContactItem(
     onClick: () -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
-    
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -200,7 +201,6 @@ private fun ContactItem(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Avatar circular
             Surface(
                 modifier = Modifier.size(56.dp),
                 shape = CircleShape,
@@ -218,8 +218,7 @@ private fun ContactItem(
                     )
                 }
             }
-            
-            // Informações do contato
+
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -232,7 +231,7 @@ private fun ContactItem(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                
+
                 if (usuario.email.isNotBlank()) {
                     Text(
                         text = usuario.email,
@@ -243,8 +242,7 @@ private fun ContactItem(
                     )
                 }
             }
-            
-            // Ícone de seta
+
             Icon(
                 Icons.Default.ChevronRight,
                 contentDescription = null,
@@ -253,4 +251,3 @@ private fun ContactItem(
         }
     }
 }
-
