@@ -1,6 +1,7 @@
 package com.raizesvivas.app.data.local.entities
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverters
 import com.raizesvivas.app.data.local.Converters
@@ -14,8 +15,23 @@ import java.util.Date
  * 
  * Esta entity espelha os dados do Firestore para permitir
  * funcionamento offline do app.
+ * 
+ * Índices otimizados para queries frequentes:
+ * - aprovado: para filtrar pessoas aprovadas
+ * - dataNascimento: para ordenação por idade
+ * - pai, mae: para buscar filhos de um casal
+ * - genero: para estatísticas de gênero
  */
-@Entity(tableName = "pessoas")
+@Entity(
+    tableName = "pessoas",
+    indices = [
+        Index(value = ["aprovado"]),
+        Index(value = ["dataNascimento"]),
+        Index(value = ["pai", "mae"]),
+        Index(value = ["genero"]),
+        Index(value = ["ehFamiliaZero"])
+    ]
+)
 @TypeConverters(Converters::class)
 data class PessoaEntity(
     @PrimaryKey

@@ -412,6 +412,42 @@ object RoomMigrations {
         }
     }
 
+    val MIGRATION_13_14 = object : Migration(13, 14) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // Adicionar índices otimizados na tabela pessoas para melhor performance
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS index_pessoas_aprovado 
+                ON pessoas(aprovado)
+                """.trimIndent()
+            )
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS index_pessoas_dataNascimento 
+                ON pessoas(dataNascimento)
+                """.trimIndent()
+            )
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS index_pessoas_pai_mae 
+                ON pessoas(pai, mae)
+                """.trimIndent()
+            )
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS index_pessoas_genero 
+                ON pessoas(genero)
+                """.trimIndent()
+            )
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS index_pessoas_ehFamiliaZero 
+                ON pessoas(ehFamiliaZero)
+                """.trimIndent()
+            )
+        }
+    }
+
     fun getAllMigrations(): Array<Migration> {
         return arrayOf(
             MIGRATION_1_2,
@@ -425,7 +461,8 @@ object RoomMigrations {
             MIGRATION_9_10,
             MIGRATION_10_11,
             MIGRATION_11_12,
-            MIGRATION_12_13
+            MIGRATION_12_13,
+            MIGRATION_13_14
         )
     }
 }

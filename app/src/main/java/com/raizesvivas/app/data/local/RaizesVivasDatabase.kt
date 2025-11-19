@@ -25,6 +25,7 @@ import com.raizesvivas.app.data.local.entities.*
  * Versão 11: Adiciona coluna apelido na tabela pessoas
  * Versão 12: Adiciona coluna ehAdministradorSenior na tabela usuarios
  * Versão 13: Adiciona tabela amigos para gerenciar amigos da família
+ * Versão 14: Adiciona índices otimizados na tabela pessoas para melhor performance
  */
 @Database(
     entities = [
@@ -39,7 +40,7 @@ import com.raizesvivas.app.data.local.entities.*
         FamiliaPersonalizadaEntity::class,
         AmigoEntity::class
     ],
-    version = 13,
+    version = 14,
     exportSchema = true,
     autoMigrations = []
 )

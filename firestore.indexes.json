@@ -115,6 +115,30 @@
         { "fieldPath": "pessoaId", "order": "ASCENDING" },
         { "fieldPath": "criadoEm", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "people",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "aprovado", "order": "ASCENDING" },
+        { "fieldPath": "dataNascimento", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "mensagens_chat",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "conversaId", "order": "ASCENDING" },
+        { "fieldPath": "enviadoEm", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "people",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "aprovado", "order": "ASCENDING" },
+        { "fieldPath": "nome", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

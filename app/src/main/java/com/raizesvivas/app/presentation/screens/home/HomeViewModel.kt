@@ -943,7 +943,11 @@ class HomeViewModel @Inject constructor(
 
 /**
  * Estado da tela Home
+ * 
+ * @Stable indica ao Compose que este estado é estável e só deve causar
+ * recomposição quando seus valores realmente mudarem
  */
+@androidx.compose.runtime.Stable
 data class HomeState(
     val usuario: Usuario? = null,
     val totalPessoas: Int = 0,
@@ -969,7 +973,10 @@ data class HomeState(
 
 /**
  * Tipos de ordenação disponíveis
+ * 
+ * @Immutable indica que este enum nunca muda após criação
  */
+@androidx.compose.runtime.Immutable
 enum class TipoOrdenacao(val label: String) {
     NOME_CRESCENTE("Nome (A-Z)"),
     NOME_DECRESCENTE("Nome (Z-A)"),
