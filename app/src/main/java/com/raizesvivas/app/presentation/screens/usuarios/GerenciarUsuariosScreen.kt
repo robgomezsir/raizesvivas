@@ -45,6 +45,7 @@ fun GerenciarUsuariosScreen(
     var usuarioEditando by remember { mutableStateOf<Usuario?>(null) }
     var nomeEditado by remember { mutableStateOf("") }
     var emailEditado by remember { mutableStateOf("") }
+    var ehAdminEditado by remember { mutableStateOf(false) }
     
     // Estado para confirmação de exclusão
     var usuarioParaDeletar by remember { mutableStateOf<Usuario?>(null) }
@@ -263,6 +264,7 @@ fun GerenciarUsuariosScreen(
                             usuarioEditando = usuario
                             nomeEditado = usuario.nome
                             emailEditado = usuario.email
+                            ehAdminEditado = usuario.ehAdministrador
                         },
                         onDeletar = {
                             usuarioParaDeletar = usuario
@@ -313,12 +315,13 @@ fun GerenciarUsuariosScreen(
                     ) {
                         Text(
                             text = "Administrador:",
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f)
                         )
                         Switch(
-                            checked = usuario.ehAdministrador,
-                            onCheckedChange = { /* Não permitir alterar aqui por segurança */ },
-                            enabled = false
+                            checked = ehAdminEditado,
+                            onCheckedChange = { ehAdminEditado = it },
+                            enabled = !state.isLoading
                         )
                     }
                 }
@@ -326,7 +329,10 @@ fun GerenciarUsuariosScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        val usuarioAtualizado = usuario.copy(nome = nomeEditado.trim())
+                        val usuarioAtualizado = usuario.copy(
+                            nome = nomeEditado.trim(),
+                            ehAdministrador = ehAdminEditado
+                        )
                         viewModel.atualizarUsuario(usuarioAtualizado)
                         usuarioEditando = null
                     },

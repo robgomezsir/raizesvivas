@@ -1,11 +1,14 @@
 package com.raizesvivas.app.presentation.screens.perfil
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
@@ -14,12 +17,19 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.rememberAsyncImagePainter
+import coil.request.ImageRequest
+import com.raizesvivas.app.domain.model.FotoAlbum
 import com.raizesvivas.app.domain.model.Pessoa
 import com.raizesvivas.app.presentation.screens.cadastro.PessoaSelector
 import com.raizesvivas.app.presentation.screens.album.AvatarUsuario
+import java.text.SimpleDateFormat
+import java.util.*
 import kotlinx.coroutines.delay
 import timber.log.Timber
 
@@ -30,7 +40,8 @@ import timber.log.Timber
 @Composable
 fun PerfilScreen(
     viewModel: PerfilViewModel = hiltViewModel(),
-    onNavigateToCadastroPessoaComId: (String?) -> Unit = {}
+    onNavigateToCadastroPessoaComId: (String?) -> Unit = {},
+    onNavigateToEditar: (String) -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
     val pessoasDisponiveis by viewModel.pessoasDisponiveis.collectAsState()
@@ -40,13 +51,10 @@ fun PerfilScreen(
     
     val snackbarHostState = remember { SnackbarHostState() }
     var ultimaVinculacaoId by remember { mutableStateOf<String?>(null) }
+    val dateFormatter = remember { SimpleDateFormat("dd/MM/yyyy", Locale("pt", "BR")) }
     
     // Estado para modal de confirmação de vinculação
     var pessoaParaVincular by remember { mutableStateOf<Pessoa?>(null) }
-    
-    // Estado para modal de confirmação de promoção/rebaixamento de admin
-    var usuarioParaPromover by remember { mutableStateOf<com.raizesvivas.app.domain.model.Usuario?>(null) }
-    var promoverAdmin by remember { mutableStateOf<Boolean?>(null) }
     
     // Fechar modal quando vinculação for bem-sucedida
     LaunchedEffect(state.pessoaVinculadaId, state.isLoading, pessoaParaVincular?.id) {
@@ -77,32 +85,6 @@ fun PerfilScreen(
         }
     }
     
-    // Lista de todos os usuários (para admins promoverem outros admins)
-    val todosUsuarios by viewModel.todosUsuarios.collectAsState()
-    
-    // Mostrar mensagem de sucesso após promoção/rebaixamento
-    var ultimaAcaoAdmin by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
-    LaunchedEffect(state.isLoading, ultimaAcaoAdmin, todosUsuarios) {
-        val (userId, foiPromovido) = ultimaAcaoAdmin ?: return@LaunchedEffect
-        if (!state.isLoading) {
-            val usuario = todosUsuarios.find { it.id == userId }
-            usuario?.let {
-                val sucesso = (it.ehAdministrador == foiPromovido)
-                if (sucesso) {
-                    snackbarHostState.showSnackbar(
-                        message = if (foiPromovido) {
-                            "${usuario.nome.ifBlank { "Usuário" }} foi promovido a administrador"
-                        } else {
-                            "${usuario.nome.ifBlank { "Usuário" }} foi rebaixado de administrador"
-                        },
-                        duration = SnackbarDuration.Short
-                    )
-                    ultimaAcaoAdmin = null
-                }
-            }
-        }
-    }
-    
     // Mostrar mensagem de sucesso quando vinculação for concluída
     LaunchedEffect(state.pessoaVinculadaId, state.isLoading) {
         if (!state.isLoading && state.pessoaVinculadaId != null && state.pessoaVinculadaId != ultimaVinculacaoId) {
@@ -128,58 +110,127 @@ fun PerfilScreen(
             )
         }
     ) { paddingValues ->
+        // Conteúdo scrollável
+        val scrollState = rememberScrollState()
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .verticalScroll(scrollState)
         ) {
-            // Header fixo (Foto e Nome)
-            Column(
+            // Header com foto, nome e email (estilo DetalhesPessoa)
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )
             ) {
-                // Avatar
-                AvatarUsuario(
-                    fotoUrl = state.fotoUrl,
-                    nome = state.nome ?: "Usuário",
-                    size = 120
-                )
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                // Nome do usuário
-                Text(
-                    text = state.nome ?: "Usuário",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                // Email
-                Text(
-                    text = state.email ?: "",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Avatar/Foto - usar foto da pessoa vinculada se houver, senão foto do usuário
+                    val fotoParaExibir = state.pessoaVinculada?.fotoUrl ?: state.fotoUrl
+                    val nomeParaExibir = state.pessoaVinculada?.nome ?: state.nome ?: "Usuário"
+                    
+                    Surface(
+                        modifier = Modifier.size(120.dp),
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primary
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            fotoParaExibir?.let { fotoUrl ->
+                                if (fotoUrl.isNotBlank()) {
+                                    Image(
+                                        painter = rememberAsyncImagePainter(
+                                            ImageRequest.Builder(LocalContext.current)
+                                                .data(fotoUrl)
+                                                .crossfade(true)
+                                                .build()
+                                        ),
+                                        contentDescription = "Foto de $nomeParaExibir",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.Person,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(80.dp),
+                                        tint = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                }
+                            } ?: run {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(80.dp),
+                                    tint = MaterialTheme.colorScheme.onPrimary
+                                )
+                            }
+                        }
+                    }
+                    
+                    Text(
+                        text = nomeParaExibir,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+
+                    state.pessoaVinculada?.apelido?.takeIf { it.isNotBlank() }?.let { apelido ->
+                        Text(
+                            text = apelido,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f)
+                        )
+                    }
+                    
+                    // Email do usuário
+                    state.email?.let { email ->
+                        if (email.isNotBlank()) {
+                            Text(
+                                text = email,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                            )
+                        }
+                    }
+                    
+                    if (state.pessoaVinculada?.ehFamiliaZero == true) {
+                        Surface(
+                            shape = MaterialTheme.shapes.small,
+                            color = MaterialTheme.colorScheme.tertiary
+                        ) {
+                            Text(
+                                text = "Família Zero",
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onTertiary
+                            )
+                        }
+                    }
+                }
             }
             
-            // Conteúdo scrollável
-            val scrollState = rememberScrollState()
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(scrollState)
-                    .padding(horizontal = 16.dp, vertical = 16.dp)
+                    .padding(horizontal = 16.dp)
             ) {
                 // Badge de status (Admin ou Familiar)
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 16.dp)
-                        .padding(vertical = 2.dp),
+                        .padding(bottom = 16.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = if (state.ehAdmin) {
                             MaterialTheme.colorScheme.tertiaryContainer
@@ -252,8 +303,7 @@ fun PerfilScreen(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 16.dp)
-                        .padding(vertical = 2.dp),
+                        .padding(bottom = 16.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
                     )
@@ -449,490 +499,267 @@ fun PerfilScreen(
                     )
                 }
                 
-                // Seção de Administração (apenas para admins)
-                if (state.ehAdmin) {
-                    var mostrarGerenciarAdmin by remember { mutableStateOf(false) }
-                    var modoEdicao by remember { mutableStateOf(false) }
-                    var usuariosSelecionados by remember { mutableStateOf<Set<String>>(emptySet()) }
-                    
-                    // Carregar lista automaticamente quando expandir
-                    LaunchedEffect(mostrarGerenciarAdmin) {
-                        if (mostrarGerenciarAdmin) {
-                            // Sempre carregar quando expandir para garantir que a lista esteja atualizada
-                            // Não verificar isLoading para evitar condições de corrida
-                            viewModel.recarregarListaUsuarios()
+                // Seção de Administração removida - usar "Gerenciar Usuários" na sidebar
+                // A funcionalidade de gerenciar administradores foi movida para a tela dedicada
+                
+                // Detalhes da Pessoa Vinculada (se houver)
+                state.pessoaVinculada?.let { pessoa ->
+                    // Botão para editar pessoa
+                    if (state.pessoaVinculadaId != null) {
+                        OutlinedButton(
+                            onClick = { onNavigateToEditar(state.pessoaVinculadaId!!) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 16.dp)
+                        ) {
+                            Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Editar Familiar")
                         }
                     }
                     
-                    // Limpar seleção quando sair do modo de edição
-                    LaunchedEffect(modoEdicao) {
-                        if (!modoEdicao) {
-                            usuariosSelecionados = emptySet()
-                        }
-                    }
-                    
+                    // Informações Básicas
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(bottom = 16.dp)
-                            .padding(vertical = 2.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                        )
                     ) {
                         Column(
                             modifier = Modifier.padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable(
-                                        indication = rememberRipple(),
-                                        interactionSource = remember { MutableInteractionSource() }
-                                    ) { 
-                                        mostrarGerenciarAdmin = !mostrarGerenciarAdmin 
-                                    },
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        imageVector = if (mostrarGerenciarAdmin) {
-                                            Icons.Default.ExpandLess
-                                        } else {
-                                            Icons.Default.ExpandMore
-                                        },
-                                        contentDescription = if (mostrarGerenciarAdmin) {
-                                            "Recolher"
-                                        } else {
-                                            "Expandir"
-                                        },
-                                        tint = MaterialTheme.colorScheme.onTertiaryContainer
-                                    )
-                                    Text(
-                                        text = "Gerenciar Administradores",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onTertiaryContainer
-                                    )
-                                }
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    if (mostrarGerenciarAdmin) {
-                                        IconButton(
-                                            onClick = { 
-                                                modoEdicao = !modoEdicao
-                                                if (!modoEdicao) {
-                                                    usuariosSelecionados = emptySet()
-                                                }
-                                            },
-                                            enabled = !state.isLoading
-                                        ) {
-                                            Icon(
-                                                imageVector = if (modoEdicao) {
-                                                    Icons.Default.Close
-                                                } else {
-                                                    Icons.Default.Edit
-                                                },
-                                                contentDescription = if (modoEdicao) {
-                                                    "Sair do modo de edição"
-                                                } else {
-                                                    "Modo de edição"
-                                                },
-                                                tint = MaterialTheme.colorScheme.onTertiaryContainer
-                                            )
-                                        }
-                                    }
-                                    IconButton(
-                                        onClick = { 
-                                            // Expandir se estiver fechado e recarregar lista
-                                            if (!mostrarGerenciarAdmin) {
-                                                mostrarGerenciarAdmin = true
-                                            }
-                                            viewModel.recarregarListaUsuarios() 
-                                        },
-                                        enabled = !state.isLoading
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Refresh,
-                                            contentDescription = "Recarregar lista",
-                                            tint = MaterialTheme.colorScheme.onTertiaryContainer
-                                        )
-                                    }
-                                    Icon(
-                                        imageVector = Icons.Default.AdminPanelSettings,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onTertiaryContainer
+                            Text(
+                                text = "Informações Básicas",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            
+                            HorizontalDivider()
+                            
+                            InfoRow(
+                                label = "Nome",
+                                value = pessoa.nome,
+                                icon = Icons.Default.Person
+                            )
+
+                            pessoa.apelido?.let { apelido ->
+                                if (apelido.isNotBlank()) {
+                                    InfoRow(
+                                        label = "Apelido",
+                                        value = apelido,
+                                        icon = Icons.Default.Star
                                     )
                                 }
                             }
                             
-                            if (mostrarGerenciarAdmin) {
-                                HorizontalDivider()
-                                
-                                // Modo de edição: mostrar controles de seleção múltipla
-                                if (modoEdicao) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 8.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = "${usuariosSelecionados.size} selecionado(s)",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            fontWeight = FontWeight.Medium,
-                                            color = MaterialTheme.colorScheme.onTertiaryContainer
-                                        )
-                                        Row(
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            TextButton(
-                                                onClick = {
-                                                    usuariosSelecionados = todosUsuarios
-                                                        .filter { it.id != currentUserId }
-                                                        .map { it.id }
-                                                        .toSet()
-                                                },
-                                                enabled = !state.isLoading
-                                            ) {
-                                                Text("Selecionar Todos")
-                                            }
-                                            TextButton(
-                                                onClick = {
-                                                    usuariosSelecionados = emptySet()
-                                                },
-                                                enabled = !state.isLoading
-                                            ) {
-                                                Text("Limpar")
-                                            }
-                                        }
-                                    }
-                                    
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 8.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        Button(
-                                            onClick = {
-                                                viewModel.promoverAdminEmLote(usuariosSelecionados, true)
-                                                usuariosSelecionados = emptySet()
-                                                modoEdicao = false
-                                            },
-                                            enabled = usuariosSelecionados.isNotEmpty() && !state.isLoading,
-                                            modifier = Modifier.weight(1f),
-                                            colors = ButtonDefaults.buttonColors(
-                                                containerColor = MaterialTheme.colorScheme.primary
-                                            )
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.AdminPanelSettings,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                            Text("Promover Selecionados")
-                                        }
-                                        
-                                        Button(
-                                            onClick = {
-                                                viewModel.promoverAdminEmLote(usuariosSelecionados, false)
-                                                usuariosSelecionados = emptySet()
-                                                modoEdicao = false
-                                            },
-                                            enabled = usuariosSelecionados.isNotEmpty() && !state.isLoading,
-                                            modifier = Modifier.weight(1f),
-                                            colors = ButtonDefaults.buttonColors(
-                                                containerColor = MaterialTheme.colorScheme.error
-                                            )
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.PersonRemove,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                            Text("Rebaixar Selecionados")
-                                        }
-                                    }
+                            if (pessoa.genero != null) {
+                                InfoRow(
+                                    label = "Gênero",
+                                    value = pessoa.genero.label,
+                                    icon = Icons.Default.Person
+                                )
+                            }
+                            
+                            if (pessoa.estadoCivil != null) {
+                                InfoRow(
+                                    label = "Estado Civil",
+                                    value = pessoa.estadoCivil.label,
+                                    icon = Icons.Default.Favorite
+                                )
+                            }
+                            
+                            if (pessoa.dataNascimento != null) {
+                                InfoRow(
+                                    label = "Data de Nascimento",
+                                    value = dateFormatter.format(pessoa.dataNascimento),
+                                    icon = Icons.Default.Cake
+                                )
+                            }
+                            
+                            if (pessoa.dataFalecimento != null) {
+                                InfoRow(
+                                    label = "Data de Falecimento",
+                                    value = dateFormatter.format(pessoa.dataFalecimento),
+                                    icon = Icons.Default.Event
+                                )
+                            }
+                            
+                            pessoa.localNascimento?.let { local ->
+                                if (local.isNotBlank()) {
+                                    InfoRow(
+                                        label = "Local de Nascimento",
+                                        value = local,
+                                        icon = Icons.Default.LocationOn
+                                    )
+                                }
+                            }
+                            
+                            pessoa.localResidencia?.let { local ->
+                                if (local.isNotBlank()) {
+                                    InfoRow(
+                                        label = "Local de Residência",
+                                        value = local,
+                                        icon = Icons.Default.Home
+                                    )
+                                }
+                            }
+                            
+                            pessoa.profissao?.let { profissao ->
+                                if (profissao.isNotBlank()) {
+                                    InfoRow(
+                                        label = "Profissão",
+                                        value = profissao,
+                                        icon = Icons.Default.Work
+                                    )
+                                }
+                            }
+                            
+                            pessoa.telefone?.let { telefone ->
+                                if (telefone.isNotBlank()) {
+                                    InfoRow(
+                                        label = "Telefone/Celular",
+                                        value = telefone,
+                                        icon = Icons.Default.Phone
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Biografia
+                    pessoa.biografia?.let { biografia ->
+                        if (biografia.isNotBlank()) {
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 16.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Text(
+                                        text = "Biografia",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
                                     
                                     HorizontalDivider()
+                                    
+                                    Text(
+                                        text = biografia,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Relacionamentos
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Text(
+                                text = "Relacionamentos",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            
+                            HorizontalDivider()
+                            
+                            // Pai
+                            if (pessoa.pai != null) {
+                                val paiNome = state.paiNome ?: "Carregando..."
+                                InfoRow(
+                                    label = "Pai",
+                                    value = paiNome,
+                                    icon = Icons.Default.Man
+                                )
+                            }
+                            
+                            // Mãe
+                            if (pessoa.mae != null) {
+                                val maeNome = state.maeNome ?: "Carregando..."
+                                InfoRow(
+                                    label = "Mãe",
+                                    value = maeNome,
+                                    icon = Icons.Default.Woman
+                                )
+                            }
+                            
+                            // Cônjuge
+                            if (pessoa.conjugeAtual != null) {
+                                val conjugeNome = state.conjugeNome ?: "Carregando..."
+                                InfoRow(
+                                    label = "Cônjuge",
+                                    value = conjugeNome,
+                                    icon = Icons.Default.Favorite
+                                )
+                            }
+                            
+                            // Filhos
+                            if (pessoa.filhos.isNotEmpty() || state.filhosNomes.isNotEmpty()) {
+                                val filhosTexto = if (state.filhosNomes.isNotEmpty()) {
+                                    state.filhosNomes.joinToString(", ")
+                                } else {
+                                    "${pessoa.filhos.size} filho(s)"
+                                }
+                                InfoRow(
+                                    label = "Filhos",
+                                    value = filhosTexto,
+                                    icon = Icons.Default.ChildCare
+                                )
+                            }
+                        }
+                    }
+                    
+                    // Fotos do Álbum
+                    if (state.fotosAlbum.isNotEmpty()) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 16.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Text(
+                                    text = "Fotos do Álbum",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                
+                                HorizontalDivider()
+                                
+                                // Grid de fotos (3 colunas)
+                                val fotosChunked = remember(state.fotosAlbum) {
+                                    state.fotosAlbum.chunked(3)
                                 }
                                 
-                                // Mostrar loading apenas se estiver carregando
-                                if (state.isLoading) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 16.dp),
-                                        horizontalArrangement = Arrangement.Center,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(24.dp),
-                                            color = MaterialTheme.colorScheme.onTertiaryContainer
-                                        )
-                                        Spacer(modifier = Modifier.width(12.dp))
-                                        Text(
-                                            text = if (todosUsuarios.isEmpty()) {
-                                                "Carregando usuários..."
-                                            } else {
-                                                "Atualizando lista..."
-                                            },
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
-                                        )
-                                    }
-                                } 
-                                // Mostrar mensagem de lista vazia apenas se não estiver carregando E a lista estiver vazia
-                                else if (todosUsuarios.isEmpty()) {
-                                    Column(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.People,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(48.dp),
-                                            tint = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.5f)
-                                        )
-                                        Text(
-                                            text = "Nenhum usuário encontrado",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
-                                        )
-                                        TextButton(
-                                            onClick = { viewModel.recarregarListaUsuarios() },
-                                            enabled = !state.isLoading
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Refresh,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                            Text("Recarregar")
-                                        }
-                                    }
-                                } 
-                                // Mostrar lista de usuários se houver dados
-                                else {
-                                    // Se estiver carregando mas já tem dados, mostrar indicador de atualização
-                                    if (state.isLoading && todosUsuarios.isNotEmpty()) {
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    fotosChunked.forEach { rowFotos ->
                                         Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(bottom = 8.dp),
-                                            horizontalArrangement = Arrangement.Center,
-                                            verticalAlignment = Alignment.CenterVertically
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            modifier = Modifier.fillMaxWidth()
                                         ) {
-                                            CircularProgressIndicator(
-                                                modifier = Modifier.size(16.dp),
-                                                color = MaterialTheme.colorScheme.onTertiaryContainer
-                                            )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Text(
-                                                text = "Atualizando...",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
-                                            )
-                                        }
-                                    }
-                                    
-                                    // Mostrar lista de usuários (pode estar vazia se ainda não carregou)
-                                    if (todosUsuarios.isNotEmpty()) {
-                                        val usuariosFiltrados = todosUsuarios.filter { it.id != currentUserId }
-                                        
-                                        if (usuariosFiltrados.isEmpty()) {
-                                            // Se todos os usuários foram filtrados (apenas o usuário atual existe)
-                                            Column(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(vertical = 16.dp),
-                                                horizontalAlignment = Alignment.CenterHorizontally,
-                                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.People,
-                                                    contentDescription = null,
-                                                    modifier = Modifier.size(48.dp),
-                                                    tint = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.5f)
-                                                )
-                                                Text(
-                                                    text = "Apenas você está cadastrado no sistema",
-                                                    style = MaterialTheme.typography.bodyMedium,
-                                                    color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
+                                            rowFotos.forEach { foto ->
+                                                FotoAlbumItem(
+                                                    foto = foto,
+                                                    modifier = Modifier.weight(1f)
                                                 )
                                             }
-                                        } else {
-                                            usuariosFiltrados.forEach { usuario ->
-                                            val isSelecionado = usuariosSelecionados.contains(usuario.id)
-                                            
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .clickable(
-                                                        enabled = modoEdicao,
-                                                        indication = if (modoEdicao) rememberRipple() else null,
-                                                        interactionSource = remember { MutableInteractionSource() }
-                                                    ) {
-                                                        if (modoEdicao) {
-                                                            usuariosSelecionados = if (isSelecionado) {
-                                                                usuariosSelecionados - usuario.id
-                                                            } else {
-                                                                usuariosSelecionados + usuario.id
-                                                            }
-                                                        }
-                                                    },
-                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Row(
-                                                    modifier = Modifier.weight(1f),
-                                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
-                                                    // Checkbox (modo edição) ou espaço vazio
-                                                    if (modoEdicao) {
-                                                        Checkbox(
-                                                            checked = isSelecionado,
-                                                            onCheckedChange = { checked ->
-                                                                usuariosSelecionados = if (checked) {
-                                                                    usuariosSelecionados + usuario.id
-                                                                } else {
-                                                                    usuariosSelecionados - usuario.id
-                                                                }
-                                                            },
-                                                            enabled = !state.isLoading
-                                                        )
-                                                    } else {
-                                                        Spacer(modifier = Modifier.width(48.dp))
-                                                    }
-                                                    
-                                                    // Avatar do usuário
-                                                    AvatarUsuario(
-                                                        fotoUrl = usuario.fotoUrl,
-                                                        nome = usuario.nome.ifBlank { "Sem nome" },
-                                                        size = 40
-                                                    )
-                                                    
-                                                    Column(modifier = Modifier.weight(1f)) {
-                                                        Text(
-                                                            text = usuario.nome.ifBlank { "Sem nome" },
-                                                            style = MaterialTheme.typography.bodyMedium,
-                                                            fontWeight = FontWeight.Medium,
-                                                            color = MaterialTheme.colorScheme.onTertiaryContainer
-                                                        )
-                                                        Text(
-                                                            text = usuario.email.ifBlank { "Sem email" },
-                                                            style = MaterialTheme.typography.bodySmall,
-                                                            color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
-                                                        )
-                                                        if (usuario.pessoaVinculada != null) {
-                                                            val pessoaVinculada = pessoasDisponiveis.find { it.id == usuario.pessoaVinculada }
-                                                            pessoaVinculada?.let {
-                                                                Text(
-                                                                    text = "Vinculado a: ${it.nome}",
-                                                                    style = MaterialTheme.typography.bodySmall,
-                                                                    color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.6f)
-                                                                )
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                                
-                                                Row(
-                                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
-                                                    if (usuario.ehAdministrador) {
-                                                        Surface(
-                                                            shape = MaterialTheme.shapes.small,
-                                                            color = MaterialTheme.colorScheme.primary
-                                                        ) {
-                                                            Text(
-                                                                text = "ADMIN",
-                                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                                                style = MaterialTheme.typography.labelSmall,
-                                                                color = MaterialTheme.colorScheme.onPrimary
-                                                            )
-                                                        }
-                                                    }
-                                                    
-                                                    // Botão individual (apenas fora do modo de edição)
-                                                    if (!modoEdicao) {
-                                                        IconButton(
-                                                            onClick = {
-                                                                usuarioParaPromover = usuario
-                                                                promoverAdmin = !usuario.ehAdministrador
-                                                            },
-                                                            enabled = !state.isLoading
-                                                        ) {
-                                                            Icon(
-                                                                imageVector = if (usuario.ehAdministrador) {
-                                                                    Icons.Default.PersonRemove
-                                                                } else {
-                                                                    Icons.Default.AdminPanelSettings
-                                                                },
-                                                                contentDescription = if (usuario.ehAdministrador) {
-                                                                    "Rebaixar Admin"
-                                                                } else {
-                                                                    "Promover Admin"
-                                                                },
-                                                                tint = if (usuario.ehAdministrador) {
-                                                                    MaterialTheme.colorScheme.error
-                                                                } else {
-                                                                    MaterialTheme.colorScheme.primary
-                                                                }
-                                                            )
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                            HorizontalDivider()
-                                        }
-                                    }
-                                    } else if (!state.isLoading) {
-                                        // Se não há dados e não está carregando, mostrar mensagem
-                                        Column(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(vertical = 16.dp),
-                                            horizontalAlignment = Alignment.CenterHorizontally,
-                                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.People,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(48.dp),
-                                                tint = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.5f)
-                                            )
-                                            Text(
-                                                text = "Nenhum usuário encontrado",
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
-                                            )
-                                            TextButton(
-                                                onClick = { viewModel.recarregarListaUsuarios() },
-                                                enabled = !state.isLoading
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Refresh,
-                                                    contentDescription = null,
-                                                    modifier = Modifier.size(18.dp)
-                                                )
-                                                Spacer(modifier = Modifier.width(4.dp))
-                                                Text("Recarregar")
+                                            // Espaçador se linha incompleta
+                                            repeat(3 - rowFotos.size) {
+                                                Spacer(modifier = Modifier.weight(1f))
                                             }
                                         }
                                     }
@@ -940,150 +767,6 @@ fun PerfilScreen(
                             }
                         }
                     }
-                    
-                    Spacer(modifier = Modifier.height(32.dp))
-                }
-                
-                // Modal de confirmação de promoção/rebaixamento de admin
-                usuarioParaPromover?.let { usuario ->
-                    val acao = promoverAdmin ?: return@let
-                    AlertDialog(
-                        onDismissRequest = {
-                            usuarioParaPromover = null
-                            promoverAdmin = null
-                        },
-                        icon = {
-                            Icon(
-                                imageVector = if (acao) {
-                                    Icons.Default.AdminPanelSettings
-                                } else {
-                                    Icons.Default.PersonRemove
-                                },
-                                contentDescription = null,
-                                tint = if (acao) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.error
-                                },
-                                modifier = Modifier.size(48.dp)
-                            )
-                        },
-                        title = {
-                            Text(
-                                text = if (acao) {
-                                    "Promover a Administrador"
-                                } else {
-                                    "Rebaixar de Administrador"
-                                },
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
-                            )
-                        },
-                        text = {
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                Text(
-                                    text = if (acao) {
-                                        "Deseja promover o usuário a administrador?"
-                                    } else {
-                                        "Deseja rebaixar o usuário de administrador?"
-                                    },
-                                    style = MaterialTheme.typography.bodyLarge
-                                )
-                                
-                                Card(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                                    )
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(16.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        AvatarUsuario(
-                                            fotoUrl = usuario.fotoUrl,
-                                            nome = usuario.nome.ifBlank { "Sem nome" },
-                                            size = 48
-                                        )
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                text = usuario.nome.ifBlank { "Sem nome" },
-                                                style = MaterialTheme.typography.titleMedium,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.onSecondaryContainer
-                                            )
-                                            Text(
-                                                text = usuario.email.ifBlank { "Sem email" },
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
-                                            )
-                                        }
-                                    }
-                                }
-                                
-                                if (acao) {
-                                    Text(
-                                        text = "O usuário terá acesso a funcionalidades administrativas como gerenciar convites, edições pendentes e resolver duplicatas.",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                } else {
-                                    Text(
-                                        text = "O usuário perderá acesso a funcionalidades administrativas.",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.error
-                                    )
-                                }
-                            }
-                        },
-                        confirmButton = {
-                            Button(
-                                onClick = {
-                                    val userId = usuario.id
-                                    val ehAdmin = acao
-                                    viewModel.promoverAdmin(userId, ehAdmin)
-                                    ultimaAcaoAdmin = Pair(userId, ehAdmin)
-                                    usuarioParaPromover = null
-                                    promoverAdmin = null
-                                },
-                                enabled = !state.isLoading,
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (acao) {
-                                        MaterialTheme.colorScheme.primary
-                                    } else {
-                                        MaterialTheme.colorScheme.error
-                                    }
-                                )
-                            ) {
-                                if (state.isLoading) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(16.dp),
-                                        color = MaterialTheme.colorScheme.onPrimary
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                }
-                                Text(
-                                    text = if (acao) "Promover" else "Rebaixar",
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        },
-                        dismissButton = {
-                            TextButton(
-                                onClick = {
-                                    usuarioParaPromover = null
-                                    promoverAdmin = null
-                                },
-                                enabled = !state.isLoading
-                            ) {
-                                Text("Cancelar")
-                            }
-                        }
-                    )
                 }
                 
                 // Ações
@@ -1094,5 +777,91 @@ fun PerfilScreen(
     }
 }
 
+/**
+ * Linha de informação com ícone
+ */
+@Composable
+private fun InfoRow(
+    label: String,
+    value: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(24.dp)
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium
+            )
+        }
+    }
+}
 
-
+/**
+ * Item de foto do álbum
+ */
+@Composable
+private fun FotoAlbumItem(
+    foto: FotoAlbum,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .aspectRatio(1f),
+        shape = RoundedCornerShape(8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Box {
+            Image(
+                painter = rememberAsyncImagePainter(
+                    ImageRequest.Builder(LocalContext.current)
+                        .data(foto.url)
+                        .build()
+                ),
+                contentDescription = foto.descricao.ifBlank { "Foto de ${foto.pessoaNome}" },
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+            
+            // Overlay com descrição se houver
+            if (foto.descricao.isNotBlank()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            androidx.compose.ui.graphics.Brush.verticalGradient(
+                                colors = listOf(
+                                    androidx.compose.ui.graphics.Color.Transparent,
+                                    androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.7f)
+                                )
+                            )
+                        )
+                        .padding(8.dp),
+                    contentAlignment = Alignment.BottomStart
+                ) {
+                    Text(
+                        text = foto.descricao,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = androidx.compose.ui.graphics.Color.White,
+                        maxLines = 2
+                    )
+                }
+            }
+        }
+    }
+}

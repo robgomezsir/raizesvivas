@@ -652,14 +652,26 @@ class AlbumFamiliaViewModel @Inject constructor(
     }
     
     /**
-     * Abre modal de seleção de apoio
+     * Abre modal de seleção de apoio ou remove apoio se já existir
      */
     fun abrirModalApoio(foto: FotoAlbum) {
-        _state.update { 
-            it.copy(
-                mostrarModalApoio = true,
-                fotoSelecionadaParaApoio = foto
-            )
+        val firebaseUser = authService.currentUser
+        if (firebaseUser == null) {
+            _state.update { it.copy(erro = "Usuário não autenticado") }
+            return
+        }
+        
+        // Se o usuário já deu apoio, remove diretamente
+        if (foto.usuarioDeuApoio(firebaseUser.uid)) {
+            removerApoio(foto)
+        } else {
+            // Caso contrário, abre o modal para escolher o tipo de emoção
+            _state.update { 
+                it.copy(
+                    mostrarModalApoio = true,
+                    fotoSelecionadaParaApoio = foto
+                )
+            }
         }
     }
     
@@ -768,8 +780,25 @@ class AlbumFamiliaViewModel @Inject constructor(
         val job = viewModelScope.launch {
             fotoAlbumRepository.observarComentarios(fotoId)
                 .collect { comentarios ->
+                    // Buscar fotos de perfil para comentários que não têm
+                    val comentariosComFoto = comentarios.map { comentario ->
+                        if (comentario.usuarioFotoUrl.isNullOrBlank() && comentario.usuarioId.isNotBlank()) {
+                            // Buscar foto do usuário
+                            val usuarioResult = firestoreService.buscarUsuario(comentario.usuarioId)
+                            usuarioResult.getOrNull()?.let { usuario ->
+                                if (!usuario.fotoUrl.isNullOrBlank()) {
+                                    comentario.copy(usuarioFotoUrl = usuario.fotoUrl)
+                                } else {
+                                    comentario
+                                }
+                            } ?: comentario
+                        } else {
+                            comentario
+                        }
+                    }
+                    
                     _comentariosPorFoto.value = _comentariosPorFoto.value.toMutableMap().apply { 
-                        put(fotoId, comentarios) 
+                        put(fotoId, comentariosComFoto) 
                     }
                 }
         }

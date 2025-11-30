@@ -48,7 +48,8 @@ object DeepLinkHandler {
                     "pessoa" -> {
                         val pessoaId = uri.pathSegments.getOrNull(1)
                         if (pessoaId != null) {
-                            navController.navigate(Screen.DetalhesPessoa.createRoute(pessoaId))
+                            // Navegar para Perfil - os detalhes da pessoa vinculada serão mostrados automaticamente
+                            navController.navigate(Screen.Perfil.route)
                         } else {
                             navController.navigate(Screen.CadastroPessoa.route)
                         }
@@ -80,7 +81,8 @@ object DeepLinkHandler {
                     "pessoa" -> {
                         val pessoaId = path.getOrNull(1)
                         if (pessoaId != null) {
-                            navController.navigate(Screen.DetalhesPessoa.createRoute(pessoaId))
+                            // Navegar para Perfil - os detalhes da pessoa vinculada serão mostrados automaticamente
+                            navController.navigate(Screen.Perfil.route)
                         }
                     }
                     "home" -> navController.navigate(Screen.Home.route) {

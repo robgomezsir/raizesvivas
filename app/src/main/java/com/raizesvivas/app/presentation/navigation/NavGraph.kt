@@ -17,12 +17,12 @@ import com.raizesvivas.app.presentation.screens.convites.AceitarConvitesScreen
 import com.raizesvivas.app.presentation.screens.convites.GerenciarConvitesScreen
 import com.raizesvivas.app.presentation.screens.convites.PedirConviteScreen
 import com.raizesvivas.app.presentation.screens.edicoes.GerenciarEdicoesScreen
-import com.raizesvivas.app.presentation.screens.detalhes.DetalhesPessoaScreen
 import com.raizesvivas.app.presentation.screens.duplicatas.ResolverDuplicatasScreen
 import com.raizesvivas.app.presentation.screens.onboarding.FamiliaZeroScreen
 import com.raizesvivas.app.presentation.screens.usuarios.GerenciarUsuariosScreen
 import com.raizesvivas.app.presentation.screens.configuracoes.ConfiguracoesScreen
 import com.raizesvivas.app.presentation.screens.amigo.AdicionarAmigoScreen
+import com.raizesvivas.app.presentation.screens.detalhes.DetalhesPessoaScreen
 import timber.log.Timber
 
 /**

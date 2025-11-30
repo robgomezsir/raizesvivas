@@ -8,9 +8,13 @@ import com.raizesvivas.app.data.remote.firebase.AuthService
 import com.raizesvivas.app.data.remote.firebase.FirestoreService
 import com.raizesvivas.app.data.repository.ConviteRepository
 import com.raizesvivas.app.data.repository.EdicaoPendenteRepository
+import com.raizesvivas.app.data.repository.FotoAlbumRepository
 import com.raizesvivas.app.data.repository.PessoaRepository
 import com.raizesvivas.app.data.repository.UsuarioRepository
+import com.raizesvivas.app.domain.model.FotoAlbum
+import com.raizesvivas.app.domain.model.Pessoa
 import com.raizesvivas.app.domain.model.Usuario
+import java.util.Locale
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.flow.catch
@@ -27,6 +31,7 @@ class PerfilViewModel @Inject constructor(
     private val firestoreService: FirestoreService,
     private val usuarioRepository: UsuarioRepository,
     private val pessoaRepository: PessoaRepository,
+    private val fotoAlbumRepository: FotoAlbumRepository,
     private val conviteRepository: ConviteRepository,
     private val edicaoPendenteRepository: EdicaoPendenteRepository,
     private val biometricPreferences: BiometricPreferences,
@@ -54,6 +59,7 @@ class PerfilViewModel @Inject constructor(
         observarConvitesPendentes()
         observarEdicoesPendentes()
         observarStatusAdminParaCarregarUsuarios()
+        observarPessoaVinculada()
     }
     
     /**
@@ -291,9 +297,120 @@ class PerfilViewModel @Inject constructor(
                         Timber.d("🔄 Usuário é admin mas lista está vazia, carregando...")
                         carregarTodosUsuarios()
                     }
+                    
+                    // Carregar dados da pessoa vinculada se houver
+                    if (usuario?.pessoaVinculada != null) {
+                        carregarDadosPessoa(usuario.pessoaVinculada)
+                    } else {
+                        // Limpar dados da pessoa se não houver vinculação
+                        _state.update {
+                            it.copy(
+                                pessoaVinculada = null,
+                                paiNome = null,
+                                maeNome = null,
+                                conjugeNome = null,
+                                filhosNomes = emptyList(),
+                                fotosAlbum = emptyList()
+                            )
+                        }
+                    }
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Erro ao carregar dados do perfil")
+            }
+        }
+    }
+    
+    /**
+     * Observa mudanças na pessoa vinculada para recarregar dados automaticamente
+     */
+    private fun observarPessoaVinculada() {
+        viewModelScope.launch {
+            state.map { it.pessoaVinculadaId }
+                .distinctUntilChanged()
+                .collect { pessoaId ->
+                    if (pessoaId != null) {
+                        carregarDadosPessoa(pessoaId)
+                    } else {
+                        // Limpar dados da pessoa se não houver vinculação
+                        _state.update {
+                            it.copy(
+                                pessoaVinculada = null,
+                                paiNome = null,
+                                maeNome = null,
+                                conjugeNome = null,
+                                filhosNomes = emptyList(),
+                                fotosAlbum = emptyList()
+                            )
+                        }
+                    }
+                }
+        }
+    }
+    
+    /**
+     * Carrega os dados completos da pessoa vinculada
+     */
+    private fun carregarDadosPessoa(pessoaId: String) {
+        viewModelScope.launch {
+            try {
+                val pessoa = pessoaRepository.buscarPorId(pessoaId)
+                
+                if (pessoa != null) {
+                    // Carregar nomes dos relacionamentos
+                    val paiNome = pessoa.pai?.let { pessoaRepository.buscarPorId(it)?.getNomeExibicao() }
+                    val maeNome = pessoa.mae?.let { pessoaRepository.buscarPorId(it)?.getNomeExibicao() }
+                    val conjugeNome = pessoa.conjugeAtual?.let { pessoaRepository.buscarPorId(it)?.getNomeExibicao() }
+
+                    // Consolidar filhos a partir da lista manual + relação pai/mãe no banco
+                    val filhosPorIds = pessoa.filhos
+                        .filter { it.isNotBlank() }
+                        .mapNotNull { filhoId ->
+                            runCatching { pessoaRepository.buscarPorId(filhoId) }.getOrNull()
+                        }
+                    val filhosRelacionados = runCatching {
+                        pessoaRepository.buscarFilhos(pessoa.id)
+                    }.getOrElse { emptyList() }
+
+                    val filhosUnicos = (filhosPorIds + filhosRelacionados)
+                        .filterNotNull()
+                        .distinctBy { it.id }
+                        .sortedWith(
+                            compareByDescending<Pessoa> { it.calcularIdade() ?: 0 }
+                                .thenBy { it.nome.lowercase(Locale.getDefault()) }
+                        )
+                    val filhosNomes = filhosUnicos.map { it.getNomeExibicao() }
+                    
+                    // Buscar fotos do álbum da pessoa
+                    val fotosResult = fotoAlbumRepository.buscarFotosPorPessoa(pessoaId)
+                    val fotos = fotosResult.getOrNull() ?: emptyList()
+                    Timber.d("📸 Fotos do álbum carregadas: ${fotos.size} fotos para pessoa ${pessoa.nome}")
+                    
+                    _state.update {
+                        it.copy(
+                            pessoaVinculada = pessoa,
+                            paiNome = paiNome,
+                            maeNome = maeNome,
+                            conjugeNome = conjugeNome,
+                            filhosNomes = filhosNomes,
+                            fotosAlbum = fotos
+                        )
+                    }
+                } else {
+                    Timber.w("⚠️ Pessoa vinculada não encontrada: $pessoaId")
+                    _state.update {
+                        it.copy(
+                            pessoaVinculada = null,
+                            paiNome = null,
+                            maeNome = null,
+                            conjugeNome = null,
+                            filhosNomes = emptyList(),
+                            fotosAlbum = emptyList()
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Erro ao carregar dados da pessoa vinculada")
             }
         }
     }
@@ -456,6 +573,13 @@ data class PerfilState(
     val edicoesPendentes: Int = 0,
     val pessoaVinculadaId: String? = null,
     val pessoaVinculadaNome: String? = null,
+    // Dados da pessoa vinculada (quando houver)
+    val pessoaVinculada: Pessoa? = null,
+    val paiNome: String? = null,
+    val maeNome: String? = null,
+    val conjugeNome: String? = null,
+    val filhosNomes: List<String> = emptyList(),
+    val fotosAlbum: List<FotoAlbum> = emptyList(),
     val erro: String? = null
 )
 

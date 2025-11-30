@@ -44,6 +44,7 @@ class FirestoreService @Inject constructor(
     private val recadosCollection = firestore.collection("recados")
     private val familiasPersonalizadasCollection = firestore.collection("familias_personalizadas")
     private val fotosAlbumCollection = firestore.collection("fotos_album")
+    private val amigosCollection = firestore.collection("amigos")
     
     // NOVA ESTRUTURA: Coleções de conquistas
     private val usuariosCollection = firestore.collection("usuarios")
@@ -3849,6 +3850,140 @@ class FirestoreService @Inject constructor(
             Timber.d("🛑 Parando observação de fotos para familiaId: $familiaId")
             listenerRegistration.remove() 
         }
+    }
+    // ============================================
+    // AMIGOS
+    // ============================================
+    
+    /**
+     * Salva um amigo no Firestore
+     */
+    suspend fun salvarAmigo(amigo: Amigo): Result<Unit> {
+        return try {
+            val data = hashMapOf(
+                "nome" to amigo.nome,
+                "telefone" to amigo.telefone,
+                "familiaresVinculados" to amigo.familiaresVinculados,
+                "criadoPor" to amigo.criadoPor,
+                "criadoEm" to amigo.criadoEm,
+                "modificadoEm" to amigo.modificadoEm
+            )
+            
+            amigosCollection.document(amigo.id)
+                .set(data)
+                .await()
+            
+            Timber.d("✅ Amigo salvo no Firestore: ${amigo.nome}")
+            Result.success(Unit)
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao salvar amigo no Firestore")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Busca todos os amigos do Firestore
+     */
+    suspend fun buscarTodosAmigos(): Result<List<Amigo>> {
+        return try {
+            val snapshot = amigosCollection
+                .orderBy("nome", Query.Direction.ASCENDING)
+                .get()
+                .await()
+            
+            val amigos = snapshot.documents.mapNotNull { it.toAmigo() }
+            Result.success(amigos)
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao buscar amigos do Firestore")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Observa todos os amigos do Firestore em tempo real
+     * Atualiza automaticamente quando há mudanças na coleção
+     */
+    fun observarTodosAmigos(): Flow<List<Amigo>> = callbackFlow {
+        val registration = amigosCollection
+            .orderBy("nome", Query.Direction.ASCENDING)
+            .limit(100)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Timber.e(error, "Erro ao observar amigos")
+                    close(error)
+                    return@addSnapshotListener
+                }
+                
+                if (snapshot != null) {
+                    Timber.d("📡 Snapshot recebido: ${snapshot.documents.size} documentos de amigos")
+                    
+                    // Converter documentos para Amigo
+                    val amigos = mutableListOf<Amigo>()
+                    snapshot.documents.forEachIndexed { index, doc ->
+                        try {
+                            val amigo = doc.toAmigo()
+                            if (amigo != null) {
+                                amigos.add(amigo)
+                                Timber.d("📡 Amigo $index observado: ${amigo.nome} (ID: ${amigo.id})")
+                            } else {
+                                Timber.w("⚠️ Documento $index não pôde ser convertido para Amigo (ID: ${doc.id})")
+                            }
+                        } catch (e: Exception) {
+                            Timber.e(e, "❌ Erro ao converter documento $index (ID: ${doc.id})")
+                        }
+                    }
+                    
+                    Timber.d("📡 ${amigos.size} amigos observados (de ${snapshot.documents.size} documentos)")
+                    
+                    // Ordenar localmente por nome
+                    val amigosOrdenados = amigos.sortedBy { it.nome }
+                    trySend(amigosOrdenados)
+                } else {
+                    Timber.d("📡 Snapshot nulo recebido para amigos")
+                    trySend(emptyList())
+                }
+            }
+        
+        awaitClose { registration.remove() }
+    }
+    
+    /**
+     * Deleta um amigo do Firestore
+     */
+    suspend fun deletarAmigo(amigoId: String): Result<Unit> {
+        return try {
+            amigosCollection.document(amigoId)
+                .delete()
+                .await()
+            
+            Timber.d("✅ Amigo deletado do Firestore: $amigoId")
+            Result.success(Unit)
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao deletar amigo do Firestore")
+            Result.failure(e)
+        }
+    }
+}
+
+private fun com.google.firebase.firestore.DocumentSnapshot.toAmigo(): Amigo? {
+    return try {
+        val data = this.data ?: return null
+        
+        Amigo(
+            id = this.id,
+            nome = data["nome"] as? String ?: "",
+            telefone = data["telefone"] as? String,
+            familiaresVinculados = (data["familiaresVinculados"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
+            criadoPor = data["criadoPor"] as? String ?: "",
+            criadoEm = (data["criadoEm"] as? com.google.firebase.Timestamp)?.toDate() ?: JavaDate(),
+            modificadoEm = (data["modificadoEm"] as? com.google.firebase.Timestamp)?.toDate() ?: JavaDate()
+        )
+    } catch (e: Exception) {
+        Timber.e(e, "Erro ao converter documento para Amigo: ${this.id}")
+        null
     }
 }
 

@@ -2,7 +2,10 @@ package com.raizesvivas.app.presentation.screens.mural
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -42,7 +45,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -602,30 +607,74 @@ private fun RecadoCard(
             // Apoio Familiar (curtidas)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Start,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 val usuarioDeuApoio = recado.usuarioDeuApoio(currentUserId)
                 val totalApoios = recado.totalApoios
                 
+                // Estado para animação de clique
+                var isAnimating by remember { mutableStateOf(false) }
+                
+                // Animação de escala ao clicar
+                val scale by animateFloatAsState(
+                    targetValue = if (isAnimating) 1.3f else 1f,
+                    animationSpec = spring(
+                        dampingRatio = 0.6f,
+                        stiffness = 400f
+                    ),
+                    label = "heartScale",
+                    finishedListener = { isAnimating = false }
+                )
+                
                 IconButton(
-                    onClick = { onCurtir(!usuarioDeuApoio) },
-                    modifier = Modifier.size(40.dp)
+                    onClick = { 
+                        isAnimating = true
+                        onCurtir(!usuarioDeuApoio) 
+                    },
+                    modifier = Modifier.size(48.dp)
                 ) {
-                    Icon(
-                        imageVector = if (usuarioDeuApoio) Icons.Filled.Favorite else Icons.Outlined.Favorite,
-                        contentDescription = if (usuarioDeuApoio) "Remover apoio" else "Dar apoio",
-                        tint = if (usuarioDeuApoio) MaterialTheme.colorScheme.error else cores.content.copy(alpha = 0.7f),
-                        modifier = Modifier.size(24.dp)
-                    )
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .graphicsLayer(scaleX = scale, scaleY = scale)
+                            .size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (usuarioDeuApoio) Icons.Filled.Favorite else Icons.Outlined.Favorite,
+                            contentDescription = if (usuarioDeuApoio) "Remover apoio" else "Dar apoio",
+                            tint = if (usuarioDeuApoio) 
+                                MaterialTheme.colorScheme.error 
+                            else 
+                                cores.content.copy(alpha = 0.7f),
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
                 }
                 
-                Text(
-                    text = if (totalApoios > 0) totalApoios.toString() else "",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = cores.content.copy(alpha = 0.8f),
-                    fontWeight = FontWeight.Medium
-                )
+                // Contagem de apoios com animação
+                AnimatedVisibility(
+                    visible = totalApoios > 0,
+                    enter = scaleIn(animationSpec = tween(200)),
+                    exit = scaleOut(animationSpec = tween(200))
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = totalApoios.toString(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = cores.content.copy(alpha = 0.8f),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = if (totalApoios == 1) "apoio" else "apoios",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = cores.content.copy(alpha = 0.6f)
+                        )
+                    }
+                }
             }
         }
     }

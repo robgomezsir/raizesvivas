@@ -6,6 +6,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
@@ -28,6 +29,8 @@ import com.raizesvivas.app.presentation.screens.mural.MuralScreen
 import com.raizesvivas.app.presentation.screens.chat.ChatContactsScreen
 import com.raizesvivas.app.presentation.screens.chat.ChatConversationScreen
 import com.raizesvivas.app.presentation.screens.album.AlbumFamiliaScreen
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.raizesvivas.app.presentation.screens.perfil.PerfilViewModel
 
 /**
  * Calcula o tamanho de fonte único para todos os labels da NavigationBar
@@ -102,14 +105,14 @@ fun MainNavigation(
     // Não mostrar em telas modais ou de detalhes
     val mostrarBottomNav = currentDestination?.route?.let { route ->
         !route.contains("cadastro_pessoa") &&
-        !route.contains("detalhes_pessoa") &&
         !route.contains("aceitar_convites") &&
         !route.contains("gerenciar_convites") &&
         !route.contains("gerenciar_edicoes") &&
         !route.contains("resolver_duplicatas") &&
         !route.contains("familia_zero") &&
         !route.contains("chat_contacts") &&
-        !route.contains("chat_conversation")
+        !route.contains("chat_conversation") &&
+        !route.contains("detalhes_pessoa")
     } ?: true
     
     Scaffold(
@@ -205,6 +208,10 @@ fun MainNavigation(
             modifier = Modifier.padding(paddingValues)
         ) {
             composable(Screen.Home.route) {
+                // ViewModel para verificar se é o próprio perfil
+                val perfilViewModel: PerfilViewModel = hiltViewModel()
+                val perfilState by perfilViewModel.state.collectAsState()
+                
                 HomeScreen(
                     openDrawerOnStart = openDrawerOnStart,
                     onNavigateToCadastroPessoa = {
@@ -230,7 +237,11 @@ fun MainNavigation(
                         navControllerPrincipal.navigate(Screen.FamiliaZero.route)
                     },
                     onNavigateToDetalhesPessoa = { pessoaId ->
-                        navControllerPrincipal.navigate(Screen.DetalhesPessoa.createRoute(pessoaId))
+                        if (pessoaId == perfilState.pessoaVinculadaId) {
+                            navControllerPrincipal.navigate(Screen.Perfil.route)
+                        } else {
+                            navControllerPrincipal.navigate(Screen.DetalhesPessoa.createRoute(pessoaId))
+                        }
                     },
                     onNavigateToAceitarConvites = {
                         navControllerPrincipal.navigate(Screen.AceitarConvites.route)
@@ -271,9 +282,17 @@ fun MainNavigation(
             }
             
             composable(Screen.Familia.route) {
+                // ViewModel para verificar se é o próprio perfil
+                val perfilViewModel: PerfilViewModel = hiltViewModel()
+                val perfilState by perfilViewModel.state.collectAsState()
+                
                 FamiliaScreen(
                     onNavigateToDetalhesPessoa = { pessoaId ->
-                        navControllerPrincipal.navigate(Screen.DetalhesPessoa.createRoute(pessoaId))
+                        if (pessoaId == perfilState.pessoaVinculadaId) {
+                            navControllerPrincipal.navigate(Screen.Perfil.route)
+                        } else {
+                            navControllerPrincipal.navigate(Screen.DetalhesPessoa.createRoute(pessoaId))
+                        }
                     },
                     onNavigateToCadastroPessoa = {
                         navControllerPrincipal.navigate(Screen.CadastroPessoa.route)
@@ -292,9 +311,17 @@ fun MainNavigation(
             }
             
             composable(Screen.Mural.route) {
+                // ViewModel para verificar se é o próprio perfil
+                val perfilViewModel: PerfilViewModel = hiltViewModel()
+                val perfilState by perfilViewModel.state.collectAsState()
+                
                 MuralScreen(
                     onNavigateToDetalhesPessoa = { pessoaId ->
-                        navControllerPrincipal.navigate(Screen.DetalhesPessoa.createRoute(pessoaId))
+                        if (pessoaId == perfilState.pessoaVinculadaId) {
+                            navControllerPrincipal.navigate(Screen.Perfil.route)
+                        } else {
+                            navControllerPrincipal.navigate(Screen.DetalhesPessoa.createRoute(pessoaId))
+                        }
                     },
                     onNavigateToChat = {
                         navController.navigate(Screen.ChatContacts.route)
@@ -338,13 +365,24 @@ fun MainNavigation(
             
             composable(Screen.Perfil.route) {
                 PerfilScreen(
-                    onNavigateToCadastroPessoaComId = { _ ->
-                        navControllerPrincipal.navigate(Screen.CadastroPessoa.route)
+                    onNavigateToCadastroPessoaComId = { pessoaId ->
+                        if (pessoaId != null) {
+                            navControllerPrincipal.navigate(Screen.EditarPessoa.createRoute(pessoaId))
+                        } else {
+                            navControllerPrincipal.navigate(Screen.CadastroPessoa.route)
+                        }
+                    },
+                    onNavigateToEditar = { pessoaId ->
+                        navControllerPrincipal.navigate(Screen.EditarPessoa.createRoute(pessoaId))
                     }
                 )
             }
             
             composable(Screen.AlbumFamilia.route) {
+                // ViewModel para verificar se é o próprio perfil
+                val perfilViewModel: PerfilViewModel = hiltViewModel()
+                val perfilState by perfilViewModel.state.collectAsState()
+                
                 AlbumFamiliaScreen(
                     onNavigateBack = {
                         // Volta para a tela anterior (pode ser Home se acessado pela barra inferior,
@@ -362,7 +400,11 @@ fun MainNavigation(
                         }
                     },
                     onNavigateToDetalhesPessoa = { pessoaId ->
-                        navControllerPrincipal.navigate(Screen.DetalhesPessoa.createRoute(pessoaId))
+                        if (pessoaId == perfilState.pessoaVinculadaId) {
+                            navControllerPrincipal.navigate(Screen.Perfil.route)
+                        } else {
+                            navControllerPrincipal.navigate(Screen.DetalhesPessoa.createRoute(pessoaId))
+                        }
                     }
                 )
             }

@@ -626,9 +626,11 @@ class FamiliaViewModel @Inject constructor(
 
             val resultadoPessoas = pessoaRepository.recarregarDoFirestore()
             val resultadoFamilias = familiaPersonalizadaRepository.sincronizar()
+            val resultadoAmigos = amigoRepository.sincronizar()
 
             val erro = resultadoPessoas.exceptionOrNull()
                 ?: resultadoFamilias.exceptionOrNull()
+                ?: resultadoAmigos.exceptionOrNull()
 
             _state.update {
                 it.copy(

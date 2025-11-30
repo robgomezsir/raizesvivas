@@ -35,6 +35,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material3.*
 import androidx.compose.material3.Divider
 import androidx.compose.material3.TextFieldDefaults
@@ -60,6 +61,9 @@ import android.net.Uri
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 import androidx.compose.ui.window.Dialog
@@ -76,6 +80,7 @@ import com.raizesvivas.app.presentation.components.RaizesVivasTextField
 import com.raizesvivas.app.presentation.components.AnimatedSearchBar
 import com.raizesvivas.app.presentation.ui.theme.FabDefaults
 import com.raizesvivas.app.presentation.ui.theme.fabContainerColor
+import com.raizesvivas.app.utils.TextUtils
 import com.raizesvivas.app.presentation.ui.theme.fabContentColor
 import com.raizesvivas.app.presentation.ui.theme.fabElevation
 import com.raizesvivas.app.utils.TimeUtils
@@ -656,26 +661,25 @@ fun FotoThumbnail(
                 Column {
                     if (foto.descricao.isNotBlank()) {
                         Text(
-                            text = foto.descricao,
+                            text = TextUtils.capitalizarTexto(foto.descricao),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 2
                         )
                     }
                     
-                    // Exibir apoios se houver
+                    // Exibir apoios se houver - mostrar TODAS as reações diferentes
                     if (foto.totalApoios > 0) {
                         Row(
                             modifier = Modifier.padding(top = 4.dp),
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Mostrar até 3 tipos de emoção mais frequentes
+                            // Mostrar TODOS os tipos de emoção presentes (sem limitação)
                             val tiposApoio = com.raizesvivas.app.domain.model.TipoApoioFoto.values()
                                 .map { tipo -> tipo to foto.contarApoiosPorTipo(tipo) }
                                 .filter { it.second > 0 }
                                 .sortedByDescending { it.second }
-                                .take(3)
                             
                             tiposApoio.forEach { (tipo, count) ->
                                 Row(
@@ -694,15 +698,6 @@ fun FotoThumbnail(
                                         )
                                     }
                                 }
-                            }
-                            
-                            // Mostrar total se houver mais tipos
-                            if (foto.totalApoios > tiposApoio.sumOf { it.second }) {
-                                Text(
-                                    text = "+${foto.totalApoios - tiposApoio.sumOf { it.second }}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
-                                )
                             }
                         }
                     }
@@ -901,7 +896,7 @@ fun ModalDeletarFoto(
                 )
                 if (foto.descricao.isNotBlank()) {
                     Text(
-                        text = "Descrição: ${foto.descricao}",
+                        text = "Descrição: ${TextUtils.capitalizarTexto(foto.descricao)}",
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -981,9 +976,10 @@ fun ModalDeletarComentario(
                             )
                         ) {
                             Text(
-                                text = "\"${comentario.texto}\"",
+                                text = "\"${TextUtils.capitalizarTexto(comentario.texto)}\"",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                                textAlign = TextAlign.Start,
                                 modifier = Modifier.padding(12.dp)
                             )
                         }
@@ -1354,7 +1350,7 @@ fun SecaoComentariosEApoios(
             if (foto.descricao.isNotBlank()) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = foto.descricao,
+                    text = TextUtils.capitalizarTexto(foto.descricao),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
                 )
@@ -1368,42 +1364,57 @@ fun SecaoComentariosEApoios(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Botão de apoio (long press)
+                // Botão de apoio - remove se já apoiou, abre modal se não apoiou
+                val usuarioDeuApoio = foto.usuarioDeuApoio(usuarioAtualId)
                 IconButton(
                     onClick = onApoioClick,
                     modifier = Modifier.size(40.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Favorite,
-                        contentDescription = "Dar apoio",
-                        tint = MaterialTheme.colorScheme.onSurface,
+                        imageVector = if (usuarioDeuApoio) {
+                            Icons.Default.Favorite
+                        } else {
+                            Icons.Outlined.Favorite
+                        },
+                        contentDescription = if (usuarioDeuApoio) "Remover apoio" else "Dar apoio",
+                        tint = if (usuarioDeuApoio) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
                         modifier = Modifier.size(24.dp)
                     )
                 }
                 
-                // Exibir apoios existentes
+                // Exibir apoios existentes - mostrar TODAS as reações diferentes
                 if (foto.totalApoios > 0) {
                     val tiposApoio = com.raizesvivas.app.domain.model.TipoApoioFoto.values()
                         .map { tipo -> tipo to foto.contarApoiosPorTipo(tipo) }
                         .filter { it.second > 0 }
                         .sortedByDescending { it.second }
-                        .take(3)
                     
-                    tiposApoio.forEach { (tipo, count) ->
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = tipo.emoji,
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                            if (count > 1) {
+                    // Usar LazyRow para permitir scroll horizontal se houver muitas reações
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        items(tiposApoio.size) { index ->
+                            val (tipo, count) = tiposApoio[index]
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 Text(
-                                    text = "$count",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                                    text = tipo.emoji,
+                                    style = MaterialTheme.typography.bodyLarge
                                 )
+                                if (count > 1) {
+                                    Text(
+                                        text = "$count",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                                    )
+                                }
                             }
                         }
                     }
@@ -1550,6 +1561,16 @@ fun ComentarioItem(
     val defaultTextColor = textColor ?: MaterialTheme.colorScheme.onSurface
     val defaultSecondaryTextColor = secondaryTextColor ?: MaterialTheme.colorScheme.onSurfaceVariant
     
+    // Estado para armazenar a foto do usuário (pode ser buscada se não estiver no comentário)
+    var fotoUsuario by remember { mutableStateOf<String?>(comentario.usuarioFotoUrl) }
+    
+    // Buscar foto do usuário se não estiver disponível no comentário
+    // Nota: Como não podemos injetar diretamente em @Composable, vamos usar uma abordagem diferente
+    // Vamos verificar se a foto está disponível e, se não estiver, usar apenas o inicial
+    LaunchedEffect(comentario.usuarioId, comentario.usuarioFotoUrl) {
+        fotoUsuario = comentario.usuarioFotoUrl
+    }
+    
     // Verificar se pode deletar: admin pode deletar qualquer comentário, usuário pode deletar seus próprios
     val podeDeletar = isAdmin || (usuarioAtualId != null && comentario.usuarioId == usuarioAtualId)
     
@@ -1559,7 +1580,7 @@ fun ComentarioItem(
     ) {
         // Avatar do usuário usando componente reutilizável
         AvatarUsuario(
-            fotoUrl = comentario.usuarioFotoUrl,
+            fotoUrl = fotoUsuario,
             nome = comentario.usuarioNome,
             size = 36
         )
@@ -1587,9 +1608,10 @@ fun ComentarioItem(
             
             // Texto do comentário
             Text(
-                text = comentario.texto,
+                text = TextUtils.capitalizarTexto(comentario.texto),
                 style = MaterialTheme.typography.bodyMedium,
-                color = defaultTextColor
+                color = defaultTextColor,
+                textAlign = TextAlign.Start
             )
         }
         
@@ -1860,9 +1882,9 @@ fun PostItemInstagram(
                     imageVector = if (foto.usuarioDeuApoio(usuarioAtual?.id)) {
                         Icons.Default.Favorite
                     } else {
-                        Icons.Default.FavoriteBorder
+                        Icons.Outlined.Favorite
                     },
-                    contentDescription = "Apoiar",
+                    contentDescription = if (foto.usuarioDeuApoio(usuarioAtual?.id)) "Remover apoio" else "Dar apoio",
                     tint = if (foto.usuarioDeuApoio(usuarioAtual?.id)) {
                         MaterialTheme.colorScheme.error
                     } else {
@@ -1912,49 +1934,86 @@ fun PostItemInstagram(
             Spacer(modifier = Modifier.weight(1f))
         }
         
-        // Curtidas/apoios estilo Instagram
+        // Curtidas/apoios - mostrar TODAS as reações diferentes
         if (foto.totalApoios > 0) {
             val tiposApoio = com.raizesvivas.app.domain.model.TipoApoioFoto.values()
                 .map { tipo -> tipo to foto.contarApoiosPorTipo(tipo) }
                 .filter { it.second > 0 }
                 .sortedByDescending { it.second }
             
-            val primeiroTipo = tiposApoio.firstOrNull()
-            val totalOutros = tiposApoio.drop(1).sumOf { it.second }
-            
-            Text(
-                text = if (totalOutros > 0) {
-                    "Apoio de ${primeiroTipo?.first?.emoji ?: "❤️"} e outras ${totalOutros} pessoas"
-                } else {
-                    "Apoio de ${primeiroTipo?.first?.emoji ?: "❤️"} e ${primeiroTipo?.second ?: foto.totalApoios} pessoa${if ((primeiroTipo?.second ?: foto.totalApoios) != 1) "s" else ""}"
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
-            )
+            // Mostrar todas as reações em uma linha
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                tiposApoio.forEachIndexed { index, (tipo, count) ->
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = tipo.emoji,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = "$count",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    // Adicionar separador entre reações (exceto na última)
+                    if (index < tiposApoio.size - 1) {
+                        Text(
+                            text = "•",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        )
+                    }
+                }
+            }
         }
         
         // Legenda (nome + descrição)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+        if (foto.descricao.isNotBlank()) {
+            Text(
+                text = buildAnnotatedString {
+                    withStyle(
+                        style = SpanStyle(
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    ) {
+                        append("${foto.pessoaNome} ")
+                    }
+                    withStyle(
+                        style = SpanStyle(
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    ) {
+                        append(TextUtils.capitalizarTexto(foto.descricao))
+                    }
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                textAlign = TextAlign.Start
+            )
+        } else {
             Text(
                 text = foto.pessoaNome,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                textAlign = TextAlign.Start
             )
-            if (foto.descricao.isNotBlank()) {
-                Text(
-                    text = foto.descricao,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
         }
         
         // Ver comentários (se houver)
@@ -2105,7 +2164,7 @@ private fun compartilharFoto(context: android.content.Context, foto: FotoAlbum) 
         val mensagem = buildString {
             append("📸 Foto de ${foto.pessoaNome}")
             if (foto.descricao.isNotBlank()) {
-                append("\n${foto.descricao}")
+                append("\n${TextUtils.capitalizarTexto(foto.descricao)}")
             }
             append("\n\n")
             append("Veja no Raizes Vivas: ${foto.url}")

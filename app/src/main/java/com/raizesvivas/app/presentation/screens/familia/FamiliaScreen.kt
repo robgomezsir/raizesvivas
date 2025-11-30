@@ -678,63 +678,98 @@ fun FamiliaScreen(
                             }
                         }
                         
-                        // Seção de Amigos da Família (apenas quando não houver busca)
-                        // IMPORTANTE: Todos os usuários têm acesso total a esta seção
-                        // Não há restrições de administrador - qualquer usuário pode:
-                        // - Ver o card quando há amigos
+                        // Seção de Amigos da Família (visível para todos os usuários cadastrados, exceto durante busca)
+                        // IMPORTANTE: Todos os usuários cadastrados têm acesso total a esta seção
+                        // Não há restrições de administrador - qualquer usuário cadastrado pode:
+                        // - Ver o card sempre (mesmo quando não há amigos)
                         // - Adicionar, editar e excluir amigos
                         // - Vincular e remover vínculos de familiares
-                        if (!mostrarPessoasIndividuais && state.amigos.isNotEmpty()) {
+                        // O card NÃO aparece durante busca ativa
+                        if (!mostrarPessoasIndividuais) {
                             item {
                                 Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clickable { amigosExpandidos.value = !amigosExpandidos.value },
+                                        .clickable(enabled = state.amigos.isNotEmpty()) { 
+                                            if (state.amigos.isNotEmpty()) {
+                                                amigosExpandidos.value = !amigosExpandidos.value
+                                            }
+                                        },
                                     shape = RoundedCornerShape(28.dp),
                                     colors = CardDefaults.cardColors(
                                         containerColor = MaterialTheme.colorScheme.tertiaryContainer
                                     )
                                 ) {
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 20.dp, vertical = 16.dp)
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 20.dp, vertical = 16.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                Text(
-                                                    text = "Amigo da Família",
-                                                    style = MaterialTheme.typography.titleMedium,
-                                                    fontWeight = FontWeight.SemiBold
-                                                )
-                                                Text(
-                                                    text = "Amigos próximos da família.",
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
-                                            }
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = "Amigo da Família",
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                            Text(
+                                                text = "Amigos próximos da família.",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                        if (state.amigos.isNotEmpty()) {
                                             Icon(
                                                 imageVector = if (amigosExpandidos.value) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
                                                 contentDescription = if (amigosExpandidos.value) "Recolher" else "Expandir",
                                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
+                                    }
 
-                                        AnimatedVisibility(
-                                            visible = amigosExpandidos.value,
-                                            enter = fadeIn() + expandVertically(),
-                                            exit = fadeOut()
+                                    AnimatedVisibility(
+                                        visible = amigosExpandidos.value || state.amigos.isEmpty(),
+                                        enter = fadeIn() + expandVertically(),
+                                        exit = fadeOut()
+                                    ) {
+                                        Column(
+                                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(top = 12.dp)
                                         ) {
-                                            Column(
-                                                verticalArrangement = Arrangement.spacedBy(12.dp),
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(top = 12.dp)
-                                            ) {
+                                            if (state.amigos.isEmpty()) {
+                                                // Mensagem quando não há amigos
+                                                Column(
+                                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(vertical = 16.dp)
+                                                ) {
+                                                    Text(
+                                                        text = "Nenhum amigo cadastrado",
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                    OutlinedButton(
+                                                        onClick = onNavigateToAdicionarAmigo
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = Icons.Outlined.GroupAdd,
+                                                            contentDescription = null,
+                                                            modifier = Modifier.size(18.dp)
+                                                        )
+                                                        Spacer(modifier = Modifier.size(8.dp))
+                                                        Text("Adicionar Amigo")
+                                                    }
+                                                }
+                                            } else {
+                                                // Lista de amigos
                                                 state.amigos.forEach { amigo ->
                                                     AmigoCard(
                                                         amigo = amigo,
@@ -760,8 +795,9 @@ fun FamiliaScreen(
                                     }
                                 }
                             }
+                            }
                         }
-                    }
+                        }
                     }
                 }
             }
@@ -2220,3 +2256,4 @@ private fun obterTituloHierarquia(item: FamiliaHierarquiaItem): String {
         else -> "DESCENDENTE"
     }
 }
+

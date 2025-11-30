@@ -740,5 +740,70 @@ service cloud.firestore {
                 dados.dadosExtras is map);
       }
     }
+
+    // ==============================
+    // 👥 Coleção: amigos (AMIGOS DA FAMÍLIA)
+    // ==============================
+    // COLABORATIVO:
+    // - TODOS os usuários autenticados podem ver TODOS os amigos
+    // - TODOS os usuários autenticados podem criar, editar e excluir amigos
+    // - Não há restrições de administrador - qualquer usuário cadastrado tem acesso total
+    match /amigos/{amigoId} {
+      // LEITURA E LISTAGEM: TODOS os usuários autenticados podem ver todos os amigos
+      // Não há restrição de hierarquia - app colaborativo permite acesso global
+      allow read, list: if isAuthenticated() && isEfficientQuery();
+      
+      // CRIAÇÃO: Qualquer usuário autenticado pode criar amigos
+      allow create: if isAuthenticated() &&
+                     validarAmigoCriacao();
+      
+      // ATUALIZAÇÃO: Qualquer usuário autenticado pode atualizar qualquer amigo
+      allow update: if isAuthenticated() &&
+                     validarAmigoAtualizacao();
+      
+      // DELEÇÃO: Qualquer usuário autenticado pode deletar qualquer amigo
+      allow delete: if isAuthenticated();
+      
+      // Função auxiliar para validar dados de amigo na criação
+      function validarAmigoCriacao() {
+        let dados = request.resource.data;
+        return dados.keys().hasAll(['nome', 'criadoPor', 'criadoEm', 'modificadoEm']) &&
+               dados.nome is string &&
+               dados.nome.size() > 0 &&
+               dados.criadoPor is string &&
+               dados.criadoPor == request.auth.uid &&
+               dados.criadoEm is timestamp &&
+               dados.modificadoEm is timestamp &&
+               // Campos opcionais
+               (!dados.keys().hasAny(['telefone']) || dados.telefone == null || dados.telefone is string) &&
+               (!dados.keys().hasAny(['familiaresVinculados']) || 
+                dados.familiaresVinculados is list);
+      }
+      
+      // Função auxiliar para validar dados de amigo na atualização
+      function validarAmigoAtualizacao() {
+        let dados = request.resource.data;
+        let dadosAntigos = resource.data;
+        
+        // Campos críticos não podem ser alterados
+        let camposCriticosOk = dados.criadoPor == dadosAntigos.criadoPor &&
+                              dados.criadoEm == dadosAntigos.criadoEm;
+        
+        // Validar campos editáveis
+        let nomeOk = dados.nome is string &&
+                    dados.nome.size() > 0;
+        
+        let telefoneOk = !dados.keys().hasAny(['telefone']) ||
+                        dados.telefone == null ||
+                        dados.telefone is string;
+        
+        let familiaresVinculadosOk = !dados.keys().hasAny(['familiaresVinculados']) ||
+                                    dados.familiaresVinculados is list;
+        
+        let modificadoEmOk = dados.modificadoEm is timestamp;
+        
+        return camposCriticosOk && nomeOk && telefoneOk && familiaresVinculadosOk && modificadoEmOk;
+      }
+    }
   }
 }

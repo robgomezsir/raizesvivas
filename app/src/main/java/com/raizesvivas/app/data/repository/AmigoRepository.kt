@@ -4,9 +4,11 @@ import com.raizesvivas.app.data.local.dao.AmigoDao
 import com.raizesvivas.app.data.local.entities.AmigoEntity
 import com.raizesvivas.app.data.local.entities.toDomain
 import com.raizesvivas.app.data.local.entities.toEntity
+import com.raizesvivas.app.data.remote.firebase.FirestoreService
 import com.raizesvivas.app.domain.model.Amigo
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.onEach
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -23,18 +25,36 @@ import javax.inject.Singleton
  */
 @Singleton
 class AmigoRepository @Inject constructor(
-    private val amigoDao: AmigoDao
+    private val amigoDao: AmigoDao,
+    private val firestoreService: FirestoreService
 ) {
     
     /**
-     * Observa todos os amigos (do cache local)
-     * Atualiza automaticamente quando o cache muda
+     * Observa todos os amigos diretamente do Firestore em tempo real
+     * Sincroniza automaticamente com o cache local quando há mudanças
+     * Garante que todos os usuários vejam todos os amigos cadastrados
      */
     fun observarTodosAmigos(): Flow<List<Amigo>> {
-        return amigoDao.observarTodosAmigos()
-            .map { entities -> 
-                Timber.d("📋 Observando amigos: ${entities.size} entidades no cache local")
-                entities.map { it.toDomain() } 
+        return firestoreService.observarTodosAmigos()
+            .onEach { amigos ->
+                // Sincronizar com cache local em background
+                try {
+                    if (amigos.isNotEmpty()) {
+                        val entities = amigos.map { it.toEntity() }
+                        amigoDao.inserirOuAtualizarTodos(entities)
+                        Timber.d("✅ ${amigos.size} amigos sincronizados no cache local")
+                    } else {
+                        Timber.d("📋 Nenhum amigo para sincronizar")
+                    }
+                } catch (e: Exception) {
+                    Timber.e(e, "❌ Erro ao sincronizar amigos no cache local")
+                }
+            }
+            .catch { error ->
+                Timber.e(error, "❌ Erro ao observar amigos do Firestore")
+                // Em caso de erro, emitir lista vazia
+                // O usuário pode tentar recarregar ou o erro será resolvido na próxima atualização
+                emit(emptyList())
             }
     }
     
@@ -62,9 +82,16 @@ class AmigoRepository @Inject constructor(
      */
     suspend fun salvar(amigo: Amigo): Result<Unit> {
         return try {
-            amigoDao.inserirOuAtualizar(amigo.toEntity())
-            Timber.d("✅ Amigo salvo: ${amigo.nome}")
-            Result.success(Unit)
+            // Salvar no Firestore primeiro
+            val resultado = firestoreService.salvarAmigo(amigo)
+            
+            resultado.onSuccess {
+                // Salvar no cache local
+                amigoDao.inserirOuAtualizar(amigo.toEntity())
+                Timber.d("✅ Amigo salvo: ${amigo.nome}")
+            }
+            
+            resultado
         } catch (e: Exception) {
             Timber.e(e, "❌ Erro ao salvar amigo: ${amigo.nome}")
             Result.failure(e)
@@ -76,11 +103,51 @@ class AmigoRepository @Inject constructor(
      */
     suspend fun deletar(amigoId: String): Result<Unit> {
         return try {
-            amigoDao.deletarPorId(amigoId)
-            Timber.d("✅ Amigo deletado: $amigoId")
-            Result.success(Unit)
+            // Deletar do Firestore primeiro
+            val resultado = firestoreService.deletarAmigo(amigoId)
+            
+            resultado.onSuccess {
+                // Deletar do cache local
+                amigoDao.deletarPorId(amigoId)
+                Timber.d("✅ Amigo deletado: $amigoId")
+            }
+            
+            resultado
         } catch (e: Exception) {
             Timber.e(e, "❌ Erro ao deletar amigo: $amigoId")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Sincroniza amigos do Firestore para o cache local
+     */
+    suspend fun sincronizar(): Result<Unit> {
+        return try {
+            Timber.d("🔄 Sincronizando amigos do Firestore...")
+            
+            val resultado = firestoreService.buscarTodosAmigos()
+            
+            resultado.onSuccess { amigos ->
+                if (amigos.isNotEmpty()) {
+                    // Converter para entities
+                    val entities = amigos.map { it.toEntity() }
+                    
+                    // Atualizar cache local
+                    // Nota: Não deletamos tudo antes para evitar perder dados não sincronizados
+                    // Mas idealmente deveríamos ter uma estratégia de merge
+                    amigoDao.inserirOuAtualizarTodos(entities)
+                    
+                    Timber.d("✅ ${amigos.size} amigos sincronizados do Firestore")
+                } else {
+                    Timber.d("✅ Nenhum amigo encontrado no Firestore")
+                }
+            }
+            
+            resultado.map { }
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao sincronizar amigos")
             Result.failure(e)
         }
     }

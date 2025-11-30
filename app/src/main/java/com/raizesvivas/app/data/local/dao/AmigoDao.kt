@@ -42,6 +42,12 @@ interface AmigoDao {
     suspend fun inserirOuAtualizar(amigo: AmigoEntity)
     
     /**
+     * Insere ou atualiza uma lista de amigos
+     */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun inserirOuAtualizarTodos(amigos: List<AmigoEntity>)
+    
+    /**
      * Deleta um amigo
      */
     @Delete
