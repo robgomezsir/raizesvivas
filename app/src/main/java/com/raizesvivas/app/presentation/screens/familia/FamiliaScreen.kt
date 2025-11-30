@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -38,6 +39,8 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.FamilyRestroom
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.outlined.GroupAdd
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
@@ -90,6 +93,8 @@ import androidx.compose.ui.graphics.Color
 import com.raizesvivas.app.domain.model.Amigo
 import com.raizesvivas.app.domain.model.Genero
 import com.raizesvivas.app.domain.model.Pessoa
+import com.raizesvivas.app.presentation.components.RaizesVivasTextField
+import com.raizesvivas.app.presentation.components.AnimatedSearchBar
 import com.raizesvivas.app.presentation.components.TreeNodeData
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -105,7 +110,8 @@ fun FamiliaScreen(
     viewModel: FamiliaViewModel = hiltViewModel(),
     onNavigateToDetalhesPessoa: (String) -> Unit,
     onNavigateToCadastroPessoa: () -> Unit = {},
-    onNavigateToAdicionarAmigo: () -> Unit = {}
+    onNavigateToAdicionarAmigo: () -> Unit = {},
+    onNavigateToAlbum: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
     val pullRefreshState = rememberPullToRefreshState()
@@ -169,55 +175,43 @@ fun FamiliaScreen(
             TopAppBar(
                 title = {
                     if (!mostrarBusca) {
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text(
-                                text = "Famílias",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Text(
-                                text = "${state.familias.size} núcleo(s)",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                        Text(
+                            text = "Famílias (${state.familias.size})",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.SemiBold
+                        )
                     } else {
-                        TextField(
-                            value = termoBusca,
-                            onValueChange = { termoBusca = it },
-                            placeholder = { Text("Buscar familiar...") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Filled.Search,
-                                    contentDescription = "Buscar"
-                                )
+                        AnimatedSearchBar(
+                            query = termoBusca,
+                            onQueryChange = { termoBusca = it },
+                            isSearchActive = mostrarBusca,
+                            onSearchActiveChange = { 
+                                mostrarBusca = it
+                                if (!it) termoBusca = ""
                             },
-                            trailingIcon = {
-                                if (termoBusca.isNotEmpty()) {
-                                    IconButton(onClick = { termoBusca = "" }) {
-                                        Icon(
-                                            imageVector = Icons.Filled.Close,
-                                            contentDescription = "Limpar"
-                                        )
-                                    }
-                                }
-                            }
+                            placeholder = "Buscar pessoa...",
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
                 },
+                windowInsets = WindowInsets(0.dp),
                 actions = {
-                    IconButton(onClick = { 
-                        mostrarBusca = !mostrarBusca
-                        if (!mostrarBusca) {
-                            termoBusca = ""
+                    if (!mostrarBusca) {
+                        IconButton(onClick = { mostrarBusca = true }) {
+                            Icon(
+                                imageVector = Icons.Filled.Search,
+                                contentDescription = "Buscar"
+                            )
                         }
-                    }) {
-                        Icon(
-                            imageVector = if (mostrarBusca) Icons.Filled.Close else Icons.Filled.Search,
-                            contentDescription = if (mostrarBusca) "Fechar busca" else "Buscar"
-                        )
+                        IconButton(onClick = onNavigateToAlbum) {
+                            Icon(
+                                imageVector = Icons.Filled.Image,
+                                contentDescription = "Álbum de Família"
+                            )
+                        }
+                        IconButton(onClick = { viewModel.onRefresh() }) {
+                            Icon(Icons.Default.Refresh, contentDescription = "Recarregar")
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -226,6 +220,8 @@ fun FamiliaScreen(
             )
         },
         floatingActionButton = {
+            // IMPORTANTE: Todos os usuários podem adicionar amigos
+            // Não há restrições de administrador para esta funcionalidade
             ExpandableFab(
                 actions = listOf(
                     FabAction(
@@ -251,7 +247,7 @@ fun FamiliaScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .background(MaterialTheme.colorScheme.background)
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = 8.dp)
                 .nestedScroll(pullRefreshState.nestedScrollConnection)
         ) {
             when {
@@ -334,8 +330,8 @@ fun FamiliaScreen(
                     
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(vertical = 24.dp),
-                        verticalArrangement = Arrangement.spacedBy(20.dp)
+                        contentPadding = PaddingValues(vertical = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         if (mostrarPessoasIndividuais) {
                             // Mostrar apenas pessoas individuais quando houver busca
@@ -365,8 +361,7 @@ fun FamiliaScreen(
                                             .clickable { onNavigateToDetalhesPessoa(pessoa.id) },
                                         colors = CardDefaults.cardColors(
                                             containerColor = MaterialTheme.colorScheme.surface
-                                        ),
-                                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                        )
                                     ) {
                                         Column(
                                             modifier = Modifier
@@ -512,8 +507,7 @@ fun FamiliaScreen(
                                     shape = RoundedCornerShape(28.dp),
                                     colors = CardDefaults.cardColors(
                                         containerColor = MaterialTheme.colorScheme.surfaceVariant
-                                    ),
-                                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                    )
                                 ) {
                                     Column(
                                         modifier = Modifier
@@ -560,8 +554,7 @@ fun FamiliaScreen(
                                                         modifier = Modifier.fillMaxWidth(),
                                                         colors = CardDefaults.cardColors(
                                                             containerColor = MaterialTheme.colorScheme.surface
-                                                        ),
-                                                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                                                        )
                                                     ) {
                                                         Column(
                                                             modifier = Modifier
@@ -630,8 +623,7 @@ fun FamiliaScreen(
                                     shape = RoundedCornerShape(28.dp),
                                     colors = CardDefaults.cardColors(
                                         containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp)
-                                    ),
-                                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                    )
                                 ) {
                                     Column(
                                         modifier = Modifier
@@ -687,6 +679,11 @@ fun FamiliaScreen(
                         }
                         
                         // Seção de Amigos da Família (apenas quando não houver busca)
+                        // IMPORTANTE: Todos os usuários têm acesso total a esta seção
+                        // Não há restrições de administrador - qualquer usuário pode:
+                        // - Ver o card quando há amigos
+                        // - Adicionar, editar e excluir amigos
+                        // - Vincular e remover vínculos de familiares
                         if (!mostrarPessoasIndividuais && state.amigos.isNotEmpty()) {
                             item {
                                 Card(
@@ -696,8 +693,7 @@ fun FamiliaScreen(
                                     shape = RoundedCornerShape(28.dp),
                                     colors = CardDefaults.cardColors(
                                         containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                                    ),
-                                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                    )
                                 ) {
                                     Column(
                                         modifier = Modifier
@@ -784,7 +780,7 @@ fun FamiliaScreen(
                     Surface(
                         color = MaterialTheme.colorScheme.errorContainer,
                         shape = RoundedCornerShape(16.dp),
-                        tonalElevation = 2.dp
+                        tonalElevation = 0.dp
                     ) {
                         Text(
                             text = mensagemErro,
@@ -1374,6 +1370,17 @@ fun FamiliaScreen(
 }
 
 @Composable
+/**
+ * Card de exibição de amigo da família
+ * 
+ * IMPORTANTE: Todos os usuários têm acesso total a todas as funcionalidades deste card:
+ * - Editar amigo
+ * - Excluir amigo
+ * - Vincular familiares
+ * - Remover vínculos de familiares
+ * 
+ * Não há restrições de administrador.
+ */
 private fun AmigoCard(
     amigo: Amigo,
     pessoasDisponiveis: List<Pessoa>,
@@ -1515,8 +1522,7 @@ private fun FamiliaCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = containerColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (familia.ehFamiliaZero) 6.dp else 2.dp)
+        colors = CardDefaults.cardColors(containerColor = containerColor)
     ) {
         Column(
             modifier = Modifier

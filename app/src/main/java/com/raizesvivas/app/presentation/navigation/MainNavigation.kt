@@ -39,23 +39,23 @@ fun rememberAdaptiveNavigationFontSize(): androidx.compose.ui.unit.TextUnit {
     val screenWidth = configuration.screenWidthDp
     
     // Lista de todos os textos possíveis na navigation bar
-    val allLabels = listOf("Home", "Mural", "Família", "Álbum", "Conquistas")
+    val allLabels = listOf("Início", "Mural", "Família", "Álbum")
     
     // Encontrar o texto mais longo
-    val longestText = allLabels.maxByOrNull { it.length } ?: "Conquistas"
+    val longestText = allLabels.maxByOrNull { it.length } ?: "Álbum"
     
     return remember(screenWidth) {
-        // Calcular largura disponível por item (assumindo 5 itens na navigation bar)
+        // Calcular largura disponível por item (assumindo 4 itens na navigation bar)
         // Usar 80% da largura disponível para dar margem de segurança
-        val availableWidthPerItem = (screenWidth / 5) * 0.80f
+        val availableWidthPerItem = (screenWidth / 4) * 0.80f
         
         // Calcular tamanho da fonte baseado no texto mais longo
         // Fator de 1.5 para dar mais espaço e permitir fonte maior
         // Estimativa: cada caractere ocupa aproximadamente fontSize * 0.6 em dp
         val maxFontSize = (availableWidthPerItem / longestText.length) * 1.5f
         
-        // Limitar entre 10sp (mínimo legível) e 16sp (máximo aumentado)
-        maxFontSize.coerceAtMost(16f).coerceAtLeast(10f).sp
+        // Limitar entre 10sp (mínimo legível) e 14sp (máximo reduzido em 4sp)
+        maxFontSize.coerceAtMost(14f).coerceAtLeast(10f).sp
     }
 }
 
@@ -91,7 +91,8 @@ fun AdaptiveNavigationLabel(
 @Composable
 fun MainNavigation(
     navControllerPrincipal: NavHostController,
-    startDestination: String = Screen.Home.route
+    startDestination: String = Screen.Home.route,
+    openDrawerOnStart: Boolean = false
 ) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -120,11 +121,11 @@ fun MainNavigation(
                         icon = { 
                             Icon(
                                 painter = painterResource(id = com.raizesvivas.app.R.drawable.home),
-                                contentDescription = "Home",
+                                contentDescription = "Início",
                                 modifier = Modifier.size(24.dp)
                             )
                         },
-                        label = { AdaptiveNavigationLabel("Home") },
+                        label = { AdaptiveNavigationLabel("Início") },
                         selected = currentDestination?.hierarchy?.any { it.route == Screen.Home.route } == true,
                         onClick = {
                             if (currentDestination?.route != Screen.Home.route) {
@@ -181,27 +182,13 @@ fun MainNavigation(
                         }
                     )
                     
-                    // Álbum de Família
+                    // Álbum
                     NavigationBarItem(
-                        icon = { Icon(Icons.Default.PhotoLibrary, contentDescription = "Álbum de Família") },
+                        icon = { Icon(Icons.Default.PhotoLibrary, contentDescription = "Álbum") },
                         label = { AdaptiveNavigationLabel("Álbum") },
                         selected = currentDestination?.hierarchy?.any { it.route == Screen.AlbumFamilia.route } == true,
                         onClick = {
                             navController.navigate(Screen.AlbumFamilia.route) {
-                                popUpTo(Screen.Home.route) { inclusive = false }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }
-                    )
-                    
-                    // Conquistas
-                    NavigationBarItem(
-                        icon = { Icon(Icons.Default.Star, contentDescription = "Conquistas") },
-                        label = { AdaptiveNavigationLabel("Conquistas") },
-                        selected = currentDestination?.hierarchy?.any { it.route == Screen.Conquistas.route } == true,
-                        onClick = {
-                            navController.navigate(Screen.Conquistas.route) {
                                 popUpTo(Screen.Home.route) { inclusive = false }
                                 launchSingleTop = true
                                 restoreState = true
@@ -219,6 +206,7 @@ fun MainNavigation(
         ) {
             composable(Screen.Home.route) {
                 HomeScreen(
+                    openDrawerOnStart = openDrawerOnStart,
                     onNavigateToCadastroPessoa = {
                         navControllerPrincipal.navigate(Screen.CadastroPessoa.route)
                     },
@@ -231,6 +219,13 @@ fun MainNavigation(
                             launchSingleTop = true
                         }
                     },
+                    onNavigateToConquistas = {
+                        navController.navigate(Screen.Conquistas.route) {
+                            popUpTo(Screen.Home.route) { inclusive = false }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
                     onNavigateToFamiliaZero = {
                         navControllerPrincipal.navigate(Screen.FamiliaZero.route)
                     },
@@ -241,19 +236,29 @@ fun MainNavigation(
                         navControllerPrincipal.navigate(Screen.AceitarConvites.route)
                     },
                     onNavigateToGerenciarConvites = {
-                        navControllerPrincipal.navigate(Screen.GerenciarConvites.route)
+                        navControllerPrincipal.navigate(Screen.GerenciarConvites.route) {
+                            launchSingleTop = true
+                        }
                     },
                     onNavigateToGerenciarEdicoes = {
-                        navControllerPrincipal.navigate(Screen.GerenciarEdicoes.route)
+                        navControllerPrincipal.navigate(Screen.GerenciarEdicoes.route) {
+                            launchSingleTop = true
+                        }
                     },
                     onNavigateToResolverDuplicatas = {
-                        navControllerPrincipal.navigate(Screen.ResolverDuplicatas.route)
+                        navControllerPrincipal.navigate(Screen.ResolverDuplicatas.route) {
+                            launchSingleTop = true
+                        }
                     },
                     onNavigateToGerenciarUsuarios = {
-                        navControllerPrincipal.navigate(Screen.GerenciarUsuarios.route)
+                        navControllerPrincipal.navigate(Screen.GerenciarUsuarios.route) {
+                            launchSingleTop = true
+                        }
                     },
                     onNavigateToConfiguracoes = {
-                        navControllerPrincipal.navigate(Screen.Configuracoes.route)
+                        navControllerPrincipal.navigate(Screen.Configuracoes.route) {
+                            launchSingleTop = true
+                        }
                     },
                     onNavigateToChat = { destinatarioId, destinatarioNome ->
                         navController.navigate(Screen.ChatConversation.createRoute(destinatarioId, destinatarioNome))
@@ -275,6 +280,13 @@ fun MainNavigation(
                     },
                     onNavigateToAdicionarAmigo = {
                         navControllerPrincipal.navigate(Screen.AdicionarAmigo.route)
+                    },
+                    onNavigateToAlbum = {
+                        navController.navigate(Screen.AlbumFamilia.route) {
+                            popUpTo(Screen.Home.route) { inclusive = false }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
                     }
                 )
             }
@@ -333,7 +345,26 @@ fun MainNavigation(
             }
             
             composable(Screen.AlbumFamilia.route) {
-                AlbumFamiliaScreen()
+                AlbumFamiliaScreen(
+                    onNavigateBack = {
+                        // Volta para a tela anterior (pode ser Home se acessado pela barra inferior,
+                        // ou Família se acessado de dentro de Família)
+                        if (navController.previousBackStackEntry != null) {
+                            navController.popBackStack()
+                        } else {
+                            // Se não houver back stack, vai para Home
+                            navController.navigate(Screen.Home.route) {
+                                popUpTo(navController.graph.startDestinationId) {
+                                    inclusive = true
+                                }
+                                launchSingleTop = true
+                            }
+                        }
+                    },
+                    onNavigateToDetalhesPessoa = { pessoaId ->
+                        navControllerPrincipal.navigate(Screen.DetalhesPessoa.createRoute(pessoaId))
+                    }
+                )
             }
         }
     }

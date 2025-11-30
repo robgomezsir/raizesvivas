@@ -139,6 +139,14 @@
         { "fieldPath": "aprovado", "order": "ASCENDING" },
         { "fieldPath": "nome", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "comentarios",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "deletado", "order": "ASCENDING" },
+        { "fieldPath": "criadoEm", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

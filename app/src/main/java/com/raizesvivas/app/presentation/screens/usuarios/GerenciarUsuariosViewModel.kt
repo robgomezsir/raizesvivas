@@ -19,7 +19,8 @@ import javax.inject.Inject
 @HiltViewModel
 class GerenciarUsuariosViewModel @Inject constructor(
     private val usuarioRepository: UsuarioRepository,
-    private val authService: AuthService
+    private val authService: AuthService,
+    private val pessoaRepository: com.raizesvivas.app.data.repository.PessoaRepository
 ) : ViewModel() {
     
     private val _state = MutableStateFlow(GerenciarUsuariosState())
@@ -57,6 +58,9 @@ class GerenciarUsuariosViewModel @Inject constructor(
                         isLoading = false
                     )
                 }
+                
+                // Carregar nomes das pessoas vinculadas
+                carregarNomesPessoasVinculadas(usuarios)
             }
             
             resultado.onFailure { error ->
@@ -147,6 +151,22 @@ class GerenciarUsuariosViewModel @Inject constructor(
         }
     }
     
+    private fun carregarNomesPessoasVinculadas(usuarios: List<Usuario>) {
+        viewModelScope.launch {
+            val idsPessoas = usuarios.mapNotNull { it.pessoaVinculada }.distinct()
+            val nomesMap = mutableMapOf<String, String>()
+            
+            idsPessoas.forEach { id ->
+                val pessoa = pessoaRepository.buscarPorId(id)
+                pessoa?.let {
+                    nomesMap[id] = it.nome
+                }
+            }
+            
+            _state.update { it.copy(nomesPessoasVinculadas = nomesMap) }
+        }
+    }
+
     fun limparErro() {
         _state.update { it.copy(erro = null) }
     }
@@ -164,6 +184,7 @@ data class GerenciarUsuariosState(
     val isLoading: Boolean = false,
     val erro: String? = null,
     val sucesso: String? = null,
-    val ehAdmin: Boolean = false
+    val ehAdmin: Boolean = false,
+    val nomesPessoasVinculadas: Map<String, String> = emptyMap()
 )
 

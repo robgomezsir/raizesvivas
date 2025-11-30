@@ -50,8 +50,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.raizesvivas.app.presentation.ui.theme.RaizesVivasButtonDefaults
-import com.raizesvivas.app.presentation.ui.theme.InputShapeSuave
-import com.raizesvivas.app.presentation.ui.theme.inputColorsPastel
+import com.raizesvivas.app.presentation.components.RaizesVivasTextField
 
 /**
  * Tela de Cadastro de nova conta
@@ -144,10 +143,10 @@ fun CadastroScreen(
                         )
                     }
 
-                    TextField(
+                    RaizesVivasTextField(
                         value = state.nomeCompleto,
                         onValueChange = { viewModel.onNomeCompletoChanged(it) },
-                        label = { Text("Nome Completo") },
+                        label = "Nome Completo",
                         leadingIcon = {
                             Icon(
                                 Icons.Default.Person,
@@ -157,8 +156,6 @@ fun CadastroScreen(
                         singleLine = true,
                         isError = state.nomeCompletoError != null,
                         supportingText = state.nomeCompletoError?.let { { Text(it) } },
-                        shape = InputShapeSuave,
-                        colors = inputColorsPastel(),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Text,
                             imeAction = ImeAction.Next
@@ -169,10 +166,10 @@ fun CadastroScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    TextField(
+                    RaizesVivasTextField(
                         value = state.email,
                         onValueChange = { viewModel.onEmailChanged(it) },
-                        label = { Text("Email") },
+                        label = "Email",
                         leadingIcon = {
                             Icon(
                                 Icons.Default.Email,
@@ -182,8 +179,6 @@ fun CadastroScreen(
                         singleLine = true,
                         isError = state.emailError != null,
                         supportingText = state.emailError?.let { { Text(it) } },
-                        shape = InputShapeSuave,
-                        colors = inputColorsPastel(),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Email,
                             imeAction = ImeAction.Next
@@ -196,10 +191,10 @@ fun CadastroScreen(
 
                     var senhaVisivel by remember { mutableStateOf(false) }
 
-                    TextField(
+                    RaizesVivasTextField(
                         value = state.senha,
                         onValueChange = { viewModel.onSenhaChanged(it) },
-                        label = { Text("Senha (mínimo 8 caracteres)") },
+                        label = "Senha (mínimo 8 caracteres)",
                         leadingIcon = {
                             Icon(
                                 Icons.Default.Lock,
@@ -218,8 +213,6 @@ fun CadastroScreen(
                         singleLine = true,
                         isError = state.senhaError != null,
                         supportingText = state.senhaError?.let { { Text(it) } },
-                        shape = InputShapeSuave,
-                        colors = inputColorsPastel(),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Password,
                             imeAction = ImeAction.Next
@@ -232,10 +225,10 @@ fun CadastroScreen(
 
                     var confirmarSenhaVisivel by remember { mutableStateOf(false) }
 
-                    TextField(
+                    RaizesVivasTextField(
                         value = state.confirmarSenha,
                         onValueChange = { viewModel.onConfirmarSenhaChanged(it) },
-                        label = { Text("Confirmar Senha") },
+                        label = "Confirmar Senha",
                         leadingIcon = {
                             Icon(
                                 Icons.Default.Lock,
@@ -254,8 +247,6 @@ fun CadastroScreen(
                         singleLine = true,
                         isError = state.confirmarSenhaError != null,
                         supportingText = state.confirmarSenhaError?.let { { Text(it) } },
-                        shape = InputShapeSuave,
-                        colors = inputColorsPastel(),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Password,
                             imeAction = ImeAction.Done

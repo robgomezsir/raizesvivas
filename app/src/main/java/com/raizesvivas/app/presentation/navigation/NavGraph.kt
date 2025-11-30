@@ -159,10 +159,19 @@ fun NavGraph(
         // ============================================
         
         // Usar MainNavigation para as telas principais com bottom nav
-        composable(Screen.Home.route) {
+        composable(Screen.Home.route) { backStackEntry ->
+            // Verificar se deve abrir o drawer ao retornar (ex: vindo de Configurações)
+            val openDrawer = backStackEntry.savedStateHandle.get<Boolean>("open_drawer") ?: false
+            
+            // Limpar o estado após ler para não abrir novamente em rotações/recomposições indesejadas
+            if (openDrawer) {
+                backStackEntry.savedStateHandle.remove<Boolean>("open_drawer")
+            }
+
             MainNavigation(
                 navControllerPrincipal = navController,
-                startDestination = Screen.Home.route
+                startDestination = Screen.Home.route,
+                openDrawerOnStart = openDrawer
             )
         }
         
@@ -282,6 +291,7 @@ fun NavGraph(
         ) {
             GerenciarConvitesScreen(
                 onNavigateBack = {
+                    navController.previousBackStackEntry?.savedStateHandle?.set("open_drawer", true)
                     navController.popBackStack()
                 }
             )
@@ -314,6 +324,7 @@ fun NavGraph(
         ) {
             GerenciarEdicoesScreen(
                 onNavigateBack = {
+                    navController.previousBackStackEntry?.savedStateHandle?.set("open_drawer", true)
                     navController.popBackStack()
                 }
             )
@@ -332,6 +343,7 @@ fun NavGraph(
         ) {
             ResolverDuplicatasScreen(
                 onNavigateBack = {
+                    navController.previousBackStackEntry?.savedStateHandle?.set("open_drawer", true)
                     navController.popBackStack()
                 }
             )
@@ -350,6 +362,7 @@ fun NavGraph(
         ) {
             GerenciarUsuariosScreen(
                 onNavigateBack = {
+                    navController.previousBackStackEntry?.savedStateHandle?.set("open_drawer", true)
                     navController.popBackStack()
                 }
             )
@@ -368,6 +381,7 @@ fun NavGraph(
         ) {
             ConfiguracoesScreen(
                 onNavigateBack = {
+                    navController.previousBackStackEntry?.savedStateHandle?.set("open_drawer", true)
                     navController.popBackStack()
                 }
             )

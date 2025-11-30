@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.raizesvivas.app.domain.model.MensagemChat
+import com.raizesvivas.app.presentation.components.RaizesVivasTextField
 import com.raizesvivas.app.presentation.ui.theme.FabDefaults
 import com.raizesvivas.app.presentation.ui.theme.fabContainerColor
 import com.raizesvivas.app.presentation.ui.theme.fabContentColor
@@ -538,10 +539,11 @@ private fun MessageInputBar(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            OutlinedTextField(
+            RaizesVivasTextField(
                 value = texto,
                 onValueChange = onTextoChange,
                 modifier = Modifier.weight(1f),
+                label = "",
                 placeholder = {
                     Text(
                         "Digite uma mensagem...",
@@ -549,12 +551,7 @@ private fun MessageInputBar(
                     )
                 },
                 enabled = enabled,
-                maxLines = 4,
-                shape = MaterialTheme.shapes.large,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = colorScheme.primary,
-                    unfocusedBorderColor = colorScheme.outline.copy(alpha = 0.5f)
-                )
+                maxLines = 4
             )
 
             FloatingActionButton(

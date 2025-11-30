@@ -56,10 +56,10 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.raizesvivas.app.domain.model.Pessoa
 import com.raizesvivas.app.presentation.ui.theme.RaizesVivasButtonDefaults
-import com.raizesvivas.app.presentation.ui.theme.InputShapeSuave
-import com.raizesvivas.app.presentation.ui.theme.inputColorsPastel
+import com.raizesvivas.app.presentation.components.RaizesVivasTextField
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
+import com.raizesvivas.app.presentation.ui.theme.inputColorsPastel
 
 /**
  * Modal para criar um novo recado
@@ -172,32 +172,32 @@ fun ModalNovoRecado(
                         .verticalScroll(scrollState)
                 ) {
                     // Título
-                    TextField(
+                    // Título
+                    RaizesVivasTextField(
                         value = titulo,
                         onValueChange = { novoValor: String -> titulo = novoValor },
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Título do Recado") },
+                        label = "Título do Recado",
                         leadingIcon = {
                             Icon(
                                 Icons.Default.Title,
                                 contentDescription = null
                             )
                         },
-                        singleLine = true,
-                        colors = inputColors,
-                        shape = InputShapeSuave
+                        singleLine = true
                     )
                     
                     Spacer(modifier = Modifier.height(12.dp))
                     
                     // Mensagem
-                    TextField(
+                    // Mensagem
+                    RaizesVivasTextField(
                         value = mensagem,
                         onValueChange = { novoValor: String -> mensagem = novoValor },
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(min = 100.dp),
-                        label = { Text("Mensagem") },
+                        label = "Mensagem",
                         placeholder = { Text("Escreva sua mensagem aqui...") },
                         leadingIcon = {
                             Icon(
@@ -205,9 +205,8 @@ fun ModalNovoRecado(
                                 contentDescription = null
                             )
                         },
-                        maxLines = 8,
-                        colors = inputColors,
-                        shape = InputShapeSuave
+                        singleLine = false,
+                        maxLines = 8
                     )
                     
                     Spacer(modifier = Modifier.height(12.dp))
@@ -222,10 +221,11 @@ fun ModalNovoRecado(
                         Spacer(modifier = Modifier.height(6.dp))
                         
                         Box {
-                            TextField(
+                            RaizesVivasTextField(
                                 value = destinatarioSelecionado?.nome ?: "Todos (Recado Geral)",
                                 onValueChange = { },
                                 modifier = Modifier.fillMaxWidth(),
+                                label = "Destinatário",
                                 enabled = false,
                                 readOnly = true,
                                 leadingIcon = {
@@ -239,9 +239,7 @@ fun ModalNovoRecado(
                                         Icons.Default.ArrowDropDown,
                                         contentDescription = "Selecionar destinatário"
                                     )
-                                },
-                                colors = inputColors,
-                                shape = InputShapeSuave
+                                }
                             )
                             
                             // Overlay clicável sobre o campo
@@ -377,6 +375,7 @@ fun ModalNovoRecado(
                     OutlinedButton(
                         onClick = onDismiss,
                         shape = RaizesVivasButtonDefaults.Shape,
+                        // Sem bordas - estilo Neon
                         border = RaizesVivasButtonDefaults.outlineStroke(),
                         modifier = Modifier.weight(1f),
                         enabled = !isLoading

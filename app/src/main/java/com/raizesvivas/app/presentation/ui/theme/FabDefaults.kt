@@ -1,10 +1,9 @@
 package com.raizesvivas.app.presentation.ui.theme
 
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 /**
@@ -14,7 +13,7 @@ import androidx.compose.ui.unit.dp
  * - Tamanho padrão: 56dp
  * - Margem da borda: 16dp (mobile) / 24dp (tablet)
  * - Margem acima da barra de navegação: 16dp
- * - Cor padrão: primaryContainer
+ * - Cor padrão: primaryContainer (tema escuro) ou primary (tema claro para maior contraste)
  */
 object FabDefaults {
     /**
@@ -30,32 +29,75 @@ object FabDefaults {
 }
 
 /**
- * Cores padrão para FAB principal
+ * Verifica se o tema atual é claro baseado na cor de background
  */
 @Composable
-fun fabContainerColor() = MaterialTheme.colorScheme.primaryContainer
+private fun isLightTheme(): Boolean {
+    val background = MaterialTheme.colorScheme.background
+    // Se o background for mais claro que 0.5 (128/255), consideramos tema claro
+    return background.red > 0.5f || background.green > 0.5f || background.blue > 0.5f
+}
+
+/**
+ * Cores padrão para FAB principal
+ * No tema claro, usa primary para maior contraste com o background
+ * No tema escuro, usa primaryContainer conforme Material 3
+ */
+@Composable
+fun fabContainerColor(): Color {
+    return if (isLightTheme()) {
+        // No tema claro, usa primary para maior contraste
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.primaryContainer
+    }
+}
 
 /**
  * Cores padrão para conteúdo do FAB principal
  */
 @Composable
-fun fabContentColor() = MaterialTheme.colorScheme.onPrimaryContainer
+fun fabContentColor(): Color {
+    return if (isLightTheme()) {
+        // No tema claro, usa onPrimary para contraste com primary
+        MaterialTheme.colorScheme.onPrimary
+    } else {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    }
+}
 
 /**
  * Cores padrão para FAB secundário
+ * No tema claro, usa secondary para maior contraste
+ * No tema escuro, usa secondaryContainer conforme Material 3
  */
 @Composable
-fun fabSecondaryContainerColor() = MaterialTheme.colorScheme.secondaryContainer
+fun fabSecondaryContainerColor(): Color {
+    return if (isLightTheme()) {
+        // No tema claro, usa secondary para maior contraste
+        MaterialTheme.colorScheme.secondary
+    } else {
+        MaterialTheme.colorScheme.secondaryContainer
+    }
+}
 
 /**
  * Cores padrão para conteúdo do FAB secundário
  */
 @Composable
-fun fabSecondaryContentColor() = MaterialTheme.colorScheme.onSecondaryContainer
+fun fabSecondaryContentColor(): Color {
+    return if (isLightTheme()) {
+        // No tema claro, usa onSecondary para contraste com secondary
+        MaterialTheme.colorScheme.onSecondary
+    } else {
+        MaterialTheme.colorScheme.onSecondaryContainer
+    }
+}
 
 /**
  * Elevação padrão do FAB principal
  */
 @Composable
 fun fabElevation() = FloatingActionButtonDefaults.elevation(defaultElevation = 3.dp)
+
 

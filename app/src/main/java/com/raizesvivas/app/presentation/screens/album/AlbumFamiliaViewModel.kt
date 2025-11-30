@@ -9,6 +9,7 @@ import com.raizesvivas.app.data.repository.FotoAlbumRepository
 import com.raizesvivas.app.data.repository.PessoaRepository
 import com.raizesvivas.app.domain.model.FotoAlbum
 import com.raizesvivas.app.domain.model.Pessoa
+import com.raizesvivas.app.domain.model.ComentarioFoto
 import com.raizesvivas.app.utils.ImageCompressor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -40,8 +41,17 @@ class AlbumFamiliaViewModel @Inject constructor(
     private val _pessoas = MutableStateFlow<List<Pessoa>>(emptyList())
     val pessoas = _pessoas.asStateFlow()
     
+    // Comentários por foto
+    private val _comentariosPorFoto = MutableStateFlow<Map<String, List<ComentarioFoto>>>(emptyMap())
+    val comentariosPorFoto = _comentariosPorFoto.asStateFlow()
+    
+    // Usuário atual (para verificar permissões)
+    private val _usuarioAtual = MutableStateFlow<com.raizesvivas.app.domain.model.Usuario?>(null)
+    val usuarioAtual = _usuarioAtual.asStateFlow()
+    
     private val minhaFamiliaId = MutableStateFlow<String?>(null)
     private var observacaoAtiva: Job? = null
+    private val observacoesComentarios = mutableMapOf<String, Job>()
     
     init {
         carregarDados()
@@ -49,11 +59,11 @@ class AlbumFamiliaViewModel @Inject constructor(
     
     /**
      * Carrega pessoas e fotos do álbum
+     * App colaborativo: TODOS os usuários autenticados podem ver TODAS as fotos
      */
     private fun carregarDados() {
         viewModelScope.launch {
             try {
-                // Obter ID da família do usuário atual
                 _state.update { it.copy(carregando = true, erro = null) }
                 val firebaseUser = authService.currentUser
                 if (firebaseUser == null) {
@@ -70,66 +80,14 @@ class AlbumFamiliaViewModel @Inject constructor(
                     return@launch
                 }
                 
-                // Buscar pessoa vinculada ao usuário para obter familiaId
-                val pessoaVinculada = usuario.pessoaVinculada
-                if (pessoaVinculada != null && pessoaVinculada.isNotBlank()) {
-                    val pessoa = pessoaRepository.buscarPorId(pessoaVinculada)
-                    pessoa?.let {
-                        var familiaId = it.familias.firstOrNull() ?: ""
-                        Timber.d("🔍 FamiliaId direto da pessoa vinculada: $familiaId")
-                        
-                        // Se não encontrou, buscar através de relacionamentos (mesma lógica de adicionar foto)
-                        if (familiaId.isBlank()) {
-                            Timber.d("🔍 FamiliaId não encontrado diretamente, buscando através de relacionamentos...")
-                            
-                            // Tentar através do pai
-                            if (pessoa.pai != null && pessoa.pai.isNotBlank()) {
-                                val pai = pessoaRepository.buscarPorId(pessoa.pai)
-                                familiaId = pai?.familias?.firstOrNull() ?: ""
-                                Timber.d("🔍 FamiliaId do pai: $familiaId")
-                            }
-                            
-                            // Tentar através da mãe
-                            if (familiaId.isBlank() && pessoa.mae != null && pessoa.mae.isNotBlank()) {
-                                val mae = pessoaRepository.buscarPorId(pessoa.mae)
-                                familiaId = mae?.familias?.firstOrNull() ?: ""
-                                Timber.d("🔍 FamiliaId da mãe: $familiaId")
-                            }
-                            
-                            // Tentar através do cônjuge
-                            if (familiaId.isBlank() && pessoa.conjugeAtual != null && pessoa.conjugeAtual.isNotBlank()) {
-                                val conjuge = pessoaRepository.buscarPorId(pessoa.conjugeAtual)
-                                familiaId = conjuge?.familias?.firstOrNull() ?: ""
-                                Timber.d("🔍 FamiliaId do cônjuge: $familiaId")
-                            }
-                            
-                            // Tentar através dos filhos (primeiro filho)
-                            if (familiaId.isBlank() && pessoa.filhos.isNotEmpty()) {
-                                val primeiroFilho = pessoaRepository.buscarPorId(pessoa.filhos.first())
-                                familiaId = primeiroFilho?.familias?.firstOrNull() ?: ""
-                                Timber.d("🔍 FamiliaId do primeiro filho: $familiaId")
-                            }
-                            
-                            // Se ainda não encontrou, tentar busca recursiva
-                            if (familiaId.isBlank()) {
-                                Timber.d("🔍 Tentando busca recursiva...")
-                                familiaId = buscarFamiliaIdRecursivo(pessoa, pessoaRepository, mutableSetOf(pessoa.id)) ?: ""
-                            }
-                        }
-                        
-                        minhaFamiliaId.value = familiaId
-                        Timber.d("✅ FamiliaId final para observação: $familiaId")
-                        
-                        if (familiaId.isNotBlank()) {
-                            observarFotos(familiaId)
-                        } else {
-                            Timber.w("⚠️ Nenhum familiaId encontrado após todas as tentativas")
-                            _state.update { it.copy(erro = "Usuário não vinculado a uma família", carregando = false) }
-                        }
-                    } ?: _state.update { it.copy(erro = "Pessoa vinculada não encontrada", carregando = false) }
-                } else {
-                    _state.update { it.copy(erro = "Usuário não vinculado a uma pessoa", carregando = false) }
-                }
+                // Salvar usuário atual para verificação de permissões
+                _usuarioAtual.value = usuario
+                
+                Timber.d("✅ Usuário autenticado: ${usuario.nome}")
+                Timber.d("📸 Iniciando observação de TODAS as fotos do álbum (sem filtro de hierarquia)")
+                
+                // Observar TODAS as fotos - app colaborativo permite acesso global
+                observarTodasFotos()
                 
             } catch (e: Exception) {
                 Timber.e(e, "Erro ao carregar dados do álbum")
@@ -147,21 +105,22 @@ class AlbumFamiliaViewModel @Inject constructor(
     }
     
     /**
-     * Observa fotos do álbum em tempo real
+     * Observa TODAS as fotos do álbum em tempo real
+     * App colaborativo: todos os usuários autenticados veem todas as fotos
      */
-    private fun observarFotos(familiaId: String) {
+    private fun observarTodasFotos() {
         // Cancelar observação anterior se existir
         observacaoAtiva?.cancel()
         
         observacaoAtiva = viewModelScope.launch {
-            Timber.d("👀 Iniciando observação de fotos para família: $familiaId")
-            fotoAlbumRepository.observarFotosPorFamilia(familiaId)
+            Timber.d("👀 Iniciando observação de TODAS as fotos do álbum (acesso global)")
+            fotoAlbumRepository.observarTodasFotos()
                 .catch { e ->
-                    Timber.e(e, "❌ Erro ao observar fotos para familiaId: $familiaId")
+                    Timber.e(e, "❌ Erro ao observar todas as fotos do álbum")
                     Timber.e(e, "   Stack trace: ${e.stackTraceToString()}")
                 }
                 .collect { fotosList ->
-                    Timber.d("📸 Fotos atualizadas: ${fotosList.size} fotos recebidas para familiaId: $familiaId")
+                    Timber.d("📸 Fotos atualizadas: ${fotosList.size} fotos recebidas (todas as fotos do álbum)")
                     
                     // Deduplicar fotos por ID para evitar cache duplicado
                     val fotosDeduplicadas = fotosList.distinctBy { it.id }
@@ -327,17 +286,6 @@ class AlbumFamiliaViewModel @Inject constructor(
                     }
                 }
                 
-                // Se ainda não encontrou, usar minhaFamiliaId (família do usuário logado)
-                if (familiaId.isNullOrBlank()) {
-                    Timber.d("🔍 Tentando usar minhaFamiliaId: ${minhaFamiliaId.value}")
-                    familiaId = minhaFamiliaId.value
-                    if (!familiaId.isNullOrBlank()) {
-                        Timber.d("✅ Usando FamiliaId do usuário logado: $familiaId")
-                    } else {
-                        Timber.w("⚠️ minhaFamiliaId também está vazio")
-                    }
-                }
-                
                 // Se ainda não encontrou, tentar buscar recursivamente através de toda a árvore genealógica
                 if (familiaId.isNullOrBlank()) {
                     Timber.d("🔍 Nenhum familiaId encontrado, tentando busca recursiva na árvore genealógica...")
@@ -351,7 +299,7 @@ class AlbumFamiliaViewModel @Inject constructor(
                     Timber.d("✅ Usando ID da pessoa como familiaId: $familiaId")
                 }
                 
-                Timber.d("🔍 RESUMO - FamiliaId da pessoa: ${pessoa.familias.firstOrNull()}, minhaFamiliaId: ${minhaFamiliaId.value}, final: $familiaId")
+                Timber.d("🔍 RESUMO - FamiliaId da pessoa: ${pessoa.familias.firstOrNull()}, final: $familiaId")
                 
                 // Criar uma variável val para evitar problemas de smart cast
                 val familiaIdFinal = familiaId ?: ""
@@ -472,58 +420,12 @@ class AlbumFamiliaViewModel @Inject constructor(
                     onSuccess = {
                         Timber.d("✅ Foto salva com sucesso no Firestore")
                         Timber.d("📸 Foto salva com familiaId: $familiaIdFinal")
-                        Timber.d("👀 Observando fotos para familiaId: ${minhaFamiliaId.value}")
                         
                         // Limpar arquivo temporário
                         finalFile.delete()
                         
-                        // Verificar se estamos observando o familiaId correto
-                        // Se minhaFamiliaId está vazio OU diferente do familiaId da foto, atualizar observação
-                        val precisaAtualizarObservacao = minhaFamiliaId.value.isNullOrBlank() || 
-                                                          familiaIdFinal != minhaFamiliaId.value
-                        
-                        if (precisaAtualizarObservacao) {
-                            if (minhaFamiliaId.value.isNullOrBlank()) {
-                                Timber.w("⚠️ minhaFamiliaId está vazio! Atualizando para: $familiaIdFinal")
-                            } else {
-                                Timber.w("⚠️ Foto salva com familiaId diferente do observado!")
-                                Timber.w("   Foto familiaId: $familiaIdFinal")
-                                Timber.w("   Observando familiaId: ${minhaFamiliaId.value}")
-                            }
-                            Timber.w("   🔄 Atualizando observação para usar familiaId da foto...")
-                            
-                            // Atualizar minhaFamiliaId e reiniciar observação
-                            minhaFamiliaId.value = familiaIdFinal
-                            observarFotos(familiaIdFinal)
-                            
-                            // Aguardar um pouco para a observação atualizar
-                            kotlinx.coroutines.delay(1000)
-                            
-                            // Verificar se a foto aparece agora
-                            val fotoJaExiste = _fotos.value.any { it.id == fotoId }
-                            if (!fotoJaExiste) {
-                                Timber.w("   📸 Foto ainda não encontrada. Recarregando manualmente...")
-                                // Recarregar fotos manualmente como fallback
-                                viewModelScope.launch {
-                                    val fotosResult = fotoAlbumRepository.buscarFotosPorFamilia(familiaIdFinal)
-                                    fotosResult.fold(
-                                        onSuccess = { fotos ->
-                                            Timber.d("✅ Fotos recarregadas manualmente: ${fotos.size} fotos")
-                                            _fotos.value = fotos
-                                        },
-                                        onFailure = { e ->
-                                            Timber.e(e, "❌ Erro ao recarregar fotos")
-                                        }
-                                    )
-                                }
-                            } else {
-                                Timber.d("✅ Foto encontrada na lista após atualizar observação!")
-                            }
-                        } else {
-                            Timber.d("✅ Foto salva com o mesmo familiaId que estamos observando. Deve aparecer automaticamente.")
-                        }
-                        
-                        // Fotos serão atualizadas automaticamente via observeFotos
+                        // Fotos serão atualizadas automaticamente via observeTodasFotos (sem filtro de familiaId)
+                        Timber.d("✅ Foto será atualizada automaticamente via observação de todas as fotos")
                         
                         Timber.d("✅ Fechando modal de adicionar foto após sucesso")
                         _state.update { 
@@ -679,6 +581,251 @@ class AlbumFamiliaViewModel @Inject constructor(
     }
     
     /**
+     * Adiciona ou atualiza um apoio em uma foto
+     */
+    fun adicionarApoio(foto: FotoAlbum, tipoApoio: com.raizesvivas.app.domain.model.TipoApoioFoto) {
+        viewModelScope.launch {
+            try {
+                val firebaseUser = authService.currentUser
+                if (firebaseUser == null) {
+                    _state.update { it.copy(erro = "Usuário não autenticado") }
+                    return@launch
+                }
+                
+                val resultado = fotoAlbumRepository.adicionarApoio(foto.id, firebaseUser.uid, tipoApoio)
+                resultado.fold(
+                    onSuccess = {
+                        Timber.d("✅ Apoio adicionado com sucesso")
+                        _state.update { it.copy(mostrarModalApoio = false, fotoSelecionadaParaApoio = null) }
+                    },
+                    onFailure = { e ->
+                        Timber.e(e, "❌ Erro ao adicionar apoio")
+                        _state.update { 
+                            it.copy(
+                                erro = "Erro ao adicionar apoio: ${e.message}",
+                                mostrarModalApoio = false,
+                                fotoSelecionadaParaApoio = null
+                            )
+                        }
+                    }
+                )
+            } catch (e: Exception) {
+                Timber.e(e, "Erro ao adicionar apoio")
+                _state.update { 
+                    it.copy(
+                        erro = "Erro ao adicionar apoio: ${e.message}",
+                        mostrarModalApoio = false,
+                        fotoSelecionadaParaApoio = null
+                    )
+                }
+            }
+        }
+    }
+    
+    /**
+     * Remove um apoio de uma foto
+     */
+    fun removerApoio(foto: FotoAlbum) {
+        viewModelScope.launch {
+            try {
+                val firebaseUser = authService.currentUser
+                if (firebaseUser == null) {
+                    _state.update { it.copy(erro = "Usuário não autenticado") }
+                    return@launch
+                }
+                
+                val resultado = fotoAlbumRepository.removerApoio(foto.id, firebaseUser.uid)
+                resultado.fold(
+                    onSuccess = {
+                        Timber.d("✅ Apoio removido com sucesso")
+                    },
+                    onFailure = { e ->
+                        Timber.e(e, "❌ Erro ao remover apoio")
+                        _state.update { it.copy(erro = "Erro ao remover apoio: ${e.message}") }
+                    }
+                )
+            } catch (e: Exception) {
+                Timber.e(e, "Erro ao remover apoio")
+                _state.update { it.copy(erro = "Erro ao remover apoio: ${e.message}") }
+            }
+        }
+    }
+    
+    /**
+     * Abre modal de seleção de apoio
+     */
+    fun abrirModalApoio(foto: FotoAlbum) {
+        _state.update { 
+            it.copy(
+                mostrarModalApoio = true,
+                fotoSelecionadaParaApoio = foto
+            )
+        }
+    }
+    
+    /**
+     * Fecha modal de seleção de apoio
+     */
+    fun fecharModalApoio() {
+        _state.update { 
+            it.copy(
+                mostrarModalApoio = false,
+                fotoSelecionadaParaApoio = null
+            )
+        }
+    }
+    
+    /**
+     * Adiciona um comentário em uma foto
+     */
+    fun adicionarComentario(foto: FotoAlbum, texto: String) {
+        viewModelScope.launch {
+            try {
+                val firebaseUser = authService.currentUser
+                if (firebaseUser == null) {
+                    _state.update { it.copy(erro = "Usuário não autenticado") }
+                    return@launch
+                }
+                
+                // Buscar dados do usuário
+                val usuarioResult = firestoreService.buscarUsuario(firebaseUser.uid)
+                val usuario = usuarioResult.getOrNull()
+                
+                if (usuario == null) {
+                    _state.update { it.copy(erro = "Dados do usuário não encontrados") }
+                    return@launch
+                }
+                
+                val comentario = ComentarioFoto(
+                    fotoId = foto.id,
+                    usuarioId = firebaseUser.uid,
+                    usuarioNome = usuario.nome,
+                    usuarioFotoUrl = usuario.fotoUrl,
+                    texto = texto.trim(),
+                    criadoEm = java.util.Date()
+                )
+                
+                if (!comentario.validar()) {
+                    _state.update { it.copy(erro = "Comentário inválido. Deve ter entre 1 e 500 caracteres.") }
+                    return@launch
+                }
+                
+                val resultado = fotoAlbumRepository.adicionarComentario(comentario)
+                resultado.fold(
+                    onSuccess = {
+                        Timber.d("✅ Comentário adicionado com sucesso")
+                        _state.update { it.copy(erro = null) }
+                        // Expandir comentários e garantir que estejam sendo observados após adicionar
+                        if (!_state.value.fotosComComentariosExpandidos.contains(foto.id)) {
+                            expandirComentarios(foto.id)
+                        } else {
+                            // Se já estiver expandido, garantir que a observação esteja ativa
+                            observarComentarios(foto.id)
+                        }
+                    },
+                    onFailure = { e ->
+                        Timber.e(e, "❌ Erro ao adicionar comentário")
+                        _state.update { it.copy(erro = "Erro ao adicionar comentário: ${e.message}") }
+                    }
+                )
+            } catch (e: Exception) {
+                Timber.e(e, "Erro ao adicionar comentário")
+                _state.update { it.copy(erro = "Erro ao adicionar comentário: ${e.message}") }
+            }
+        }
+    }
+    
+    /**
+     * Deleta um comentário
+     */
+    fun deletarComentario(foto: FotoAlbum, comentarioId: String) {
+        viewModelScope.launch {
+            try {
+                val resultado = fotoAlbumRepository.deletarComentario(foto.id, comentarioId)
+                resultado.fold(
+                    onSuccess = {
+                        Timber.d("✅ Comentário deletado com sucesso")
+                    },
+                    onFailure = { e ->
+                        Timber.e(e, "❌ Erro ao deletar comentário")
+                        _state.update { it.copy(erro = "Erro ao deletar comentário: ${e.message}") }
+                    }
+                )
+            } catch (e: Exception) {
+                Timber.e(e, "Erro ao deletar comentário")
+                _state.update { it.copy(erro = "Erro ao deletar comentário: ${e.message}") }
+            }
+        }
+    }
+    
+    /**
+     * Observa comentários de uma foto
+     */
+    fun observarComentarios(fotoId: String) {
+        // Cancelar observação anterior se existir
+        observacoesComentarios[fotoId]?.cancel()
+        
+        val job = viewModelScope.launch {
+            fotoAlbumRepository.observarComentarios(fotoId)
+                .collect { comentarios ->
+                    _comentariosPorFoto.value = _comentariosPorFoto.value.toMutableMap().apply { 
+                        put(fotoId, comentarios) 
+                    }
+                }
+        }
+        
+        observacoesComentarios[fotoId] = job
+    }
+    
+    /**
+     * Para de observar comentários de uma foto
+     */
+    fun pararObservarComentarios(fotoId: String) {
+        observacoesComentarios[fotoId]?.cancel()
+        observacoesComentarios.remove(fotoId)
+    }
+    
+    /**
+     * Retorna comentários de uma foto
+     */
+    fun obterComentarios(fotoId: String): List<ComentarioFoto> {
+        return _comentariosPorFoto.value[fotoId] ?: emptyList()
+    }
+    
+    /**
+     * Expande comentários de uma foto
+     */
+    fun expandirComentarios(fotoId: String) {
+        _state.update { 
+            it.copy(
+                fotosComComentariosExpandidos = it.fotosComComentariosExpandidos + fotoId
+            )
+        }
+        // Iniciar observação de comentários quando expandir
+        observarComentarios(fotoId)
+    }
+    
+    /**
+     * Contrai comentários de uma foto
+     */
+    fun contrairComentarios(fotoId: String) {
+        _state.update { 
+            it.copy(
+                fotosComComentariosExpandidos = it.fotosComComentariosExpandidos - fotoId
+            )
+        }
+        // Parar observação quando contrair (economizar recursos)
+        pararObservarComentarios(fotoId)
+    }
+    
+    /**
+     * Verifica se os comentários de uma foto estão expandidos
+     */
+    fun comentariosExpandidos(fotoId: String): Boolean {
+        return _state.value.fotosComComentariosExpandidos.contains(fotoId)
+    }
+    
+    /**
      * Busca familiaId recursivamente através da árvore genealógica
      * Evita loops infinitos usando um conjunto de IDs visitados
      */
@@ -738,6 +885,9 @@ data class AlbumFamiliaState(
     val erro: String? = null,
     val mostrarModalAdicionar: Boolean = false,
     val mostrarModalDeletar: Boolean = false,
-    val fotoSelecionadaParaDeletar: FotoAlbum? = null
+    val fotoSelecionadaParaDeletar: FotoAlbum? = null,
+    val mostrarModalApoio: Boolean = false,
+    val fotoSelecionadaParaApoio: FotoAlbum? = null,
+    val fotosComComentariosExpandidos: Set<String> = emptySet() // IDs das fotos com comentários expandidos
 )
 

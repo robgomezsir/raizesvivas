@@ -10,6 +10,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.WindowInsets
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
@@ -25,6 +28,7 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.runtime.*
 import androidx.compose.runtime.key
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -36,10 +40,16 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.rememberAsyncImagePainter
+import coil.request.ImageRequest
 import com.raizesvivas.app.domain.model.Pessoa
 import com.raizesvivas.app.domain.model.Notificacao
 import com.raizesvivas.app.domain.model.TipoNotificacao
+import com.raizesvivas.app.domain.model.Amigo
+import com.raizesvivas.app.presentation.components.RaizesVivasTextField
 import com.raizesvivas.app.presentation.viewmodel.NotificacaoViewModel
 import com.raizesvivas.app.presentation.components.NotificacoesModal
 import com.raizesvivas.app.presentation.components.ModalFestivoAniversario
@@ -50,7 +60,10 @@ import com.raizesvivas.app.presentation.screens.chat.ChatViewModel
 import com.raizesvivas.app.presentation.screens.familia.FamiliaViewModel
 import com.raizesvivas.app.presentation.theme.LocalThemeController
 import com.raizesvivas.app.presentation.theme.ThemeMode
+import com.raizesvivas.app.utils.ParentescoCalculator
 import kotlinx.coroutines.launch
+import com.raizesvivas.app.BuildConfig
+import java.util.Calendar
 
 /**
  * Tela Home - Principal do app
@@ -66,6 +79,7 @@ fun HomeScreen(
     onNavigateToCadastroPessoa: () -> Unit = {},
     onNavigateToEditarPessoa: (String) -> Unit = {},
     onNavigateToPerfil: () -> Unit = {},
+    onNavigateToConquistas: () -> Unit = {},
     onNavigateToDetalhesPessoa: (String) -> Unit = {},
     onNavigateToAceitarConvites: () -> Unit = {},
     onNavigateToGerenciarConvites: () -> Unit = {},
@@ -73,7 +87,9 @@ fun HomeScreen(
     onNavigateToResolverDuplicatas: () -> Unit = {},
     onNavigateToGerenciarUsuarios: () -> Unit = {},
     onNavigateToConfiguracoes: () -> Unit = {},
-    onNavigateToChat: (String, String) -> Unit = { _, _ -> } // destinatarioId, destinatarioNome
+
+    onNavigateToChat: (String, String) -> Unit = { _, _ -> }, // destinatarioId, destinatarioNome
+    openDrawerOnStart: Boolean = false
 ) {
     val state by viewModel.state.collectAsState()
     val pessoas by viewModel.pessoas.collectAsState()
@@ -362,6 +378,13 @@ fun HomeScreen(
         viewModel.atualizarPedidosPendentes()
     }
 
+    // Abrir drawer automaticamente se solicitado (ex: ao voltar de uma tela do menu)
+    LaunchedEffect(openDrawerOnStart) {
+        if (openDrawerOnStart) {
+            drawerState.open()
+        }
+    }
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -431,7 +454,12 @@ fun HomeScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Raízes Vivas") },
+                windowInsets = WindowInsets(0.dp),
                 actions = {
+                    // Botão de Conquistas
+                    IconButton(onClick = { onNavigateToConquistas() }) {
+                        Icon(Icons.Default.Star, contentDescription = "Conquistas")
+                    }
                     // Botão de notificações
                     Box {
                         IconButton(onClick = { 
@@ -479,248 +507,60 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(scrollState)
-                    .padding(16.dp)
+                    .padding(8.dp)
             ) {
-                // 1. Card Família Zero - Primeiro
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                    )
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        // Nome da família (em negrito) e subtítulo
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Text(
-                                text = state.familiaZeroNome?.uppercase() ?: if (state.familiaZeroExiste) "CRIADA" else "PENDENTE",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onTertiaryContainer
-                            )
-                            if (state.familiaZeroExiste && state.familiaZeroPaiNome != null && state.familiaZeroMaeNome != null) {
-                                Text(
-                                    text = "${state.familiaZeroPaiNome} & ${state.familiaZeroMaeNome}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
-                                )
-                            } else if (state.familiaZeroExiste) {
-                                Text(
-                                    text = "(casal fundador)",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
-                                )
-                            }
-                        }
-                        
-                        // Botão de editar (apenas ADMIN e se Família Zero existe)
-                        if (state.usuario?.ehAdministrador == true && state.familiaZeroExiste) {
-                            IconButton(
-                                onClick = { viewModel.abrirModalEditarNome() }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Edit,
-                                    contentDescription = "Editar nome",
-                                    tint = MaterialTheme.colorScheme.onTertiaryContainer
-                                )
-                            }
-                        }
-                        
-                        // Ícone
-                        IconButton(
-                            onClick = { 
-                                // Abrir modal para definir Família Zero (apenas ADMIN)
-                                if (state.usuario?.ehAdministrador == true) {
-                                    viewModel.abrirModalFamiliaZero()
-                                }
-                            },
-                            enabled = state.usuario?.ehAdministrador == true
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.FamilyRestroom,
-                                contentDescription = "Família Zero",
-                                tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                                modifier = Modifier.size(32.dp)
-                            )
-                        }
-                    }
-                }
+                // 1. Card Família Zero - Estilo Neon
+                FamiliaZeroCard(
+                    familiaZeroNome = state.familiaZeroNome,
+                    familiaZeroExiste = state.familiaZeroExiste,
+                    paiNome = state.familiaZeroPaiNome,
+                    maeNome = state.familiaZeroMaeNome,
+                    ehAdministrador = state.usuario?.ehAdministrador == true,
+                    onEditarNome = { viewModel.abrirModalEditarNome() },
+                    onAbrirModal = { viewModel.abrirModalFamiliaZero() }
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // 2. Card "Minha família" - Estilo Neon
+                MinhaFamiliaCard(
+                    familiaNome = minhaFamiliaNome,
+                    onClick = { viewModel.abrirModalMinhaFamilia() }
+                )
                 
                 Spacer(modifier = Modifier.height(12.dp))
                 
-                // 2. Card "Minha família" - Segundo
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                    )
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                            .clickable { viewModel.abrirModalMinhaFamilia() },
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        // Nome da família ou placeholder
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Text(
-                                text = minhaFamiliaNome?.uppercase() ?: "MINHA FAMÍLIA",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer
-                            )
-                            Text(
-                                text = if (minhaFamiliaNome != null) "Minha família" else "Toque para selecionar",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
-                            )
-                        }
-                        
-                        // Ícone
-                        IconButton(
-                            onClick = { viewModel.abrirModalMinhaFamilia() }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Home,
-                                contentDescription = "Minha família",
-                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                modifier = Modifier.size(32.dp)
-                            )
-                        }
-                    }
-                }
-                
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                // 3. Card do usuário vinculado (parentesco) - Terceiro
+                // 3. Card do usuário vinculado (parentesco) - Estilo Neon
                 pessoaVinculada?.let { pessoa ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                    ) {
-                        Box {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp)
-                                    .clickable { mostrarDropdownParentes = true },
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Surface(
-                                        modifier = Modifier.size(56.dp),
-                                        shape = CircleShape,
-                                        color = MaterialTheme.colorScheme.primaryContainer
-                                    ) {
-                                        Box(
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.AccountCircle,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                                modifier = Modifier.size(32.dp)
-                                            )
-                                        }
-                                    }
-                                    
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = pessoa.nome,
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                                        )
-                                        Text(
-                                            text = "Você • ${parentescos.size} parentes",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
-                                        )
-                                    }
-                                }
-                                
-                                Icon(
-                                    imageVector = Icons.Default.ExpandMore,
-                                    contentDescription = "Ver parentes",
-                                    tint = MaterialTheme.colorScheme.onSecondaryContainer
-                                )
-                            }
-                            
-                            // Dropdown de parentes
-                            DropdownMenu(
-                                expanded = mostrarDropdownParentes,
-                                onDismissRequest = { mostrarDropdownParentes = false },
-                                modifier = Modifier.fillMaxWidth(0.95f)
-                            ) {
-                                if (parentescos.isEmpty()) {
-                                    DropdownMenuItem(
-                                        text = { Text("Nenhum parente encontrado") },
-                                        onClick = { mostrarDropdownParentes = false }
-                                    )
-                                } else {
-                                    // Limitar a quantidade de parentes mostrados para melhor performance
-                                    // DropdownMenu tem limitação de altura, então não precisa de LazyColumn
-                                    // Adicionar key estável para cada item (otimização de recomposição)
-                                    parentescos.take(50).forEach { (parente, resultadoParentesco) ->
-                                        key(parente.id) { // Key estável para otimizar recomposições
-                                            DropdownMenuItem(
-                                                text = { 
-                                                    Column {
-                                                        Text(
-                                                            text = parente.nome,
-                                                            style = MaterialTheme.typography.bodyMedium,
-                                                            fontWeight = FontWeight.Medium
-                                                        )
-                                                        Text(
-                                                            text = resultadoParentesco.parentesco,
-                                                            style = MaterialTheme.typography.bodySmall,
-                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                        )
-                                                    }
-                                                },
-                                                onClick = {
-                                                    mostrarDropdownParentes = false
-                                                    onNavigateToDetalhesPessoa(parente.id)
-                                                }
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    
+                    UsuarioCard(
+                        pessoa = pessoa,
+                        totalParentes = parentescos.size,
+                        mostrarDropdown = mostrarDropdownParentes,
+                        onToggleDropdown = { mostrarDropdownParentes = !mostrarDropdownParentes },
+                        onDismissDropdown = { mostrarDropdownParentes = false },
+                        parentescos = parentescos,
+                        onNavigateToDetalhes = onNavigateToDetalhesPessoa
+                    )
                     Spacer(modifier = Modifier.height(12.dp))
                 }
                 
+                // Título da seção de estatísticas
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Família em números",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                
                 // 3. Demais cards de estatísticas - "Paredão de cards"
-                Spacer(modifier = Modifier.height(12.dp))
                 
                 // Primeira linha
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     StatCard(
                         title = "Pessoas",
@@ -729,42 +569,13 @@ fun HomeScreen(
                         modifier = Modifier.weight(1f)
                     )
                     
-                    // Card de Famílias com informações expandidas
-                    Card(
-                        modifier = Modifier.weight(1f),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer
-                        )
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                painter = painterResource(id = com.raizesvivas.app.R.drawable.familia),
-                                contentDescription = null,
-                                // tint removido para preservar cores originais da imagem PNG
-                                modifier = Modifier.size(32.dp)
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = state.totalFamilias.toString(),
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "Famílias",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    }
+                    // Card de Famílias - Estilo Neon
+                    StatCard(
+                        title = "Famílias",
+                        value = state.totalFamilias.toString(),
+                        painter = painterResource(id = com.raizesvivas.app.R.drawable.familia),
+                        modifier = Modifier.weight(1f)
+                    )
                 }
                 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -1027,6 +838,350 @@ fun HomeScreen(
     }
 }
 
+// Cards específicos no estilo Neon
+
+/**
+ * Card Família Zero - Estilo Neon
+ */
+@Composable
+fun FamiliaZeroCard(
+    familiaZeroNome: String?,
+    familiaZeroExiste: Boolean,
+    paiNome: String?,
+    maeNome: String?,
+    ehAdministrador: Boolean,
+    onEditarNome: () -> Unit,
+    onAbrirModal: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Surface(
+                modifier = Modifier.size(56.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.FamilyRestroom,
+                        contentDescription = "Família Zero",
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+            }
+            
+            // Nome da família e informações
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    text = familiaZeroNome?.uppercase() ?: if (familiaZeroExiste) "CRIADA" else "PENDENTE",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (familiaZeroExiste && paiNome != null && maeNome != null) {
+                    Text(
+                        text = "$paiNome & $maeNome",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else if (familiaZeroExiste) {
+                    Text(
+                        text = "Casal fundador",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    Text(
+                        text = "Toque para definir",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            
+            // Botões de ação - Layout vertical
+            if (ehAdministrador) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    if (familiaZeroExiste) {
+                        IconButton(
+                            onClick = onEditarNome,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Editar nome",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                    
+                    IconButton(
+                        onClick = onAbrirModal,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Configurar",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Card Minha Família - Estilo Neon
+ */
+@Composable
+fun MinhaFamiliaCard(
+    familiaNome: String?,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Surface(
+                modifier = Modifier.size(56.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.Home,
+                        contentDescription = "Minha família",
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+            }
+            
+            // Nome da família
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    text = familiaNome?.uppercase() ?: "MINHA FAMÍLIA",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = if (familiaNome != null) "Minha família selecionada" else "Toque para selecionar",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            
+            // Ícone de seta
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = "Abrir",
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+}
+
+/**
+ * Card Usuário/Parentesco - Estilo Neon
+ */
+@Composable
+fun UsuarioCard(
+    pessoa: Pessoa,
+    totalParentes: Int,
+    mostrarDropdown: Boolean,
+    onToggleDropdown: () -> Unit,
+    onDismissDropdown: () -> Unit,
+    parentescos: List<Pair<Pessoa, ParentescoCalculator.ResultadoParentesco>>,
+    onNavigateToDetalhes: (String) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+        )
+    ) {
+        Box {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp)
+                    .clickable { onToggleDropdown() },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Surface(
+                    modifier = Modifier.size(56.dp),
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)
+                ) {
+                    if (pessoa.fotoUrl != null && pessoa.fotoUrl.isNotBlank()) {
+                        Image(
+                            painter = rememberAsyncImagePainter(
+                                ImageRequest.Builder(LocalContext.current)
+                                    .data(pessoa.fotoUrl)
+                                    .build()
+                            ),
+                            contentDescription = "Foto de ${pessoa.nome}",
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                    }
+                }
+                
+                // Informações do usuário
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = pessoa.nome,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Você • $totalParentes parentes",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                
+                // Ícone de dropdown
+                Icon(
+                    imageVector = if (mostrarDropdown) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = "Ver parentes",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+            
+            // Dropdown de parentes
+            DropdownMenu(
+                expanded = mostrarDropdown,
+                onDismissRequest = onDismissDropdown,
+                modifier = Modifier.fillMaxWidth(0.95f)
+            ) {
+                if (parentescos.isEmpty()) {
+                    DropdownMenuItem(
+                        text = { Text("Nenhum parente encontrado") },
+                        onClick = onDismissDropdown
+                    )
+                } else {
+                    parentescos.take(50).forEach { pair: Pair<Pessoa, ParentescoCalculator.ResultadoParentesco> ->
+                        val (parente, resultadoParentesco) = pair
+                        key(parente.id) {
+                            DropdownMenuItem(
+                                leadingIcon = {
+                                    // Avatar circular com foto do perfil
+                                    Surface(
+                                        modifier = Modifier.size(40.dp),
+                                        shape = CircleShape,
+                                        color = MaterialTheme.colorScheme.primaryContainer
+                                    ) {
+                                        if (parente.fotoUrl != null && parente.fotoUrl.isNotBlank()) {
+                                            Image(
+                                                painter = rememberAsyncImagePainter(
+                                                    ImageRequest.Builder(LocalContext.current)
+                                                        .data(parente.fotoUrl)
+                                                        .build()
+                                                ),
+                                                contentDescription = "Foto de ${parente.nome}",
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .clip(CircleShape),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        } else {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Person,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                    modifier = Modifier.size(24.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                },
+                                text = { 
+                                    Column {
+                                        Text(
+                                            text = parente.nome,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                        Text(
+                                            text = resultadoParentesco.parentesco,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    onDismissDropdown()
+                                    onNavigateToDetalhes(parente.id)
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Card de Estatística - Estilo Neon (branco)
+ */
 @Composable
 fun StatCard(
     title: String,
@@ -1038,7 +1193,7 @@ fun StatCard(
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
         )
     ) {
         Column(
@@ -1054,16 +1209,15 @@ fun StatCard(
                     Icon(
                         painter = painter,
                         contentDescription = null,
-                        // tint removido para preservar cores originais das imagens PNG
                         modifier = Modifier.size(32.dp)
                     )
                 }
                 icon != null -> {
-                    // Para ImageVector, manter tint para seguir o tema
+                    // Para ImageVector, usar cor primária
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(32.dp)
                     )
                 }
@@ -1074,14 +1228,14 @@ fun StatCard(
                     text = value,
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(4.dp))
             }
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
         }
@@ -1184,10 +1338,10 @@ fun ModalEditarNomeFamiliaZero(
                     style = MaterialTheme.typography.bodyMedium
                 )
                 
-                OutlinedTextField(
+                RaizesVivasTextField(
                     value = nomeEditado,
                     onValueChange = { nomeEditado = it },
-                    label = { Text("Nome da Família") },
+                    label = "Nome da Família",
                     placeholder = { Text("Ex: FAMÍLIA GOMES") },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !isLoading,
@@ -1376,9 +1530,11 @@ fun HomeDrawerContent(
     ModalDrawerSheet(
         modifier = Modifier.widthIn(min = 280.dp, max = 360.dp)
     ) {
+        val scrollState = rememberScrollState()
         Column(
             modifier = Modifier
                 .fillMaxHeight()
+                .verticalScroll(scrollState)
                 .padding(vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -1471,6 +1627,14 @@ fun HomeDrawerContent(
             ThemeSelector(
                 themeMode = themeMode,
                 onThemeModeChange = onThemeModeChange
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
+
+            SobreSection(
+                versionName = BuildConfig.VERSION_NAME,
+                versionCode = BuildConfig.VERSION_CODE,
+                modifier = Modifier.padding(horizontal = 20.dp)
             )
 
             Spacer(modifier = Modifier.weight(1f))
@@ -1570,10 +1734,74 @@ fun ThemeOptionChip(
                 MaterialTheme.colorScheme.onSurfaceVariant
             }
         ),
-        border = if (selected) {
-            BorderStroke(1.5.dp, MaterialTheme.colorScheme.secondary)
-        } else {
-            null
-        }
+        // Sem bordas - estilo Neon
+        border = null
     )
 }
+
+@Composable
+private fun SobreSection(
+    versionName: String,
+    versionCode: Int,
+    modifier: Modifier = Modifier
+) {
+    val currentYear = remember { Calendar.getInstance().get(Calendar.YEAR) }
+
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "Sobre",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            HorizontalDivider()
+
+            Column(
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    text = "Versão do app: $versionName ($versionCode)",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "Dev: Rob Gomez",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "Copyright © $currentYear Raízes Vivas. Todos os direitos reservados.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "Construído para preservar histórias e fortalecer conexões familiares.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+

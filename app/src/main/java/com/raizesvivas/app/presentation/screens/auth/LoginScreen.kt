@@ -47,8 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.raizesvivas.app.MainActivity
 import com.raizesvivas.app.presentation.ui.theme.RaizesVivasButtonDefaults
-import com.raizesvivas.app.presentation.ui.theme.InputShapeSuave
-import com.raizesvivas.app.presentation.ui.theme.inputColorsPastel
+import com.raizesvivas.app.presentation.components.RaizesVivasTextField
 import kotlinx.coroutines.delay
 import timber.log.Timber
 
@@ -198,18 +197,16 @@ fun LoginScreen(
                         }
                     }
 
-                    TextField(
+                    RaizesVivasTextField(
                         value = state.email,
                         onValueChange = { viewModel.onEmailChanged(it) },
-                        label = { Text("Email") },
+                        label = "Email",
                         leadingIcon = {
                             Icon(imageVector = Icons.Default.Email, contentDescription = null)
                         },
                         singleLine = true,
                         isError = state.emailError != null,
                         supportingText = state.emailError?.let { { Text(it) } },
-                        shape = InputShapeSuave,
-                        colors = inputColorsPastel(),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Email,
                             imeAction = ImeAction.Next
@@ -222,10 +219,10 @@ fun LoginScreen(
 
                     var senhaVisivel by remember { mutableStateOf(false) }
 
-                    TextField(
+                    RaizesVivasTextField(
                         value = state.senha,
                         onValueChange = { viewModel.onSenhaChanged(it) },
-                        label = { Text("Senha") },
+                        label = "Senha",
                         leadingIcon = {
                             Icon(imageVector = Icons.Default.Lock, contentDescription = null)
                         },
@@ -241,8 +238,6 @@ fun LoginScreen(
                         singleLine = true,
                         isError = state.senhaError != null,
                         supportingText = state.senhaError?.let { { Text(it) } },
-                        shape = InputShapeSuave,
-                        colors = inputColorsPastel(),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Password,
                             imeAction = ImeAction.Done

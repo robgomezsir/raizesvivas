@@ -17,12 +17,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.raizesvivas.app.BuildConfig
 import com.raizesvivas.app.domain.model.Pessoa
 import com.raizesvivas.app.presentation.screens.cadastro.PessoaSelector
+import com.raizesvivas.app.presentation.screens.album.AvatarUsuario
 import kotlinx.coroutines.delay
 import timber.log.Timber
-import java.util.Calendar
 
 /**
  * Tela de Perfil do usuário
@@ -142,22 +141,11 @@ fun PerfilScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Avatar
-                Surface(
-                    modifier = Modifier.size(120.dp),
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.primaryContainer
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AccountCircle,
-                            contentDescription = null,
-                            modifier = Modifier.size(80.dp),
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    }
-                }
+                AvatarUsuario(
+                    fotoUrl = state.fotoUrl,
+                    nome = state.nome ?: "Usuário",
+                    size = 120
+                )
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
@@ -348,16 +336,7 @@ fun PerfilScreen(
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(16.dp))
 
-                SobreSection(
-                    versionName = BuildConfig.VERSION_NAME,
-                    versionCode = BuildConfig.VERSION_CODE,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 16.dp)
-                        .padding(vertical = 2.dp)
-                )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -407,11 +386,10 @@ fun PerfilScreen(
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                                         ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Person,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                                modifier = Modifier.size(32.dp)
+                                            AvatarUsuario(
+                                                fotoUrl = pessoa.fotoUrl,
+                                                nome = pessoa.nome,
+                                                size = 40
                                             )
                                             Column(modifier = Modifier.weight(1f)) {
                                                 Text(
@@ -841,6 +819,13 @@ fun PerfilScreen(
                                                         Spacer(modifier = Modifier.width(48.dp))
                                                     }
                                                     
+                                                    // Avatar do usuário
+                                                    AvatarUsuario(
+                                                        fotoUrl = usuario.fotoUrl,
+                                                        nome = usuario.nome.ifBlank { "Sem nome" },
+                                                        size = 40
+                                                    )
+                                                    
                                                     Column(modifier = Modifier.weight(1f)) {
                                                         Text(
                                                             text = usuario.nome.ifBlank { "Sem nome" },
@@ -1014,21 +999,29 @@ fun PerfilScreen(
                                         containerColor = MaterialTheme.colorScheme.secondaryContainer
                                     )
                                 ) {
-                                    Column(
+                                    Row(
                                         modifier = Modifier.padding(16.dp),
-                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text(
-                                            text = usuario.nome.ifBlank { "Sem nome" },
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                                        AvatarUsuario(
+                                            fotoUrl = usuario.fotoUrl,
+                                            nome = usuario.nome.ifBlank { "Sem nome" },
+                                            size = 48
                                         )
-                                        Text(
-                                            text = usuario.email.ifBlank { "Sem email" },
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
-                                        )
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = usuario.nome.ifBlank { "Sem nome" },
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                                            )
+                                            Text(
+                                                text = usuario.email.ifBlank { "Sem email" },
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                                            )
+                                        }
                                     }
                                 }
                                 
@@ -1101,69 +1094,5 @@ fun PerfilScreen(
     }
 }
 
-@Composable
-private fun SobreSection(
-    versionName: String,
-    versionCode: Int,
-    modifier: Modifier = Modifier
-) {
-    val currentYear = remember { Calendar.getInstance().get(Calendar.YEAR) }
 
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Info,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "Sobre",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-
-            HorizontalDivider()
-
-            Column(
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text(
-                    text = "Versão do app: $versionName ($versionCode)",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "Dev: Rob Gomez",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "Copyright © $currentYear Raízes Vivas. Todos os direitos reservados.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "Construído para preservar histórias e fortalecer conexões familiares.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
 

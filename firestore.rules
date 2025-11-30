@@ -226,16 +226,26 @@ service cloud.firestore {
                get(/databases/$(database)/documents/users/$(request.auth.uid)).data.ehAdministrador == true;
       }
 
+      // Verifica se o usuário autenticado é o convidado
+      function isConvidado() {
+        return isAuthenticated() &&
+               exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+               (
+                 // Compara com email do token (se disponível)
+                 (request.auth.token.email != null && 
+                  resource.data.emailConvidado == request.auth.token.email) ||
+                 // Compara com email do documento do usuário (fallback)
+                 get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email == resource.data.emailConvidado
+               );
+      }
+
       allow create: if isAdminInvite() &&
                        request.resource.data.convidadoPor == request.auth.uid;
 
-      allow read: if isAdminInvite() ||
-                    (isAuthenticated() &&
-                     request.resource.data.emailConvidado == request.auth.token.email);
+      allow read: if isAdminInvite() || isConvidado();
 
       allow update: if isAdminInvite() ||
-                       (isAuthenticated() &&
-                        resource.data.emailConvidado == request.auth.token.email &&
+                       (isConvidado() &&
                         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']));
 
       allow delete: if isAdminInvite();
@@ -477,31 +487,41 @@ service cloud.firestore {
     // ==============================
     // 📸 Coleção: fotos_album (FOTOS DO ÁLBUM DE FAMÍLIA)
     // ==============================
+    // ÁLBUM COLABORATIVO (Rede Social):
+    // - TODOS os usuários autenticados podem ver TODAS as fotos do álbum
+    // - A hierarquia familiar é respeitada através do familiaId nas fotos
+    // - Permissões diferenciadas por role (Admin pode tudo, usuários podem interagir)
     match /fotos_album/{fotoId} {
-      // LEITURA: Qualquer usuário autenticado pode ver fotos do álbum
-      allow read: if isAuthenticated();
+      // LEITURA E LISTAGEM: TODOS os usuários autenticados podem ver todas as fotos
+      // Não há restrição de hierarquia - app colaborativo permite acesso global
+      // A hierarquia é respeitada através do familiaId armazenado nas fotos
+      allow read, list: if isAuthenticated();
       
-      // LISTAGEM: Queries eficientes (com orderBy obrigatório)
-      // Permite queries com whereEqualTo + orderBy (para observação em tempo real)
-      allow list: if isAuthenticated() && 
-                     (request.query.orderBy.size() > 0 || 
-                      request.query.limit <= 100);
+      // CRIAÇÃO: Apenas ADMIN e ADMIN SR podem criar fotos
+      allow create: if isAdmin() &&
+                     validarFotoAlbumCriacao();
       
-      // CRIAÇÃO: Usuário autenticado pode criar fotos do álbum
-      allow create: if isAuthenticated() &&
-                     validarFotoAlbum();
-      
-      // ATUALIZAÇÃO: Apenas o criador ou admin pode atualizar
+      // ATUALIZAÇÃO: 
+      // - TODOS os usuários autenticados: podem dar apoio (atualizar campo apoios)
+      // - ADMIN e ADMIN SR: podem atualizar tudo (descricao, ordem, apoios)
       allow update: if isAuthenticated() &&
-                     (resource.data.criadoPor == request.auth.uid || isAdmin()) &&
-                     validarFotoAlbum();
+                     (isAdmin() || isApenasAtualizacaoApoios()) &&
+                     validarFotoAlbumAtualizacao();
       
-      // DELEÇÃO: Apenas o criador ou admin pode deletar
-      allow delete: if isAuthenticated() &&
-                     (resource.data.criadoPor == request.auth.uid || isAdmin());
+      // DELEÇÃO: Apenas ADMIN e ADMIN SR podem deletar fotos
+      allow delete: if isAdmin();
       
-      // Função auxiliar para validar dados de foto do álbum
-      function validarFotoAlbum() {
+      // Função auxiliar: verifica se é apenas atualização de apoios
+      // Quando um apoio é adicionado/removido, apenas o campo 'apoios' (ou subcampos como 'apoios.$usuarioId') é alterado
+      function isApenasAtualizacaoApoios() {
+        let camposAlterados = request.resource.data.diff(resource.data).affectedKeys();
+        // Verifica se apenas o campo 'apoios' foi alterado
+        // Permite atualizações que afetam apenas o campo apoios (incluindo campos aninhados como apoios.$usuarioId)
+        return camposAlterados.hasOnly(['apoios']);
+      }
+      
+      // Função auxiliar para validar dados de foto do álbum na criação
+      function validarFotoAlbumCriacao() {
         let dados = request.resource.data;
         return dados.keys().hasAll(['familiaId', 'pessoaId', 'pessoaNome', 'url', 'criadoPor', 'criadoEm']) &&
                dados.familiaId is string &&
@@ -519,6 +539,138 @@ service cloud.firestore {
                (!dados.keys().hasAny(['descricao']) || dados.descricao == null || dados.descricao is string) &&
                // ordem pode ser int (incluindo 0) ou null
                (!dados.keys().hasAny(['ordem']) || dados.ordem == null || dados.ordem is int);
+      }
+      
+      // Função auxiliar para validar dados de foto do álbum na atualização
+      // Permite atualizar apenas campos editáveis (descricao, ordem, apoios)
+      // Impede alteração de campos críticos (familiaId, pessoaId, pessoaNome, url, criadoPor, criadoEm)
+      function validarFotoAlbumAtualizacao() {
+        let dados = request.resource.data;
+        let dadosAntigos = resource.data;
+        
+        // Campos críticos não podem ser alterados
+        let camposCriticosOk = dados.familiaId == dadosAntigos.familiaId &&
+                               dados.pessoaId == dadosAntigos.pessoaId &&
+                               dados.pessoaNome == dadosAntigos.pessoaNome &&
+                               dados.url == dadosAntigos.url &&
+                               dados.criadoPor == dadosAntigos.criadoPor &&
+                               dados.criadoEm == dadosAntigos.criadoEm;
+        
+        // Validar apoios: deve ser um map onde cada valor é uma string (nome do enum)
+        let apoiosOk = !dados.keys().hasAny(['apoios']) || 
+                      (dados.apoios is map);
+        
+        // Se for apenas atualização de apoios (qualquer usuário), validar apenas apoios
+        // Se for ADMIN, validar também descricao e ordem
+        // Usar expressão booleana direta ao invés de variável intermediária
+        let apenasApoios = isApenasAtualizacaoApoios();
+        let descricaoOk = apenasApoios || 
+                         (!dados.keys().hasAny(['descricao']) || 
+                          dados.descricao == null || 
+                          dados.descricao is string);
+        
+        let ordemOk = apenasApoios || 
+                     (!dados.keys().hasAny(['ordem']) || 
+                      dados.ordem == null || 
+                      dados.ordem is int);
+        
+        return camposCriticosOk && descricaoOk && ordemOk && apoiosOk;
+      }
+      
+      // ==============================
+      // 💬 Subcoleção: comentarios (COMENTÁRIOS DE FOTOS)
+      // fotos_album/{fotoId}/comentarios/{comentarioId}
+      // ==============================
+      // COMENTÁRIOS COLABORATIVOS:
+      // - TODOS os usuários autenticados podem ver TODOS os comentários
+      // - TODOS os usuários autenticados podem comentar em qualquer foto
+      // - Cada usuário pode excluir apenas seus próprios comentários
+      match /comentarios/{comentarioId} {
+        // LEITURA E LISTAGEM: TODOS os usuários autenticados podem ver todos os comentários
+        // Não há restrição de hierarquia - app colaborativo permite acesso global
+        allow read, list: if isAuthenticated();
+        
+        // CRIAÇÃO: TODOS os usuários autenticados podem comentar em qualquer foto
+        allow create: if isAuthenticated() &&
+                       validarComentarioFoto();
+        
+        // ATUALIZAÇÃO: 
+        // - ADMIN e ADMIN SR: podem atualizar qualquer comentário
+        // - QUALQUER usuário autenticado: pode deletar apenas seus próprios comentários (soft delete)
+        allow update: if isAuthenticated() &&
+                       (isAdmin() || isAutorComentario()) &&
+                       validarComentarioFotoAtualizacao();
+        
+        // DELEÇÃO: Apenas ADMIN e ADMIN SR podem deletar fisicamente comentários
+        allow delete: if isAdmin();
+        
+        // Função auxiliar: verifica se o usuário é o autor do comentário
+        function isAutorComentario() {
+          return resource.data.usuarioId == request.auth.uid;
+        }
+        
+        // Função auxiliar para validar dados de comentário na criação
+        function validarComentarioFoto() {
+          let dados = request.resource.data;
+          return dados.keys().hasAll(['fotoId', 'usuarioId', 'usuarioNome', 'texto', 'criadoEm', 'deletado']) &&
+                 dados.fotoId is string &&
+                 dados.fotoId.size() > 0 &&
+                 dados.usuarioId is string &&
+                 dados.usuarioId == request.auth.uid &&
+                 dados.usuarioNome is string &&
+                 dados.usuarioNome.size() > 0 &&
+                 dados.texto is string &&
+                 dados.texto.size() > 0 &&
+                 dados.texto.size() <= 500 &&
+                 dados.criadoEm is timestamp &&
+                 dados.deletado is bool &&
+                 (!dados.keys().hasAny(['usuarioFotoUrl']) || dados.usuarioFotoUrl == null || dados.usuarioFotoUrl is string);
+        }
+        
+        // Função auxiliar para validar dados de comentário na atualização
+        function validarComentarioFotoAtualizacao() {
+          let dados = request.resource.data;
+          let dadosAntigos = resource.data;
+          let camposAlterados = dados.diff(dadosAntigos).affectedKeys();
+          
+          // Campos críticos não podem ser alterados
+          let camposCriticosOk = dados.fotoId == dadosAntigos.fotoId &&
+                                 dados.usuarioId == dadosAntigos.usuarioId &&
+                                 dados.usuarioNome == dadosAntigos.usuarioNome &&
+                                 dados.criadoEm == dadosAntigos.criadoEm;
+          
+          // Se for apenas soft delete (apenas campo deletado alterado), permitir
+          let apenasSoftDelete = camposAlterados.hasOnly(['deletado']) &&
+                                 dados.deletado is bool;
+          
+          // Se for admin, pode atualizar texto e deletado
+          let adminPodeAtualizar = isAdmin() &&
+                                   // Campos críticos ok
+                                   camposCriticosOk &&
+                                   // Texto válido se presente
+                                   (!camposAlterados.hasAny(['texto']) ||
+                                    (dados.texto is string &&
+                                     dados.texto.size() > 0 &&
+                                     dados.texto.size() <= 500)) &&
+                                   // deletado válido se presente
+                                   (!camposAlterados.hasAny(['deletado']) ||
+                                    dados.deletado is bool) &&
+                                   // usuarioFotoUrl não alterado ou válido
+                                   (!camposAlterados.hasAny(['usuarioFotoUrl']) ||
+                                    dados.usuarioFotoUrl == dadosAntigos.usuarioFotoUrl ||
+                                    dados.usuarioFotoUrl == null ||
+                                    dados.usuarioFotoUrl is string);
+          
+          // Se for autor (QUALQUER usuário autenticado), pode apenas fazer soft delete do próprio comentário
+          let autorPodeSoftDelete = isAutorComentario() &&
+                                    apenasSoftDelete &&
+                                    camposCriticosOk &&
+                                    // usuarioFotoUrl não alterado
+                                    (!camposAlterados.hasAny(['usuarioFotoUrl']) ||
+                                     dados.usuarioFotoUrl == dadosAntigos.usuarioFotoUrl);
+          
+          return adminPodeAtualizar || autorPodeSoftDelete;
+        }
       }
     }
 

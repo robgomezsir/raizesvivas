@@ -641,6 +641,9 @@ class FamiliaViewModel @Inject constructor(
     
     /**
      * Vincula um familiar a um amigo
+     * 
+     * IMPORTANTE: Todos os usuários podem vincular familiares aos amigos.
+     * Não há restrições de administrador.
      */
     fun vincularFamiliarAoAmigo(amigoId: String, familiarId: String) {
         viewModelScope.launch {
@@ -666,6 +669,9 @@ class FamiliaViewModel @Inject constructor(
 
     /**
      * Remove um familiar vinculado de um amigo
+     * 
+     * IMPORTANTE: Todos os usuários podem remover vínculos de familiares dos amigos.
+     * Não há restrições de administrador.
      */
     fun removerFamiliarDoAmigo(amigoId: String, familiarId: String) {
         viewModelScope.launch {

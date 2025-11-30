@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -54,9 +55,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.raizesvivas.app.domain.model.Recado
 import com.raizesvivas.app.domain.model.Pessoa
-import com.raizesvivas.app.presentation.theme.PastelInfo
-import com.raizesvivas.app.presentation.theme.PastelSuccess
-import com.raizesvivas.app.presentation.theme.PastelWarning
+
 import java.text.SimpleDateFormat
 import java.util.*
 import com.raizesvivas.app.presentation.components.ExpandableFab
@@ -137,15 +136,12 @@ fun MuralScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
-                        Text("Recados", style = MaterialTheme.typography.titleLarge)
-                        Text(
-                            text = "${recadosOrdenados.size} recado(s)",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = colorScheme.onSurfaceVariant
-                        )
-                    }
+                    Text(
+                        text = "Recados (${recadosOrdenados.size})",
+                        style = MaterialTheme.typography.titleLarge
+                    )
                 },
+                windowInsets = WindowInsets(0.dp),
                 actions = {
                     IconButton(
                         onClick = { viewModel.recarregar() },
@@ -194,9 +190,9 @@ fun MuralScreen(
                     .padding(paddingValues)
             ) {
                 AnimatedVisibility(visible = state.totalMensagensChatNaoLidas > 0) {
-                    ElevatedCard(
+                    Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.elevatedCardColors(
+                        colors = CardDefaults.cardColors(
                             containerColor = colorScheme.primaryContainer
                         )
                     ) {
@@ -319,12 +315,12 @@ fun MuralScreen(
                                 .fillMaxWidth()
                                 .weight(1f),
                             contentPadding = PaddingValues(
-                                start = 16.dp,
-                                end = 16.dp,
-                                top = 16.dp,
-                                bottom = 24.dp
+                                start = 8.dp,
+                                end = 8.dp,
+                                top = 8.dp,
+                                bottom = 12.dp
                             ),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             items(
                                 items = recadosOrdenados,
@@ -434,8 +430,8 @@ private fun RecadoCard(
             .clickable(enabled = isAdmin) { if (isAdmin) onFixar() },
         shape = MaterialTheme.shapes.extraLarge,
         color = cores.background,
-        tonalElevation = if (recado.estaFixadoEValido()) 8.dp else 4.dp,
-        shadowElevation = 6.dp
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp
     ) {
         Column(
             modifier = Modifier
@@ -669,19 +665,19 @@ internal fun getCoresRecado(corNome: String): RecadoPalette {
             content = colorScheme.onErrorContainer
         )
         "success" -> RecadoPalette(
-            background = blend(colorScheme.surface, PastelSuccess, 0.2f),
-            accent = PastelSuccess,
-            content = colorScheme.onSurface
+            background = colorScheme.tertiaryContainer,
+            accent = colorScheme.tertiary,
+            content = colorScheme.onTertiaryContainer
         )
         "warning" -> RecadoPalette(
-            background = blend(colorScheme.surface, PastelWarning, 0.22f),
-            accent = PastelWarning,
-            content = colorScheme.onSurface
+            background = colorScheme.errorContainer.copy(alpha = 0.7f),
+            accent = colorScheme.error.copy(alpha = 0.8f),
+            content = colorScheme.onErrorContainer
         )
         "info" -> RecadoPalette(
-            background = blend(colorScheme.surface, PastelInfo, 0.22f),
-            accent = PastelInfo,
-            content = colorScheme.onSurface
+            background = colorScheme.primaryContainer.copy(alpha = 0.7f),
+            accent = colorScheme.primary.copy(alpha = 0.8f),
+            content = colorScheme.onPrimaryContainer
         )
         else -> RecadoPalette(
             background = colorScheme.surfaceVariant,

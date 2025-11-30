@@ -25,6 +25,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.raizesvivas.app.domain.model.Pessoa
 import com.raizesvivas.app.domain.model.StatusConvite
+import com.raizesvivas.app.presentation.components.RaizesVivasTextField
+import com.raizesvivas.app.presentation.components.AnimatedSearchBar
 import com.raizesvivas.app.presentation.screens.cadastro.PessoaSelector
 import com.raizesvivas.app.presentation.ui.theme.InputShapeSuave
 import com.raizesvivas.app.presentation.ui.theme.inputColorsPastel
@@ -86,7 +88,7 @@ fun GerenciarConvitesScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp)
+                .padding(8.dp)
                 .verticalScroll(rememberScrollState())
         ) {
             // Verificar permissões
@@ -130,7 +132,7 @@ fun GerenciarConvitesScreen(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 16.dp),
+                        .padding(bottom = 8.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.errorContainer
                     )
@@ -163,7 +165,7 @@ fun GerenciarConvitesScreen(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 16.dp),
+                        .padding(bottom = 8.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
                     )
@@ -188,18 +190,17 @@ fun GerenciarConvitesScreen(
                 }
             }
             
-            // Formulário de novo convite
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.large,
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.4f)
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer
                 ),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -220,10 +221,10 @@ fun GerenciarConvitesScreen(
                         )
                     }
                     
-                    TextField(
+                    RaizesVivasTextField(
                         value = state.emailConvidado,
                         onValueChange = { viewModel.onEmailConvidadoChanged(it) },
-                        label = { Text("Email do Convidado") },
+                        label = "Email do Convidado",
                         placeholder = { Text("exemplo@email.com") },
                         leadingIcon = {
                             Icon(
@@ -237,9 +238,7 @@ fun GerenciarConvitesScreen(
                         supportingText = state.emailError?.let { { Text(it) } },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = !state.isLoading,
-                        shape = InputShapeSuave,
-                        colors = inputColorsPastel()
+                        enabled = !state.isLoading
                     )
                     
                     // Seletor de pessoa vinculada (opcional)
@@ -311,7 +310,7 @@ fun GerenciarConvitesScreen(
                 }
             }
             
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             
             // Pedidos de Convite (novos)
             Text(
@@ -325,22 +324,17 @@ fun GerenciarConvitesScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                TextField(
-                    value = viewModel.filtroEmail.collectAsState().value,
-                    onValueChange = { viewModel.atualizarFiltroEmail(it) },
-                    label = { Text("Filtrar por e-mail") },
-                    placeholder = { Text("Buscar...") },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Default.Search,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                        )
-                    },
-                    singleLine = true,
-                    modifier = Modifier.weight(1f),
-                    shape = InputShapeSuave,
-                    colors = inputColorsPastel()
+                // Estado local para controle da animação de busca
+                var isSearchActive by remember { mutableStateOf(false) }
+                val filtroEmail = viewModel.filtroEmail.collectAsState().value
+
+                AnimatedSearchBar(
+                    query = filtroEmail,
+                    onQueryChange = { viewModel.atualizarFiltroEmail(it) },
+                    isSearchActive = isSearchActive || filtroEmail.isNotEmpty(),
+                    onSearchActiveChange = { isSearchActive = it },
+                    placeholder = "Filtrar por e-mail...",
+                    modifier = Modifier.weight(1f)
                 )
                 FilterChip(
                     selected = viewModel.filtroStatus == "pending",
@@ -358,6 +352,9 @@ fun GerenciarConvitesScreen(
                     shape = MaterialTheme.shapes.medium
                 )
             }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
             if (pedidos.isEmpty()) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -408,7 +405,7 @@ fun GerenciarConvitesScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Convites Pendentes
             val convitesPendentes = convites.filter { it.status == StatusConvite.PENDENTE }
@@ -459,7 +456,7 @@ fun GerenciarConvitesScreen(
                 }
             }
             
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             
             // Lista de convites
             Text(

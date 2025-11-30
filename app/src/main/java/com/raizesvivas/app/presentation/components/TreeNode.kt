@@ -120,13 +120,11 @@ fun TreeNode(
             shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.cardColors(
                 containerColor = if (isSelected) {
-                    Color(0xFFDCEEFB)
-                } else Color.White
+                    MaterialTheme.colorScheme.primaryContainer
+                } else MaterialTheme.colorScheme.surface
             ),
-            border = androidx.compose.foundation.BorderStroke(
-                2.dp,
-                if (isSelected) Color(0xFF2196F3) else Color(0xFFE0E0E0)
-            )
+            // Sem bordas - estilo Neon
+            border = null
         ) {
             Box(
                 modifier = Modifier.padding(16.dp),
@@ -147,8 +145,8 @@ fun TreeNode(
                 onClick = { onToggle(node) },
                 modifier = Modifier
                     .size(32.dp)
-                    .background(Color.White, CircleShape)
-                    .border(2.dp, Color(0xFFE0E0E0), CircleShape)
+                    .background(MaterialTheme.colorScheme.surface, CircleShape)
+                    // Sem bordas - estilo Neon
             ) {
                 @Suppress("DEPRECATION")
                 val icon: ImageVector = if (node.isExpanded) {

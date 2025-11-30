@@ -46,8 +46,8 @@ object RaizesVivasButtonDefaults {
 
     @Composable
     fun outlineStroke(): BorderStroke {
-        val colorScheme = MaterialTheme.colorScheme
-        return BorderStroke(1.2.dp, colorScheme.outline.copy(alpha = 0.45f))
+        // Sem bordas - estilo Neon
+        return BorderStroke(0.dp, Color.Transparent)
     }
 
     @Composable

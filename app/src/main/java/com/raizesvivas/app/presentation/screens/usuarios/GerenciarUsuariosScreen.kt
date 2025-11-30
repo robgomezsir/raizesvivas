@@ -16,6 +16,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.raizesvivas.app.presentation.components.RaizesVivasTextField
+import com.raizesvivas.app.presentation.components.AnimatedSearchBar
 import com.raizesvivas.app.domain.model.Usuario
 import com.raizesvivas.app.domain.model.NivelPermissao
 import java.text.SimpleDateFormat
@@ -64,53 +66,40 @@ fun GerenciarUsuariosScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    if (!mostrarBusca) {
-                        Text("Gerenciar Usuários")
-                    } else {
-                        OutlinedTextField(
-                            value = termoBusca,
-                            onValueChange = { termoBusca = it },
-                            placeholder = { Text("Buscar usuário...") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Filled.Search,
-                                    contentDescription = "Buscar"
-                                )
+                    if (mostrarBusca) {
+                        AnimatedSearchBar(
+                            query = termoBusca,
+                            onQueryChange = { termoBusca = it },
+                            isSearchActive = mostrarBusca,
+                            onSearchActiveChange = { 
+                                mostrarBusca = it
+                                if (!it) termoBusca = ""
                             },
-                            trailingIcon = {
-                                if (termoBusca.isNotEmpty()) {
-                                    IconButton(onClick = { termoBusca = "" }) {
-                                        Icon(
-                                            imageVector = Icons.Filled.Close,
-                                            contentDescription = "Limpar"
-                                        )
-                                    }
-                                }
-                            }
+                            placeholder = "Buscar usuário...",
+                            modifier = Modifier.fillMaxWidth()
                         )
+                    } else {
+                        Text("Gerenciar Usuários")
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
+                    if (!mostrarBusca) {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
+                        }
                     }
                 },
                 actions = {
-                    IconButton(onClick = { 
-                        mostrarBusca = !mostrarBusca
-                        if (!mostrarBusca) {
-                            termoBusca = ""
+                    if (!mostrarBusca) {
+                        IconButton(onClick = { mostrarBusca = true }) {
+                            Icon(
+                                imageVector = Icons.Filled.Search,
+                                contentDescription = "Buscar"
+                            )
                         }
-                    }) {
-                        Icon(
-                            imageVector = if (mostrarBusca) Icons.Filled.Close else Icons.Filled.Search,
-                            contentDescription = if (mostrarBusca) "Fechar busca" else "Buscar"
-                        )
-                    }
-                    IconButton(onClick = { viewModel.carregarUsuarios() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Recarregar")
+                        IconButton(onClick = { viewModel.carregarUsuarios() }) {
+                            Icon(Icons.Default.Refresh, contentDescription = "Recarregar")
+                        }
                     }
                 }
             )
@@ -120,7 +109,7 @@ fun GerenciarUsuariosScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp)
+                .padding(8.dp)
                 .verticalScroll(rememberScrollState())
         ) {
             // Verificar permissões
@@ -164,7 +153,7 @@ fun GerenciarUsuariosScreen(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 16.dp),
+                        .padding(bottom = 8.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.errorContainer
                     )
@@ -197,7 +186,7 @@ fun GerenciarUsuariosScreen(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 16.dp),
+                        .padding(bottom = 8.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
                     )
@@ -283,7 +272,8 @@ fun GerenciarUsuariosScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 8.dp)
+                            .padding(bottom = 8.dp),
+                        nomePessoaVinculada = state.nomesPessoasVinculadas[usuario.pessoaVinculada]
                     )
                 }
             }
@@ -299,18 +289,18 @@ fun GerenciarUsuariosScreen(
                 Column(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    OutlinedTextField(
+                    RaizesVivasTextField(
                         value = nomeEditado,
                         onValueChange = { nomeEditado = it },
-                        label = { Text("Nome") },
+                        label = "Nome",
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !state.isLoading
                     )
                     
-                    OutlinedTextField(
+                    RaizesVivasTextField(
                         value = emailEditado,
                         onValueChange = { emailEditado = it },
-                        label = { Text("Email") },
+                        label = "Email",
                         modifier = Modifier.fillMaxWidth(),
                         enabled = false, // Email não pode ser alterado
                         leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) }
@@ -424,7 +414,8 @@ private fun UsuarioCard(
     onEditar: () -> Unit,
     onDeletar: () -> Unit,
     onEnviarResetSenha: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    nomePessoaVinculada: String? = null
 ) {
     Card(
         modifier = modifier,
@@ -516,8 +507,14 @@ private fun UsuarioCard(
             )
             
             if (usuario.pessoaVinculada != null) {
+                val textoVinculo = if (nomePessoaVinculada != null) {
+                    "Pessoa vinculada: $nomePessoaVinculada"
+                } else {
+                    "Pessoa vinculada: ${usuario.pessoaVinculada}"
+                }
+                
                 Text(
-                    text = "Pessoa vinculada: ${usuario.pessoaVinculada}",
+                    text = textoVinculo,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

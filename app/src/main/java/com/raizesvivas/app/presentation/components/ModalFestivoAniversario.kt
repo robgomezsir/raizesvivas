@@ -2,6 +2,7 @@ package com.raizesvivas.app.presentation.components
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -247,11 +248,8 @@ fun ModalFestivoAniversario(
                                 colors = ButtonDefaults.outlinedButtonColors(
                                     contentColor = Color(0xFF000000)
                                 ),
-                                border = ButtonDefaults.outlinedButtonBorder.copy(
-                                    brush = Brush.horizontalGradient(
-                                        colors = listOf(Color.White, Color.White)
-                                    )
-                                )
+                                // Sem bordas - estilo Neon
+                                border = androidx.compose.foundation.BorderStroke(0.dp, Color.Transparent)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,

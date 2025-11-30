@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.raizesvivas.app.presentation.components.RaizesVivasTextField
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -185,10 +186,10 @@ fun ConfiguracoesScreen(
                 )
                 
                 // Campo de título
-                OutlinedTextField(
+                RaizesVivasTextField(
                     value = state.titulo,
                     onValueChange = viewModel::atualizarTitulo,
-                    label = { Text("Título da Notificação") },
+                    label = "Título da Notificação",
                     placeholder = { Text("Ex: Atualização Importante") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
@@ -196,14 +197,15 @@ fun ConfiguracoesScreen(
                 )
                 
                 // Campo de mensagem
-                OutlinedTextField(
+                RaizesVivasTextField(
                     value = state.mensagem,
                     onValueChange = viewModel::atualizarMensagem,
-                    label = { Text("Mensagem") },
+                    label = "Mensagem",
                     placeholder = { Text("Digite a mensagem que será enviada para todos os usuários...") },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(200.dp),
+                    singleLine = false,
                     maxLines = 10,
                     enabled = !state.isLoading
                 )
@@ -280,10 +282,10 @@ fun ConfiguracoesScreen(
                 )
 
                 // Campo versão (ex: v2.5)
-                OutlinedTextField(
+                RaizesVivasTextField(
                     value = state.versaoAtualizacao,
                     onValueChange = viewModel::atualizarVersaoAtualizacao,
-                    label = { Text("Versão (ex: v2.5)") },
+                    label = "Versão (ex: v2.5)",
                     placeholder = { Text("v2.5") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
@@ -291,10 +293,10 @@ fun ConfiguracoesScreen(
                 )
 
                 // Campo link de download
-                OutlinedTextField(
+                RaizesVivasTextField(
                     value = state.linkDownloadAtualizacao,
                     onValueChange = viewModel::atualizarLinkDownloadAtualizacao,
-                    label = { Text("Link para página de download") },
+                    label = "Link para página de download",
                     placeholder = { Text("https://...") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,

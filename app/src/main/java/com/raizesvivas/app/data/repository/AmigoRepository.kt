@@ -13,6 +13,13 @@ import javax.inject.Singleton
 
 /**
  * Repository para gerenciar amigos da família
+ * 
+ * IMPORTANTE: Todos os usuários têm acesso total às operações de amigos.
+ * Não há restrições de administrador - qualquer usuário pode:
+ * - Ver todos os amigos
+ * - Adicionar novos amigos
+ * - Editar amigos existentes
+ * - Excluir amigos
  */
 @Singleton
 class AmigoRepository @Inject constructor(

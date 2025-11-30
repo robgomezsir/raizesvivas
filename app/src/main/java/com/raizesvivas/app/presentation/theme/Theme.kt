@@ -8,77 +8,77 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 private val LightColorScheme = lightColorScheme(
-    primary = PastelPrimary,
-    onPrimary = PastelOnPrimary,
-    primaryContainer = PastelPrimaryContainer,
-    onPrimaryContainer = PastelOnPrimaryContainer,
+    primary = RaizesPrimary,
+    onPrimary = RaizesOnPrimary,
+    primaryContainer = RaizesPrimaryContainer,
+    onPrimaryContainer = RaizesOnPrimaryContainer,
 
-    secondary = PastelSecondary,
-    onSecondary = PastelOnSecondary,
-    secondaryContainer = PastelSecondaryContainer,
-    onSecondaryContainer = PastelOnSecondaryContainer,
+    secondary = RaizesSecondary,
+    onSecondary = RaizesOnSecondary,
+    secondaryContainer = RaizesSecondaryContainer,
+    onSecondaryContainer = RaizesOnSecondaryContainer,
 
-    tertiary = PastelTertiary,
-    onTertiary = PastelOnTertiary,
-    tertiaryContainer = PastelTertiaryContainer,
-    onTertiaryContainer = PastelOnTertiaryContainer,
+    tertiary = RaizesTertiary,
+    onTertiary = RaizesOnTertiary,
+    tertiaryContainer = RaizesTertiaryContainer,
+    onTertiaryContainer = RaizesOnTertiaryContainer,
 
-    background = PastelBackground,
-    onBackground = PastelOnBackground,
+    background = RaizesBackground,
+    onBackground = RaizesOnBackground,
 
-    surface = PastelSurface,
-    onSurface = PastelOnSurface,
-    surfaceVariant = PastelSurfaceVariant,
-    onSurfaceVariant = PastelOnSurfaceVariant,
+    surface = RaizesSurface,
+    onSurface = RaizesOnSurface,
+    surfaceVariant = RaizesSurfaceVariant,
+    onSurfaceVariant = RaizesOnSurfaceVariant,
 
-    error = PastelError,
-    onError = PastelOnError,
-    errorContainer = PastelErrorContainer,
-    onErrorContainer = PastelOnErrorContainer,
+    error = RaizesError,
+    onError = RaizesOnError,
+    errorContainer = RaizesErrorContainer,
+    onErrorContainer = RaizesOnErrorContainer,
 
-    outline = PastelOutline,
-    outlineVariant = PastelOutlineVariant,
-    inverseSurface = PastelInverseSurface,
-    inverseOnSurface = PastelInverseOnSurface,
-    inversePrimary = PastelInversePrimary,
-    surfaceTint = PastelPrimary
+    outline = RaizesOutline,
+    outlineVariant = RaizesOutlineVariant,
+    inverseSurface = RaizesInverseSurface,
+    inverseOnSurface = RaizesInverseOnSurface,
+    inversePrimary = RaizesInversePrimary,
+    surfaceTint = RaizesPrimary
 )
 
 private val DarkColorScheme = darkColorScheme(
-    primary = PastelPrimaryDark,
-    onPrimary = PastelOnPrimaryDark,
-    primaryContainer = PastelPrimaryContainerDark,
-    onPrimaryContainer = PastelOnPrimaryContainerDark,
+    primary = RaizesPrimaryDark,
+    onPrimary = RaizesOnPrimaryDark,
+    primaryContainer = RaizesPrimaryContainerDark,
+    onPrimaryContainer = RaizesOnPrimaryContainerDark,
 
-    secondary = PastelSecondaryDark,
-    onSecondary = PastelOnSecondaryDark,
-    secondaryContainer = PastelSecondaryContainerDark,
-    onSecondaryContainer = PastelOnSecondaryContainerDark,
+    secondary = RaizesSecondaryDark,
+    onSecondary = RaizesOnSecondaryDark,
+    secondaryContainer = RaizesSecondaryContainerDark,
+    onSecondaryContainer = RaizesOnSecondaryContainerDark,
 
-    tertiary = PastelTertiaryDark,
-    onTertiary = PastelOnTertiaryDark,
-    tertiaryContainer = PastelTertiaryContainerDark,
-    onTertiaryContainer = PastelOnTertiaryContainerDark,
+    tertiary = RaizesTertiaryDark,
+    onTertiary = RaizesOnTertiaryDark,
+    tertiaryContainer = RaizesTertiaryContainerDark,
+    onTertiaryContainer = RaizesOnTertiaryContainerDark,
 
-    background = PastelBackgroundDark,
-    onBackground = PastelOnBackgroundDark,
+    background = RaizesBackgroundDark,
+    onBackground = RaizesOnBackgroundDark,
 
-    surface = PastelSurfaceDark,
-    onSurface = PastelOnSurfaceDark,
-    surfaceVariant = PastelSurfaceVariantDark,
-    onSurfaceVariant = PastelOnSurfaceVariantDark,
+    surface = RaizesSurfaceDark,
+    onSurface = RaizesOnSurfaceDark,
+    surfaceVariant = RaizesSurfaceVariantDark,
+    onSurfaceVariant = RaizesOnSurfaceVariantDark,
 
-    error = PastelErrorDark,
-    onError = PastelOnErrorDark,
-    errorContainer = PastelErrorContainerDark,
-    onErrorContainer = PastelOnErrorContainerDark,
+    error = RaizesErrorDark,
+    onError = RaizesOnErrorDark,
+    errorContainer = RaizesErrorContainerDark,
+    onErrorContainer = RaizesOnErrorContainerDark,
 
-    outline = PastelOutlineDark,
-    outlineVariant = PastelOutlineVariantDark,
-    inverseSurface = PastelInverseSurfaceDark,
-    inverseOnSurface = PastelInverseOnSurfaceDark,
-    inversePrimary = PastelPrimary,
-    surfaceTint = PastelPrimaryDark
+    outline = RaizesOutlineDark,
+    outlineVariant = RaizesOutlineVariantDark,
+    inverseSurface = RaizesInverseSurfaceDark,
+    inverseOnSurface = RaizesInverseOnSurfaceDark,
+    inversePrimary = RaizesPrimary,
+    surfaceTint = RaizesPrimaryDark
 )
 
 @Composable

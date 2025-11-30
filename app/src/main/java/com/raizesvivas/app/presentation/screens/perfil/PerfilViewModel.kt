@@ -277,6 +277,7 @@ class PerfilViewModel @Inject constructor(
                         it.copy(
                             nome = usuario?.nome ?: currentUser.displayName,
                             email = currentUser.email,
+                            fotoUrl = usuario?.fotoUrl,
                             ehAdmin = ehAdmin,
                             pessoaVinculadaId = usuario?.pessoaVinculada,
                             pessoaVinculadaNome = usuario?.pessoaVinculada?.let { 
@@ -448,6 +449,7 @@ class PerfilViewModel @Inject constructor(
 data class PerfilState(
     val nome: String? = null,
     val email: String? = null,
+    val fotoUrl: String? = null,
     val ehAdmin: Boolean = false,
     val isLoading: Boolean = false,
     val convitesPendentes: Int = 0,

@@ -5,13 +5,13 @@ import androidx.compose.material3.Shapes
 import androidx.compose.ui.unit.dp
 
 /**
- * Shapes inspiradas na linguagem Material 3, porém com cantos mais suaves
- * para reforçar a identidade fluida/pastel definida para o app.
+ * Shapes inspiradas no estilo Neon - cantos arredondados e suaves
+ * Design limpo e moderno sem bordas
  */
 val Shapes = Shapes(
-    extraSmall = RoundedCornerShape(8.dp),
-    small = RoundedCornerShape(12.dp),
-    medium = RoundedCornerShape(18.dp),
+    extraSmall = RoundedCornerShape(12.dp), // Mais arredondado
+    small = RoundedCornerShape(16.dp), // Mais arredondado
+    medium = RoundedCornerShape(20.dp), // Mais arredondado
     large = RoundedCornerShape(24.dp),
     extraLarge = RoundedCornerShape(32.dp)
 )

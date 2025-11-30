@@ -40,8 +40,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.raizesvivas.app.presentation.ui.theme.RaizesVivasButtonDefaults
-import com.raizesvivas.app.presentation.ui.theme.InputShapeSuave
-import com.raizesvivas.app.presentation.ui.theme.inputColorsPastel
+import com.raizesvivas.app.presentation.components.RaizesVivasTextField
 
 /**
  * Tela de Recuperação de Senha
@@ -154,10 +153,10 @@ fun RecuperarSenhaScreen(
                         }
                     }
 
-                    TextField(
+                    RaizesVivasTextField(
                         value = state.email,
                         onValueChange = { viewModel.onEmailChanged(it) },
-                        label = { Text("Email") },
+                        label = "Email",
                         leadingIcon = {
                             Icon(
                                 Icons.Default.Email,
@@ -166,8 +165,6 @@ fun RecuperarSenhaScreen(
                         },
                         singleLine = true,
                         enabled = !state.enviado,
-                        shape = InputShapeSuave,
-                        colors = inputColorsPastel(),
                         isError = state.emailError != null,
                         supportingText = state.emailError?.let { { Text(it) } },
                         keyboardOptions = KeyboardOptions(

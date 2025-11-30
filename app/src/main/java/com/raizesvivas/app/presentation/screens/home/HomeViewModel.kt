@@ -743,15 +743,21 @@ class HomeViewModel @Inject constructor(
                 }
                 val dataNascimentoUsuario = pessoaVinculadaObj?.dataNascimento
                 
-                // Obter IDs do pai e da mãe para excluir da contagem
-                val idsExcluirRanking = mutableListOf<String>()
-                pessoaVinculadaObj?.pai?.let { idsExcluirRanking.add(it) }
-                pessoaVinculadaObj?.mae?.let { idsExcluirRanking.add(it) }
-                
-                val rankingPessoas = pessoaRepository.contarPessoasAteNascimento(
-                    dataNascimentoUsuario,
-                    excluirIds = idsExcluirRanking
-                )
+                // Calcular ranking entre irmãos (Posição na família = ordem de nascimento entre irmãos)
+                val rankingPessoas = if (pessoaVinculadaObj != null && dataNascimentoUsuario != null) {
+                    val irmaos = pessoaRepository.buscarIrmaos(
+                        paiId = pessoaVinculadaObj.pai,
+                        maeId = pessoaVinculadaObj.mae,
+                        excluirId = pessoaVinculadaObj.id
+                    )
+                    
+                    // Contar irmãos nascidos antes
+                    irmaos.count { irmao ->
+                        irmao.dataNascimento != null && irmao.dataNascimento.before(dataNascimentoUsuario)
+                    }
+                } else {
+                    0
+                }
                 
                 // Contar sobrinhos
                 val totalSobrinhos = pessoaVinculada?.let { 

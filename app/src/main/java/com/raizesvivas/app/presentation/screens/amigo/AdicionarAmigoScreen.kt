@@ -14,9 +14,13 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.raizesvivas.app.domain.model.Pessoa
+import com.raizesvivas.app.presentation.components.RaizesVivasTextField
 
 /**
  * Tela de Cadastro de Amigo da Família
+ * 
+ * IMPORTANTE: Todos os usuários autenticados podem adicionar amigos da família.
+ * Não há restrições de administrador para esta funcionalidade.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,10 +60,10 @@ fun AdicionarAmigoScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Campo Nome
-            OutlinedTextField(
+            RaizesVivasTextField(
                 value = state.nome,
                 onValueChange = viewModel::atualizarNome,
-                label = { Text("Nome *") },
+                label = "Nome *",
                 placeholder = { Text("Digite o nome do amigo") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
@@ -67,10 +71,10 @@ fun AdicionarAmigoScreen(
             )
             
             // Campo Telefone
-            OutlinedTextField(
+            RaizesVivasTextField(
                 value = state.telefone,
                 onValueChange = viewModel::atualizarTelefone,
-                label = { Text("Telefone") },
+                label = "Telefone",
                 placeholder = { Text("(00) 00000-0000") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
@@ -88,13 +92,13 @@ fun AdicionarAmigoScreen(
                 onExpandedChange = { expandedDropdown = !expandedDropdown },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                OutlinedTextField(
+                RaizesVivasTextField(
                     value = pessoasDisponiveis
                         .firstOrNull { it.id == state.familiarSelecionado }
                         ?.getNomeExibicao() ?: "",
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Vincular Familiar") },
+                    label = "Vincular Familiar",
                     placeholder = { Text("Selecione um familiar") },
                     trailingIcon = {
                         ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedDropdown)

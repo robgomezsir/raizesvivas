@@ -19,6 +19,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.raizesvivas.app.presentation.components.RaizesVivasTextField
 
 /**
  * Tela de criação da Família Zero (onboarding)
@@ -135,10 +136,10 @@ fun FamiliaZeroScreen(
             }
             
             // Campo Nome da Árvore (opcional)
-            OutlinedTextField(
+            RaizesVivasTextField(
                 value = state.nomeArvore,
                 onValueChange = { viewModel.onNomeArvoreChanged(it) },
-                label = { Text("Nome da Árvore (opcional)") },
+                label = "Nome da Árvore (opcional)",
                 placeholder = { Text("Ex: Família Silva") },
                 leadingIcon = {
                     Icon(Icons.Default.AccountTree, contentDescription = null)
@@ -170,10 +171,10 @@ fun FamiliaZeroScreen(
                     .padding(bottom = 8.dp)
             )
             
-            OutlinedTextField(
+            RaizesVivasTextField(
                 value = state.nomePai,
                 onValueChange = { viewModel.onNomePaiChanged(it) },
-                label = { Text("Nome do Patriarca") },
+                label = "Nome do Patriarca",
                 leadingIcon = {
                     Icon(Icons.Default.Person, contentDescription = null)
                 },
@@ -202,10 +203,10 @@ fun FamiliaZeroScreen(
                     .padding(bottom = 8.dp)
             )
             
-            OutlinedTextField(
+            RaizesVivasTextField(
                 value = state.nomeMae,
                 onValueChange = { viewModel.onNomeMaeChanged(it) },
-                label = { Text("Nome da Matriarca") },
+                label = "Nome da Matriarca",
                 leadingIcon = {
                     Icon(Icons.Default.Person, contentDescription = null)
                 },

@@ -27,8 +27,7 @@ import com.raizesvivas.app.domain.model.EstadoCivil
 import com.raizesvivas.app.domain.model.Genero
 import com.raizesvivas.app.presentation.components.DatePickerDialog
 import com.raizesvivas.app.presentation.components.ImagePicker
-import com.raizesvivas.app.presentation.ui.theme.inputColorsPastel
-import com.raizesvivas.app.presentation.ui.theme.InputShapeSuave
+import com.raizesvivas.app.presentation.components.RaizesVivasTextField
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -171,18 +170,16 @@ fun CadastroPessoaScreen(
             }
             
             // Nome (obrigatório)
-            TextField(
+            RaizesVivasTextField(
                 value = state.nome,
                 onValueChange = { viewModel.onNomeChanged(it) },
-                label = { Text("Nome Completo *") },
+                label = "Nome Completo *",
                 leadingIcon = {
                     Icon(Icons.Default.Person, contentDescription = null)
                 },
                 singleLine = true,
                 isError = state.nomeError != null,
                 supportingText = state.nomeError?.let { { Text(it) } },
-                shape = InputShapeSuave,
-                colors = inputColorsPastel(),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Text,
                     imeAction = ImeAction.Next
@@ -195,16 +192,14 @@ fun CadastroPessoaScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
 
-            TextField(
+            RaizesVivasTextField(
                 value = state.apelido,
                 onValueChange = { viewModel.onApelidoChanged(it) },
-                label = { Text("Apelido") },
+                label = "Apelido",
                 leadingIcon = {
                     Icon(Icons.Default.Star, contentDescription = null)
                 },
                 singleLine = true,
-                shape = InputShapeSuave,
-                colors = inputColorsPastel(),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Text,
                     imeAction = ImeAction.Next
@@ -220,13 +215,11 @@ fun CadastroPessoaScreen(
             // Data de Nascimento
             val dataNascTexto = state.dataNascimento?.let { dateFormatter.format(it) } ?: ""
             
-            TextField(
+            RaizesVivasTextField(
                 value = dataNascTexto,
-                shape = InputShapeSuave,
-                colors = inputColorsPastel(),
                 onValueChange = { },
                 readOnly = true,
-                label = { Text("Data de Nascimento") },
+                label = "Data de Nascimento",
                 placeholder = { Text("Clique para selecionar") },
                 leadingIcon = {
                     Icon(Icons.Default.Cake, contentDescription = null)
@@ -250,11 +243,11 @@ fun CadastroPessoaScreen(
             // Data de Falecimento
             val dataFalecTexto = state.dataFalecimento?.let { dateFormatter.format(it) } ?: ""
             
-            TextField(
+            RaizesVivasTextField(
                 value = dataFalecTexto,
                 onValueChange = { },
                 readOnly = true,
-                label = { Text("Data de Falecimento (opcional)") },
+                label = "Data de Falecimento (opcional)",
                 placeholder = { Text("Clique para selecionar") },
                 leadingIcon = {
                     Icon(Icons.Default.Info, contentDescription = null)
@@ -282,10 +275,10 @@ fun CadastroPessoaScreen(
                 modifier = Modifier.padding(bottom = 8.dp)
             )
             
-            TextField(
+            RaizesVivasTextField(
                 value = state.localNascimento,
                 onValueChange = { viewModel.onLocalNascimentoChanged(it) },
-                label = { Text("Local de Nascimento") },
+                label = "Local de Nascimento",
                 leadingIcon = {
                     Icon(Icons.Default.LocationOn, contentDescription = null)
                 },
@@ -302,10 +295,10 @@ fun CadastroPessoaScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            TextField(
+            RaizesVivasTextField(
                 value = state.localResidencia,
                 onValueChange = { viewModel.onLocalResidenciaChanged(it) },
-                label = { Text("Local de Residência") },
+                label = "Local de Residência",
                 leadingIcon = {
                     Icon(Icons.Default.Home, contentDescription = null)
                 },
@@ -329,10 +322,10 @@ fun CadastroPessoaScreen(
                 modifier = Modifier.padding(bottom = 8.dp)
             )
             
-            TextField(
+            RaizesVivasTextField(
                 value = state.profissao,
                 onValueChange = { viewModel.onProfissaoChanged(it) },
-                label = { Text("Profissão") },
+                label = "Profissão",
                 leadingIcon = {
                     Icon(Icons.Default.Work, contentDescription = null)
                 },
@@ -349,10 +342,10 @@ fun CadastroPessoaScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            TextField(
+            RaizesVivasTextField(
                 value = state.telefone,
                 onValueChange = { viewModel.onTelefoneChanged(it) },
-                label = { Text("Telefone/Celular") },
+                label = "Telefone/Celular",
                 placeholder = { Text("(00) 00000-0000") },
                 leadingIcon = {
                     Icon(Icons.Default.Phone, contentDescription = null)
@@ -370,13 +363,14 @@ fun CadastroPessoaScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            TextField(
+            RaizesVivasTextField(
                 value = state.biografia,
                 onValueChange = { viewModel.onBiografiaChanged(it) },
-                label = { Text("Biografia") },
+                label = "Biografia",
                 leadingIcon = {
                     Icon(Icons.Default.Description, contentDescription = null)
                 },
+                singleLine = false,
                 maxLines = 5,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Text,
@@ -400,10 +394,10 @@ fun CadastroPessoaScreen(
                 onExpandedChange = { expandedGenero = !expandedGenero },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                TextField(
+                RaizesVivasTextField(
                     value = state.genero?.label ?: "",
                     onValueChange = {},
-                    label = { Text("Gênero") },
+                    label = "Gênero",
                     leadingIcon = {
                         Icon(Icons.Default.Person, contentDescription = null)
                     },
@@ -458,10 +452,10 @@ fun CadastroPessoaScreen(
                 onExpandedChange = { expandedEstadoCivil = !expandedEstadoCivil },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                TextField(
+                RaizesVivasTextField(
                     value = state.estadoCivil?.label ?: "",
                     onValueChange = {},
-                    label = { Text("Estado Civil") },
+                    label = "Estado Civil",
                     leadingIcon = {
                         Icon(Icons.Default.Person, contentDescription = null)
                     },
@@ -617,10 +611,10 @@ fun PessoaSelector(
         onExpandedChange = { expanded = !expanded },
         modifier = modifier
     ) {
-        TextField(
+        RaizesVivasTextField(
             value = pessoaSelecionada?.nome ?: "",
             onValueChange = {},
-            label = { Text(label) },
+            label = label,
             leadingIcon = {
                 Icon(Icons.Default.Person, contentDescription = null)
             },

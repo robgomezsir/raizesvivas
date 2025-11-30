@@ -3346,6 +3346,10 @@ class FirestoreService @Inject constructor(
                 val fotos = snapshot.documents.mapNotNull { doc ->
                     try {
                         val data = doc.data ?: return@mapNotNull null
+                        val apoiosMap = (data["apoios"] as? Map<String, String>)?.mapValues { (_, tipoString) ->
+                            TipoApoioFoto.fromString(tipoString) ?: TipoApoioFoto.CORACAO
+                        } ?: emptyMap()
+                        
                         FotoAlbum(
                             id = doc.id,
                             familiaId = data["familiaId"] as? String ?: "",
@@ -3355,7 +3359,8 @@ class FirestoreService @Inject constructor(
                             descricao = data["descricao"] as? String ?: "",
                             criadoPor = data["criadoPor"] as? String ?: "",
                             criadoEm = (data["criadoEm"] as? com.google.firebase.Timestamp)?.toDate() ?: JavaDate(),
-                            ordem = (data["ordem"] as? Long)?.toInt() ?: 0
+                            ordem = (data["ordem"] as? Long)?.toInt() ?: 0,
+                            apoios = apoiosMap
                         )
                     } catch (e: Exception) {
                         Timber.e(e, "Erro ao converter foto do álbum: ${doc.id}")
@@ -3387,6 +3392,10 @@ class FirestoreService @Inject constructor(
                 val fotos = snapshot.documents.mapNotNull { doc ->
                     try {
                         val data = doc.data ?: return@mapNotNull null
+                        val apoiosMap = (data["apoios"] as? Map<String, String>)?.mapValues { (_, tipoString) ->
+                            TipoApoioFoto.fromString(tipoString) ?: TipoApoioFoto.CORACAO
+                        } ?: emptyMap()
+                        
                         FotoAlbum(
                             id = doc.id,
                             familiaId = data["familiaId"] as? String ?: "",
@@ -3396,7 +3405,8 @@ class FirestoreService @Inject constructor(
                             descricao = data["descricao"] as? String ?: "",
                             criadoPor = data["criadoPor"] as? String ?: "",
                             criadoEm = (data["criadoEm"] as? com.google.firebase.Timestamp)?.toDate() ?: JavaDate(),
-                            ordem = (data["ordem"] as? Long)?.toInt() ?: 0
+                            ordem = (data["ordem"] as? Long)?.toInt() ?: 0,
+                            apoios = apoiosMap
                         )
                     } catch (e: Exception) {
                         Timber.e(e, "Erro ao converter foto do álbum: ${doc.id}")
@@ -3429,6 +3439,12 @@ class FirestoreService @Inject constructor(
                     "criadoEm" to com.google.firebase.Timestamp(foto.criadoEm),
                     "ordem" to foto.ordem
                 )
+                
+                // Adicionar apoios se houver
+                if (foto.apoios.isNotEmpty()) {
+                    val apoiosMap = foto.apoios.mapValues { (_, tipo) -> tipo.name }
+                    data["apoios"] = apoiosMap
+                }
                 
                 val docRef = if (foto.id.isBlank()) {
                     fotosAlbumCollection.add(data).await()
@@ -3463,7 +3479,285 @@ class FirestoreService @Inject constructor(
     }
     
     /**
-     * Observa fotos do álbum em tempo real
+     * Adiciona ou atualiza um apoio em uma foto do álbum
+     */
+    suspend fun adicionarApoioFoto(fotoId: String, usuarioId: String, tipoApoio: TipoApoioFoto): Result<Unit> {
+        return RetryHelper.withNetworkRetry {
+            try {
+                val updateData = hashMapOf<String, Any>(
+                    "apoios.$usuarioId" to tipoApoio.name
+                )
+                fotosAlbumCollection.document(fotoId).update(updateData).await()
+                Timber.d("✅ Apoio adicionado à foto: $fotoId, usuário: $usuarioId, tipo: ${tipoApoio.name}")
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao adicionar apoio à foto")
+                Result.failure(e)
+            }
+        }
+    }
+    
+    /**
+     * Remove um apoio de uma foto do álbum
+     */
+    suspend fun removerApoioFoto(fotoId: String, usuarioId: String): Result<Unit> {
+        return RetryHelper.withNetworkRetry {
+            try {
+                val updateData = hashMapOf<String, Any>()
+                updateData["apoios.$usuarioId"] = FieldValue.delete()
+                fotosAlbumCollection.document(fotoId).update(updateData).await()
+                Timber.d("✅ Apoio removido da foto: $fotoId, usuário: $usuarioId")
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao remover apoio da foto")
+                Result.failure(e)
+            }
+        }
+    }
+    
+    // ============================================
+    // COMENTÁRIOS DE FOTOS
+    // ============================================
+    
+    /**
+     * Referência à subcoleção de comentários de uma foto
+     */
+    private fun comentariosFotoCollection(fotoId: String) = 
+        fotosAlbumCollection.document(fotoId).collection("comentarios")
+    
+    /**
+     * Busca comentários de uma foto
+     */
+    suspend fun buscarComentariosFoto(fotoId: String): Result<List<ComentarioFoto>> {
+        return RetryHelper.withNetworkRetry {
+            try {
+                val snapshot = comentariosFotoCollection(fotoId)
+                    .whereEqualTo("deletado", false)
+                    .orderBy("criadoEm", Query.Direction.ASCENDING)
+                    .get()
+                    .await()
+                
+                val comentarios = snapshot.documents.mapNotNull { doc ->
+                    try {
+                        val data = doc.data ?: return@mapNotNull null
+                        ComentarioFoto(
+                            id = doc.id,
+                            fotoId = fotoId,
+                            usuarioId = data["usuarioId"] as? String ?: "",
+                            usuarioNome = data["usuarioNome"] as? String ?: "",
+                            usuarioFotoUrl = data["usuarioFotoUrl"] as? String,
+                            texto = data["texto"] as? String ?: "",
+                            criadoEm = (data["criadoEm"] as? com.google.firebase.Timestamp)?.toDate() ?: JavaDate(),
+                            deletado = (data["deletado"] as? Boolean) ?: false
+                        )
+                    } catch (e: Exception) {
+                        Timber.e(e, "Erro ao converter comentário: ${doc.id}")
+                        null
+                    }
+                }
+                
+                Timber.d("✅ ${comentarios.size} comentários encontrados para foto $fotoId")
+                Result.success(comentarios)
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao buscar comentários da foto")
+                Result.failure(e)
+            }
+        }
+    }
+    
+    /**
+     * Adiciona um comentário em uma foto
+     */
+    suspend fun adicionarComentarioFoto(comentario: ComentarioFoto): Result<String> {
+        return RetryHelper.withNetworkRetry {
+            try {
+                val data = hashMapOf<String, Any>(
+                    "fotoId" to comentario.fotoId,
+                    "usuarioId" to comentario.usuarioId,
+                    "usuarioNome" to comentario.usuarioNome,
+                    "texto" to comentario.texto,
+                    "criadoEm" to com.google.firebase.Timestamp(comentario.criadoEm),
+                    "deletado" to false
+                )
+                
+                comentario.usuarioFotoUrl?.let { data["usuarioFotoUrl"] = it }
+                
+                val docRef = if (comentario.id.isBlank()) {
+                    comentariosFotoCollection(comentario.fotoId).add(data).await()
+                } else {
+                    comentariosFotoCollection(comentario.fotoId).document(comentario.id).set(data).await()
+                    comentariosFotoCollection(comentario.fotoId).document(comentario.id)
+                }
+                
+                Timber.d("✅ Comentário adicionado à foto: ${docRef.id}")
+                Result.success(docRef.id)
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao adicionar comentário à foto")
+                Result.failure(e)
+            }
+        }
+    }
+    
+    /**
+     * Deleta um comentário (soft delete)
+     */
+    suspend fun deletarComentarioFoto(fotoId: String, comentarioId: String): Result<Unit> {
+        return RetryHelper.withNetworkRetry {
+            try {
+                comentariosFotoCollection(fotoId).document(comentarioId).update(
+                    "deletado", true
+                ).await()
+                Timber.d("✅ Comentário deletado: $comentarioId")
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao deletar comentário")
+                Result.failure(e)
+            }
+        }
+    }
+    
+    /**
+     * Observa comentários de uma foto em tempo real
+     */
+    fun observarComentariosFoto(fotoId: String): Flow<List<ComentarioFoto>> = callbackFlow {
+        Timber.d("🔍 Observando comentários da foto: $fotoId")
+        val listenerRegistration = comentariosFotoCollection(fotoId)
+            .whereEqualTo("deletado", false)
+            .orderBy("criadoEm", Query.Direction.ASCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Timber.e(error, "❌ Erro ao observar comentários da foto: $fotoId")
+                    trySend(emptyList())
+                    return@addSnapshotListener
+                }
+                
+                if (snapshot == null) {
+                    trySend(emptyList())
+                    return@addSnapshotListener
+                }
+                
+                val comentarios = snapshot.documents.mapNotNull { doc ->
+                    try {
+                        val data = doc.data ?: return@mapNotNull null
+                        ComentarioFoto(
+                            id = doc.id,
+                            fotoId = fotoId,
+                            usuarioId = data["usuarioId"] as? String ?: "",
+                            usuarioNome = data["usuarioNome"] as? String ?: "",
+                            usuarioFotoUrl = data["usuarioFotoUrl"] as? String,
+                            texto = data["texto"] as? String ?: "",
+                            criadoEm = (data["criadoEm"] as? com.google.firebase.Timestamp)?.toDate() ?: JavaDate(),
+                            deletado = (data["deletado"] as? Boolean) ?: false
+                        )
+                    } catch (e: Exception) {
+                        Timber.e(e, "Erro ao converter comentário: ${doc.id}")
+                        null
+                    }
+                }
+                
+                trySend(comentarios)
+            }
+        
+        awaitClose { listenerRegistration.remove() }
+    }
+    
+    /**
+     * Observa TODAS as fotos do álbum em tempo real (sem filtro por familiaId)
+     * App colaborativo: todos os usuários autenticados podem ver todas as fotos
+     */
+    fun observarTodasFotosAlbum(): Flow<List<FotoAlbum>> = callbackFlow {
+        Timber.d("🔍 Observando TODAS as fotos do álbum (sem filtro de familiaId)")
+        val listenerRegistration = fotosAlbumCollection
+            .orderBy("criadoEm", Query.Direction.DESCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Timber.e(error, "❌ Erro ao observar todas as fotos do álbum")
+                    trySend(emptyList())
+                    return@addSnapshotListener
+                }
+                
+                if (snapshot == null) {
+                    Timber.w("⚠️ Snapshot é null, enviando lista vazia")
+                    trySend(emptyList())
+                    return@addSnapshotListener
+                }
+                
+                // Verificar se há mudanças (documentChanges) para detectar deleções
+                val hasChanges = snapshot.documentChanges.isNotEmpty()
+                if (hasChanges) {
+                    Timber.d("📸 Mudanças detectadas: ${snapshot.documentChanges.size} mudanças")
+                    snapshot.documentChanges.forEach { change ->
+                        when (change.type) {
+                            com.google.firebase.firestore.DocumentChange.Type.ADDED -> {
+                                Timber.d("➕ Foto adicionada: ${change.document.id}")
+                            }
+                            com.google.firebase.firestore.DocumentChange.Type.MODIFIED -> {
+                                Timber.d("✏️ Foto modificada: ${change.document.id}")
+                            }
+                            com.google.firebase.firestore.DocumentChange.Type.REMOVED -> {
+                                Timber.d("🗑️ Foto removida: ${change.document.id}")
+                            }
+                        }
+                    }
+                }
+                
+                // Processar apenas documentos que ainda existem (não deletados)
+                // snapshot.documents já contém apenas documentos existentes
+                Timber.d("📸 Snapshot recebido: ${snapshot.documents.size} documentos ativos (todas as fotos)")
+                
+                val fotos = snapshot.documents.mapNotNull { doc ->
+                    try {
+                        val data = doc.data ?: return@mapNotNull null
+                        val fotoFamiliaId = data["familiaId"] as? String ?: ""
+                        
+                        // Verificar se a URL ainda é válida (foto não foi deletada do Storage)
+                        val url = data["url"] as? String ?: ""
+                        if (url.isBlank()) {
+                            Timber.w("⚠️ Foto sem URL, ignorando: ${doc.id}")
+                            return@mapNotNull null
+                        }
+                        
+                        Timber.d("📷 Foto válida: id=${doc.id}, familiaId=$fotoFamiliaId, pessoaId=${data["pessoaId"]}, pessoaNome=${data["pessoaNome"]}")
+                        val apoiosMap = (data["apoios"] as? Map<String, String>)?.mapValues { (_, tipoString) ->
+                            TipoApoioFoto.fromString(tipoString) ?: TipoApoioFoto.CORACAO
+                        } ?: emptyMap()
+                        
+                        FotoAlbum(
+                            id = doc.id,
+                            familiaId = fotoFamiliaId,
+                            pessoaId = data["pessoaId"] as? String ?: "",
+                            pessoaNome = data["pessoaNome"] as? String ?: "",
+                            url = url,
+                            descricao = data["descricao"] as? String ?: "",
+                            criadoPor = data["criadoPor"] as? String ?: "",
+                            criadoEm = (data["criadoEm"] as? com.google.firebase.Timestamp)?.toDate() ?: JavaDate(),
+                            ordem = (data["ordem"] as? Long)?.toInt() ?: 0,
+                            apoios = apoiosMap
+                        )
+                    } catch (e: Exception) {
+                        Timber.e(e, "Erro ao converter foto do álbum: ${doc.id}")
+                        null
+                    }
+                }
+                
+                // Deduplicar por ID (segurança extra)
+                val fotosDeduplicadas = fotos.distinctBy { it.id }
+                if (fotosDeduplicadas.size != fotos.size) {
+                    Timber.w("⚠️ Fotos duplicadas removidas: ${fotos.size} -> ${fotosDeduplicadas.size}")
+                }
+                
+                Timber.d("✅ ${fotosDeduplicadas.size} fotos válidas processadas e enviadas (todas as fotos do álbum)")
+                trySend(fotosDeduplicadas)
+            }
+        
+        awaitClose { 
+            Timber.d("🛑 Parando observação de todas as fotos do álbum")
+            listenerRegistration.remove() 
+        }
+    }
+    
+    /**
+     * Observa fotos do álbum em tempo real (versão com filtro por familiaId - mantida para compatibilidade)
      */
     fun observarFotosAlbum(familiaId: String): Flow<List<FotoAlbum>> = callbackFlow {
         Timber.d("🔍 Observando fotos do álbum para familiaId: $familiaId")
@@ -3519,6 +3813,10 @@ class FirestoreService @Inject constructor(
                         }
                         
                         Timber.d("📷 Foto válida: id=${doc.id}, familiaId=$fotoFamiliaId, pessoaId=${data["pessoaId"]}, pessoaNome=${data["pessoaNome"]}")
+                        val apoiosMap = (data["apoios"] as? Map<String, String>)?.mapValues { (_, tipoString) ->
+                            TipoApoioFoto.fromString(tipoString) ?: TipoApoioFoto.CORACAO
+                        } ?: emptyMap()
+                        
                         FotoAlbum(
                             id = doc.id,
                             familiaId = fotoFamiliaId,
@@ -3528,7 +3826,8 @@ class FirestoreService @Inject constructor(
                             descricao = data["descricao"] as? String ?: "",
                             criadoPor = data["criadoPor"] as? String ?: "",
                             criadoEm = (data["criadoEm"] as? com.google.firebase.Timestamp)?.toDate() ?: JavaDate(),
-                            ordem = (data["ordem"] as? Long)?.toInt() ?: 0
+                            ordem = (data["ordem"] as? Long)?.toInt() ?: 0,
+                            apoios = apoiosMap
                         )
                     } catch (e: Exception) {
                         Timber.e(e, "Erro ao converter foto do álbum: ${doc.id}")

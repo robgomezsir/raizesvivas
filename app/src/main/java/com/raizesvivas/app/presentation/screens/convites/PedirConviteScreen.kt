@@ -12,6 +12,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.raizesvivas.app.presentation.components.RaizesVivasTextField
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,10 +46,10 @@ fun PedirConviteScreen(
                 style = MaterialTheme.typography.bodyMedium
             )
 
-            OutlinedTextField(
+            RaizesVivasTextField(
                 value = state.email,
                 onValueChange = viewModel::atualizarEmail,
-                label = { Text("E-mail") },
+                label = "E-mail",
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Email,
@@ -57,18 +58,18 @@ fun PedirConviteScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            OutlinedTextField(
+            RaizesVivasTextField(
                 value = state.nome,
                 onValueChange = viewModel::atualizarNome,
-                label = { Text("Nome (opcional)") },
+                label = "Nome (opcional)",
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
 
-            OutlinedTextField(
+            RaizesVivasTextField(
                 value = state.telefone,
                 onValueChange = viewModel::atualizarTelefone,
-                label = { Text("Telefone (opcional)") },
+                label = "Telefone (opcional)",
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Phone,
