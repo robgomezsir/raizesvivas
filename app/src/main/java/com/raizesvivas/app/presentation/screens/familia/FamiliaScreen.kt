@@ -111,7 +111,8 @@ fun FamiliaScreen(
     onNavigateToDetalhesPessoa: (String) -> Unit,
     onNavigateToCadastroPessoa: () -> Unit = {},
     onNavigateToAdicionarAmigo: () -> Unit = {},
-    onNavigateToAlbum: () -> Unit = {}
+    onNavigateToAlbum: () -> Unit = {},
+    onNavigateToArvoreHierarquica: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
     val pullRefreshState = rememberPullToRefreshState()
@@ -242,14 +243,53 @@ fun FamiliaScreen(
             )
         }
     ) { padding ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .background(MaterialTheme.colorScheme.background)
-                .padding(horizontal = 8.dp)
                 .nestedScroll(pullRefreshState.nestedScrollConnection)
         ) {
+            // Link para visualização hierárquica
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onNavigateToArvoreHierarquica() },
+                color = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Árvore Genealógica Hierárquica",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Visualize sua árvore genealógica em formato hierárquico",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                        )
+                    }
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = "Ver árvore hierárquica",
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
+            
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 8.dp)
+            ) {
             when {
                 state.isLoading && state.familias.isEmpty() -> {
                     Box(
@@ -489,7 +529,7 @@ fun FamiliaScreen(
                                             familiaParaEdicao.value = familia
                                             nomeEditado.value = familia.nomeExibicao
                                         },
-                                        onGerenciarFamilia = { familiaSelecionada ->
+                                        onGerenciarFamilia = { familiaSelecionada: FamiliaUiModel ->
                                             familiaParaGerenciar.value = familiaSelecionada
                                         },
                                         onNavigateToPessoa = onNavigateToDetalhesPessoa
@@ -785,7 +825,7 @@ fun FamiliaScreen(
                                                             nomeAmigoEditado.value = amigo.nome
                                                             telefoneAmigoEditado.value = amigo.telefone ?: ""
                                                         },
-                                                        onRemoverVinculo = { familiarId ->
+                                                        onRemoverVinculo = { familiarId: String ->
                                                             viewModel.removerFamiliarDoAmigo(amigo.id, familiarId)
                                                         }
                                                     )
@@ -802,10 +842,13 @@ fun FamiliaScreen(
                 }
             }
 
-            PullToRefreshContainer(
-                state = pullRefreshState,
-                modifier = Modifier.align(Alignment.TopCenter)
-            )
+            // Pull to refresh indicator - só aparece quando está refreshing
+            if (pullRefreshState.isRefreshing || pullRefreshState.progress > 0) {
+                PullToRefreshContainer(
+                    state = pullRefreshState,
+                    modifier = Modifier.align(Alignment.TopCenter)
+                )
+            }
             
             state.erro?.let { mensagemErro ->
                 Box(
@@ -1404,8 +1447,8 @@ fun FamiliaScreen(
         )
     }
 }
+}
 
-@Composable
 /**
  * Card de exibição de amigo da família
  * 
@@ -1417,6 +1460,7 @@ fun FamiliaScreen(
  * 
  * Não há restrições de administrador.
  */
+@Composable
 private fun AmigoCard(
     amigo: Amigo,
     pessoasDisponiveis: List<Pessoa>,

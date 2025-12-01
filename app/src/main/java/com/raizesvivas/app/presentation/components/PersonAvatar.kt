@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlin.math.absoluteValue
 
 /**
  * Avatar de pessoa com gradiente único baseado no ID
@@ -32,14 +33,17 @@ fun PersonAvatar(
     personId: String,
     personName: String,
     size: Dp = 48.dp,
+    textSize: androidx.compose.ui.unit.TextUnit = androidx.compose.ui.unit.TextUnit.Unspecified,
     modifier: Modifier = Modifier
 ) {
     val gradientColors = remember(personId) {
         // Gerar gradiente único baseado no ID
-        val hue = personId.hashCode() % 360
+        // Usar abs() e módulo para garantir que o hue esteja sempre no range 0..360
+        val hue = (personId.hashCode().absoluteValue % 360).toFloat()
+        val hue2 = ((personId.hashCode().absoluteValue + 30) % 360).toFloat()
         listOf(
-            Color.hsl(hue.toFloat(), 0.6f, 0.5f),
-            Color.hsl((hue + 30) % 360f, 0.6f, 0.6f)
+            Color.hsl(hue, 0.6f, 0.5f),
+            Color.hsl(hue2, 0.6f, 0.6f)
         )
     }
     
@@ -66,7 +70,8 @@ fun PersonAvatar(
             text = initials,
             style = MaterialTheme.typography.titleMedium,
             color = Color.White,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            fontSize = textSize
         )
     }
 }

@@ -15,6 +15,7 @@ sealed class Screen(val route: String) {
     // Principal
     object Home : Screen("home")
     object Familia : Screen("familia")
+    object ArvoreHierarquica : Screen("arvore_hierarquica")
     object Conquistas : Screen("conquistas")
     object Mural : Screen("mural")
     object AlbumFamilia : Screen("album_familia")

@@ -23,6 +23,10 @@ import com.raizesvivas.app.presentation.screens.usuarios.GerenciarUsuariosScreen
 import com.raizesvivas.app.presentation.screens.configuracoes.ConfiguracoesScreen
 import com.raizesvivas.app.presentation.screens.amigo.AdicionarAmigoScreen
 import com.raizesvivas.app.presentation.screens.detalhes.DetalhesPessoaScreen
+import com.raizesvivas.app.presentation.screens.arvore.ArvoreHierarquicaScreen
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.raizesvivas.app.presentation.screens.perfil.PerfilViewModel
+import androidx.compose.runtime.collectAsState
 import timber.log.Timber
 
 /**
@@ -401,6 +405,34 @@ fun NavGraph(
             AdicionarAmigoScreen(
                 onNavigateBack = {
                     navController.popBackStack()
+                }
+            )
+        }
+        
+        // ============================================
+        // ÁRVORE GENEALÓGICA HIERÁRQUICA
+        // ============================================
+        
+        composable(
+            route = Screen.ArvoreHierarquica.route,
+            enterTransition = { Transitions.enterTransition() },
+            exitTransition = { Transitions.exitTransition() },
+            popEnterTransition = { Transitions.popEnterTransition() },
+            popExitTransition = { Transitions.popExitTransition() }
+        ) {
+            val perfilViewModel: PerfilViewModel = hiltViewModel()
+            val perfilState by perfilViewModel.state.collectAsState()
+            
+            ArvoreHierarquicaScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToDetalhesPessoa = { pessoaId ->
+                    if (pessoaId == perfilState.pessoaVinculadaId) {
+                        navController.navigate(Screen.Perfil.route)
+                    } else {
+                        navController.navigate(Screen.DetalhesPessoa.createRoute(pessoaId))
+                    }
                 }
             )
         }

@@ -306,6 +306,9 @@ fun MainNavigation(
                             launchSingleTop = true
                             restoreState = true
                         }
+                    },
+                    onNavigateToArvoreHierarquica = {
+                        navControllerPrincipal.navigate(Screen.ArvoreHierarquica.route)
                     }
                 )
             }

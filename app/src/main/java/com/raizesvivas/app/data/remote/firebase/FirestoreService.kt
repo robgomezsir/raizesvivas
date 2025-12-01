@@ -3884,11 +3884,13 @@ class FirestoreService @Inject constructor(
     
     /**
      * Busca todos os amigos do Firestore
+     * IMPORTANTE: Limite de 100 para atender às regras de segurança do Firestore
      */
     suspend fun buscarTodosAmigos(): Result<List<Amigo>> {
         return try {
             val snapshot = amigosCollection
                 .orderBy("nome", Query.Direction.ASCENDING)
+                .limit(100)
                 .get()
                 .await()
             
