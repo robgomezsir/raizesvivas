@@ -28,6 +28,16 @@ import com.raizesvivas.app.domain.model.FotoAlbum
 import com.raizesvivas.app.domain.model.Pessoa
 import com.raizesvivas.app.presentation.screens.cadastro.PessoaSelector
 import com.raizesvivas.app.presentation.screens.album.AvatarUsuario
+import com.raizesvivas.app.presentation.viewmodel.GamificacaoViewModel
+import com.raizesvivas.app.presentation.viewmodel.ConquistaComProgresso
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlinx.coroutines.delay
@@ -40,11 +50,16 @@ import timber.log.Timber
 @Composable
 fun PerfilScreen(
     viewModel: PerfilViewModel = hiltViewModel(),
+    gamificacaoViewModel: GamificacaoViewModel = hiltViewModel(),
     onNavigateToCadastroPessoaComId: (String?) -> Unit = {},
     onNavigateToEditar: (String) -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
     val pessoasDisponiveis by viewModel.pessoasDisponiveis.collectAsState()
+    
+    // Dados de gamificação
+    val perfilGamificacao by gamificacaoViewModel.perfil.collectAsState()
+    val conquistasComProgresso by gamificacaoViewModel.conquistasComProgresso.collectAsState()
     
     // Obter currentUserId do ViewModel
     val currentUserId = remember { viewModel.getCurrentUserId() }
@@ -298,6 +313,15 @@ fun PerfilScreen(
                     }
                 }
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                // Seção de Conquistas (Expansível)
+                SecaoConquistasExpansivel(
+                    perfilGamificacao = perfilGamificacao,
+                    conquistasComProgresso = conquistasComProgresso,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp)
+                )
 
                 // Card de vinculação com pessoa
                 Card(
@@ -863,5 +887,376 @@ private fun FotoAlbumItem(
                 }
             }
         }
+    }
+}
+
+/**
+ * Seção expansível de Conquistas
+ */
+@Composable
+private fun SecaoConquistasExpansivel(
+    perfilGamificacao: com.raizesvivas.app.domain.model.PerfilGamificacao?,
+    conquistasComProgresso: List<ConquistaComProgresso>,
+    modifier: Modifier = Modifier
+) {
+    var isExpanded by remember { mutableStateOf(false) }
+    
+    val perfilAtual = perfilGamificacao ?: com.raizesvivas.app.domain.model.PerfilGamificacao(
+        usuarioId = "",
+        nivel = 1,
+        xpAtual = 0,
+        xpProximoNivel = 500,
+        conquistasDesbloqueadas = 0,
+        totalConquistas = com.raizesvivas.app.domain.model.SistemaConquistas.obterTodas().size
+    )
+    
+    // Filtrar apenas conquistas concluídas
+    val conquistasConcluidas = remember(conquistasComProgresso) {
+        conquistasComProgresso.filter { it.progresso.concluida }
+    }
+    
+    // Calcular progresso para o próximo nível
+    val progresso = if (perfilAtual.xpProximoNivel > 0) {
+        perfilAtual.xpAtual.toFloat() / perfilAtual.xpProximoNivel.toFloat()
+    } else {
+        0f
+    }
+    
+    val progressoAnimado by animateFloatAsState(
+        targetValue = progresso,
+        animationSpec = tween(1000),
+        label = "progresso"
+    )
+    
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            // Header clicável
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { isExpanded = !isExpanded }
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.EmojiEvents,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Column {
+                        Text(
+                            text = "Conquistas",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Text(
+                            text = "Nível ${perfilAtual.nivel} • ${perfilAtual.conquistasDesbloqueadas}/${perfilAtual.totalConquistas} conquistas",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (isExpanded) "Recolher" else "Expandir",
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+            
+            // Conteúdo expansível
+            androidx.compose.animation.AnimatedVisibility(
+                visible = isExpanded,
+                enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(),
+                exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f)
+                    )
+                    
+                    // Informações do Nível
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = "Nível ${perfilAtual.nivel}",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Text(
+                                    text = obterBrasaoNivel(perfilAtual.nivel),
+                                    style = MaterialTheme.typography.headlineMedium
+                                )
+                            }
+                            Column(
+                                horizontalAlignment = Alignment.End
+                            ) {
+                                Text(
+                                    text = "${perfilAtual.xpAtual} / ${perfilAtual.xpProximoNivel} XP",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Text(
+                                    text = "Próximo: Nível ${perfilAtual.nivel + 1}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                                )
+                            }
+                        }
+                        
+                        // Barra de Progresso
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            LinearProgressIndicator(
+                                progress = { progressoAnimado },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(12.dp)
+                                    .clip(RoundedCornerShape(6.dp)),
+                                color = MaterialTheme.colorScheme.primary,
+                                trackColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "${(progressoAnimado * 100).toInt()}% completo",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                                )
+                                Text(
+                                    text = "Faltam ${perfilAtual.xpProximoNivel - perfilAtual.xpAtual} XP",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                                )
+                            }
+                        }
+                    }
+                    
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f)
+                    )
+                    
+                    // Lista de Conquistas (apenas concluídas)
+                    if (conquistasConcluidas.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 24.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = "🌱",
+                                    style = MaterialTheme.typography.displayMedium
+                                )
+                                Text(
+                                    text = "Ainda não há conquistas concluídas",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    textAlign = TextAlign.Center,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                                )
+                                Text(
+                                    text = "Continue usando o app para desbloquear conquistas!",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    textAlign = TextAlign.Center,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f)
+                                )
+                            }
+                        }
+                    } else {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            conquistasConcluidas.forEach { conquistaComProgresso ->
+                                ConquistaItemCard(conquistaComProgresso = conquistaComProgresso)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Card de Conquista Individual (versão compacta para perfil)
+ */
+@Composable
+private fun ConquistaItemCard(
+    conquistaComProgresso: ConquistaComProgresso
+) {
+    val conquista = conquistaComProgresso.conquista
+    val progresso = conquistaComProgresso.progresso
+    
+    val progressoPercentual = if (progresso.progressoTotal > 0) {
+        progresso.progresso.toFloat() / progresso.progressoTotal.toFloat()
+    } else {
+        0f
+    }
+    
+    val progressoAnimado by animateFloatAsState(
+        targetValue = progressoPercentual,
+        animationSpec = tween(500),
+        label = "progresso_conquista"
+    )
+    
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (progresso.concluida) {
+                MaterialTheme.colorScheme.secondaryContainer
+            } else {
+                MaterialTheme.colorScheme.surface
+            }
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (progresso.concluida) 4.dp else 1.dp
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Ícone da Conquista
+            Surface(
+                modifier = Modifier.size(48.dp),
+                shape = CircleShape,
+                color = if (progresso.concluida) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.surfaceVariant
+                }
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = conquista.icone ?: "🏆",
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                }
+            }
+            
+            // Conteúdo
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = conquista.nome,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = if (progresso.concluida) FontWeight.Bold else FontWeight.Normal,
+                        maxLines = 1
+                    )
+                    
+                    if (progresso.concluida) {
+                        Badge(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        ) {
+                            Text(
+                                text = "✓",
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.padding(horizontal = 4.dp)
+                            )
+                        }
+                    }
+                }
+                
+                Text(
+                    text = conquista.descricao,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2
+                )
+                
+                // Barra de Progresso
+                if (!progresso.concluida) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        LinearProgressIndicator(
+                            progress = { progressoAnimado },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(6.dp)
+                                .clip(RoundedCornerShape(3.dp)),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                        Text(
+                            text = "${progresso.progresso} / ${progresso.progressoTotal}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    }
+                } else {
+                    Text(
+                        text = "Concluída • +${conquista.recompensaXP} XP",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Retorna o brasão/emoji correspondente ao nível
+ */
+private fun obterBrasaoNivel(nivel: Int): String {
+    return when {
+        nivel >= 50 -> "👑"
+        nivel >= 40 -> "🏆"
+        nivel >= 30 -> "⭐"
+        nivel >= 20 -> "🌟"
+        nivel >= 10 -> "🎖️"
+        nivel >= 5 -> "🎯"
+        nivel >= 3 -> "📜"
+        nivel >= 2 -> "🌱"
+        else -> "🌿"
     }
 }

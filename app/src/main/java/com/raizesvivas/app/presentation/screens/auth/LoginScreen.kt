@@ -31,9 +31,11 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -114,37 +116,55 @@ fun LoginScreen(
     }
 
     val colorScheme = MaterialTheme.colorScheme
-    val backgroundBrush = remember(colorScheme) {
-        Brush.verticalGradient(
-            colors = listOf(
-                colorScheme.primary.copy(alpha = 0.22f),
-                colorScheme.secondary.copy(alpha = 0.18f),
-                colorScheme.background
-            )
-        )
-    }
-
+    
     Scaffold(containerColor = Color.Transparent) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(backgroundBrush)
-                .padding(paddingValues)
-                .padding(horizontal = 20.dp, vertical = 32.dp),
+                .padding(paddingValues),
             contentAlignment = Alignment.Center
         ) {
-            Surface(
-                shape = MaterialTheme.shapes.extraLarge,
-                color = colorScheme.surface.copy(alpha = 0.96f),
-                tonalElevation = 4.dp,
-                shadowElevation = 6.dp,
+            // Imagem de background
+            Image(
+                painter = painterResource(id = com.raizesvivas.app.R.drawable.login_background),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+            
+            // Overlay semi-transparente para melhorar legibilidade
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Black.copy(alpha = 0.2f),
+                                Color.Black.copy(alpha = 0.35f),
+                                Color.Black.copy(alpha = 0.25f)
+                            )
+                        )
+                    )
+            )
+            
+            // Conteúdo do login
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp, vertical = 32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .wrapContentHeight()
+                    .clip(MaterialTheme.shapes.extraLarge)
+                    .background(Color.White.copy(alpha = 0.6f))
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .background(Color.Transparent)
                         .padding(horizontal = 28.dp, vertical = 32.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(20.dp)
@@ -171,21 +191,21 @@ fun LoginScreen(
                             text = "Raízes Vivas",
                             style = MaterialTheme.typography.headlineLarge,
                             fontWeight = FontWeight.SemiBold,
-                            color = colorScheme.primary
+                            color = colorScheme.primary.copy(alpha = 0.95f)
                         )
                         Text(
                             text = "Conecte-se à sua história familiar",
                             style = MaterialTheme.typography.bodyLarge,
-                            color = colorScheme.onSurfaceVariant,
+                            color = Color.Black.copy(alpha = 0.85f),
                             textAlign = TextAlign.Center
                         )
                     }
 
                     state.error?.let { error ->
                         Surface(
-                            color = colorScheme.errorContainer.copy(alpha = 0.85f),
+                            color = colorScheme.errorContainer.copy(alpha = 0.75f),
                             shape = MaterialTheme.shapes.medium,
-                            tonalElevation = 1.dp,
+                            tonalElevation = 0.dp,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
@@ -202,7 +222,11 @@ fun LoginScreen(
                         onValueChange = { viewModel.onEmailChanged(it) },
                         label = "Email",
                         leadingIcon = {
-                            Icon(imageVector = Icons.Default.Email, contentDescription = null)
+                            Icon(
+                                imageVector = Icons.Default.Email,
+                                contentDescription = null,
+                                tint = colorScheme.tertiary
+                            )
                         },
                         singleLine = true,
                         isError = state.emailError != null,
@@ -224,13 +248,18 @@ fun LoginScreen(
                         onValueChange = { viewModel.onSenhaChanged(it) },
                         label = "Senha",
                         leadingIcon = {
-                            Icon(imageVector = Icons.Default.Lock, contentDescription = null)
+                            Icon(
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = null,
+                                tint = colorScheme.tertiary
+                            )
                         },
                         trailingIcon = {
                             IconButton(onClick = { senhaVisivel = !senhaVisivel }) {
                                 Icon(
                                     imageVector = if (senhaVisivel) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                    contentDescription = if (senhaVisivel) "Ocultar senha" else "Mostrar senha"
+                                    contentDescription = if (senhaVisivel) "Ocultar senha" else "Mostrar senha",
+                                    tint = colorScheme.tertiary
                                 )
                             }
                         },
@@ -257,13 +286,22 @@ fun LoginScreen(
                             .horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        TextButton(onClick = onNavigateToPedirConvite) {
+                        TextButton(
+                            onClick = onNavigateToPedirConvite,
+                            colors = ButtonDefaults.textButtonColors(contentColor = colorScheme.tertiary)
+                        ) {
                             Text("Pedir convite")
                         }
-                        TextButton(onClick = onNavigateToAceitarConvite) {
+                        TextButton(
+                            onClick = onNavigateToAceitarConvite,
+                            colors = ButtonDefaults.textButtonColors(contentColor = colorScheme.tertiary)
+                        ) {
                             Text("Aceitar convite")
                         }
-                        TextButton(onClick = onNavigateToRecuperarSenha) {
+                        TextButton(
+                            onClick = onNavigateToRecuperarSenha,
+                            colors = ButtonDefaults.textButtonColors(contentColor = colorScheme.tertiary)
+                        ) {
                             Text("Esqueci minha senha")
                         }
                     }
@@ -277,17 +315,17 @@ fun LoginScreen(
                         Text(
                             text = "Foi convidado? ",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = colorScheme.onSurfaceVariant
+                            color = Color.Black.copy(alpha = 0.8f)
                         )
                         TextButton(
                             onClick = onNavigateToCadastro,
-                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
+                            colors = ButtonDefaults.textButtonColors(contentColor = colorScheme.tertiary)
                         ) {
                             Text(
                                 text = "Criar conta",
                                 style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = colorScheme.primary
+                                fontWeight = FontWeight.SemiBold
                             )
                         }
                     }
@@ -312,7 +350,7 @@ fun LoginScreen(
                                 imageVector = Icons.Default.Fingerprint,
                                 contentDescription = null,
                                 modifier = Modifier.size(24.dp),
-                                tint = colorScheme.primary
+                                tint = colorScheme.tertiary
                             )
                             Spacer(modifier = Modifier.width(10.dp))
                             Text("Entrar com Biometria", style = MaterialTheme.typography.titleMedium)
@@ -329,7 +367,7 @@ fun LoginScreen(
                             Text(
                                 text = "ou",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = colorScheme.onSurfaceVariant
+                                color = Color.Black.copy(alpha = 0.75f)
                             )
                             HorizontalDivider(modifier = Modifier.weight(1f))
                         }
@@ -358,6 +396,7 @@ fun LoginScreen(
 
                     // Cadastro aberto removido. Fluxo agora usa convites/aprovação.
                 }
+            }
             }
         }
     }

@@ -62,6 +62,21 @@ object DeepLinkHandler {
                     }
                 }
             }
+            "reset-password" -> {
+                val oobCode = uri.getQueryParameter("oobCode")
+                val mode = uri.getQueryParameter("mode")
+                if (oobCode != null && mode == "resetPassword") {
+                    Timber.d("🔗 Navegando para redefinição de senha com oobCode")
+                    navController.navigate(Screen.RedefinirSenha.createRoute(oobCode)) {
+                        popUpTo(Screen.Login.route) { inclusive = false }
+                    }
+                } else {
+                    Timber.w("⚠️ Parâmetros inválidos para reset-password: oobCode=$oobCode, mode=$mode")
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            }
             else -> {
                 Timber.w("⚠️ Host não reconhecido: ${uri.host}")
             }
@@ -74,6 +89,17 @@ object DeepLinkHandler {
     private fun handleHttpScheme(uri: Uri, navController: NavController) {
         val host = uri.host
         val path = uri.pathSegments
+        
+        // Tratar links do Firebase Auth (reset password)
+        val mode = uri.getQueryParameter("mode")
+        val oobCode = uri.getQueryParameter("oobCode")
+        if (mode == "resetPassword" && oobCode != null) {
+            Timber.d("🔗 Processando link de reset de senha do Firebase")
+            navController.navigate(Screen.RedefinirSenha.createRoute(oobCode)) {
+                popUpTo(Screen.Login.route) { inclusive = false }
+            }
+            return
+        }
         
         when {
             host == "raizesvivas.com" || host?.contains("raizesvivas") == true -> {
@@ -91,10 +117,27 @@ object DeepLinkHandler {
                     "familia" -> navController.navigate(Screen.Familia.route) {
                         popUpTo(0) { inclusive = true }
                     }
+                    "reset-password" -> {
+                        // Tratar reset-password via HTTP também
+                        if (oobCode != null) {
+                            navController.navigate(Screen.RedefinirSenha.createRoute(oobCode)) {
+                                popUpTo(Screen.Login.route) { inclusive = false }
+                            }
+                        }
+                    }
                     else -> {
                         navController.navigate(Screen.Home.route) {
                             popUpTo(0) { inclusive = true }
                         }
+                    }
+                }
+            }
+            // Tratar links do Firebase (suasraizesvivas.firebaseapp.com)
+            host?.contains("firebaseapp.com") == true -> {
+                if (mode == "resetPassword" && oobCode != null) {
+                    Timber.d("🔗 Processando link de reset do Firebase App")
+                    navController.navigate(Screen.RedefinirSenha.createRoute(oobCode)) {
+                        popUpTo(Screen.Login.route) { inclusive = false }
                     }
                 }
             }

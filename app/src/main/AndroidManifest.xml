@@ -43,6 +43,16 @@
                 <data android:scheme="raizesvivas" android:host="app" />
             </intent-filter>
             
+            <!-- Deep Link para Reset de Senha -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="raizesvivas"
+                    android:host="reset-password" />
+            </intent-filter>
+            
             <!-- App Links (HTTP/HTTPS) -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
@@ -52,6 +62,17 @@
                 <!-- Substitua pelo seu domínio real -->
                 <data android:scheme="https" android:host="raizesvivas.com" />
                 <data android:scheme="http" android:host="raizesvivas.com" />
+            </intent-filter>
+            
+            <!-- Deep Links do Firebase (para reset de senha) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                
+                <!-- Links do Firebase Auth (suasraizesvivas.firebaseapp.com) -->
+                <data android:scheme="https" android:host="suasraizesvivas.firebaseapp.com" />
+                <data android:scheme="http" android:host="suasraizesvivas.firebaseapp.com" />
             </intent-filter>
         </activity>
         

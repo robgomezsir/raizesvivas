@@ -2755,9 +2755,9 @@ class FirestoreService @Inject constructor(
     }
     
     /**
-     * Deleta todas as mensagens ENVIADAS PELO USUÁRIO para um destinatário específico
-     * IMPORTANTE: Deleta apenas mensagens onde remetenteId == usuarioIdAtual
-     * Não deleta mensagens recebidas do destinatário
+     * Deleta TODAS as mensagens da conversa entre dois usuários
+     * Remove tanto mensagens enviadas quanto recebidas
+     * Usa duas queries separadas para respeitar as regras de segurança do Firestore
      */
     suspend fun deletarMensagensConversa(
         remetenteId: String,
@@ -2765,36 +2765,48 @@ class FirestoreService @Inject constructor(
     ): Result<Unit> {
         return RetryHelper.withNetworkRetry {
             try {
-                Timber.d("🗑️ Iniciando deleção de mensagens ENVIADAS: remetenteId=$remetenteId, destinatarioId=$destinatarioId")
+                Timber.d("🗑️ Iniciando deleção de TODAS as mensagens da conversa: $remetenteId <-> $destinatarioId")
                 
-                // Buscar apenas mensagens ENVIADAS pelo remetente para o destinatário
-                val snapshot = mensagensChatCollection
+                // Query 1: Mensagens enviadas por remetenteId para destinatarioId
+                val snapshot1 = mensagensChatCollection
                     .whereEqualTo("remetenteId", remetenteId)
                     .whereEqualTo("destinatarioId", destinatarioId)
                     .get()
                     .await()
                 
-                val totalMensagens = snapshot.documents.size
-                Timber.d("📊 Total de mensagens ENVIADAS encontradas para deletar: $totalMensagens")
+                // Query 2: Mensagens enviadas por destinatarioId para remetenteId (direção inversa)
+                val snapshot2 = mensagensChatCollection
+                    .whereEqualTo("remetenteId", destinatarioId)
+                    .whereEqualTo("destinatarioId", remetenteId)
+                    .get()
+                    .await()
+                
+                val totalMensagens = snapshot1.documents.size + snapshot2.documents.size
+                Timber.d("📊 Total de mensagens encontradas para deletar: $totalMensagens (${snapshot1.documents.size} enviadas + ${snapshot2.documents.size} recebidas)")
                 
                 if (totalMensagens == 0) {
-                    Timber.d("ℹ️ Nenhuma mensagem enviada encontrada para deletar")
+                    Timber.d("ℹ️ Nenhuma mensagem encontrada para deletar")
                     return@withNetworkRetry Result.success(Unit)
                 }
                 
+                // Usar batch para deletar todas as mensagens
                 val batch = firestore.batch()
-                snapshot.documents.forEach { doc ->
+                
+                snapshot1.documents.forEach { doc ->
                     batch.delete(doc.reference)
-                    Timber.d("🗑️ Marcando mensagem para deleção: ${doc.id}")
+                }
+                
+                snapshot2.documents.forEach { doc ->
+                    batch.delete(doc.reference)
                 }
                 
                 // Commit do batch
                 batch.commit().await()
-                Timber.d("✅ $totalMensagens mensagens ENVIADAS deletadas com sucesso")
+                Timber.d("✅ $totalMensagens mensagens deletadas com sucesso da conversa")
                 
                 Result.success(Unit)
             } catch (e: Exception) {
-                Timber.e(e, "❌ Erro ao deletar mensagens enviadas")
+                Timber.e(e, "❌ Erro ao deletar mensagens da conversa")
                 Result.failure(e)
             }
         }
@@ -3347,6 +3359,7 @@ class FirestoreService @Inject constructor(
                 val fotos = snapshot.documents.mapNotNull { doc ->
                     try {
                         val data = doc.data ?: return@mapNotNull null
+                        @Suppress("UNCHECKED_CAST")
                         val apoiosMap = (data["apoios"] as? Map<String, String>)?.mapValues { (_, tipoString) ->
                             TipoApoioFoto.fromString(tipoString) ?: TipoApoioFoto.CORACAO
                         } ?: emptyMap()
@@ -3393,6 +3406,7 @@ class FirestoreService @Inject constructor(
                 val fotos = snapshot.documents.mapNotNull { doc ->
                     try {
                         val data = doc.data ?: return@mapNotNull null
+                        @Suppress("UNCHECKED_CAST")
                         val apoiosMap = (data["apoios"] as? Map<String, String>)?.mapValues { (_, tipoString) ->
                             TipoApoioFoto.fromString(tipoString) ?: TipoApoioFoto.CORACAO
                         } ?: emptyMap()
@@ -3719,6 +3733,7 @@ class FirestoreService @Inject constructor(
                         }
                         
                         Timber.d("📷 Foto válida: id=${doc.id}, familiaId=$fotoFamiliaId, pessoaId=${data["pessoaId"]}, pessoaNome=${data["pessoaNome"]}")
+                        @Suppress("UNCHECKED_CAST")
                         val apoiosMap = (data["apoios"] as? Map<String, String>)?.mapValues { (_, tipoString) ->
                             TipoApoioFoto.fromString(tipoString) ?: TipoApoioFoto.CORACAO
                         } ?: emptyMap()

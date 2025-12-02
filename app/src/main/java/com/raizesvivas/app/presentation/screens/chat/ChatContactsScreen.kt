@@ -12,8 +12,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,7 +42,6 @@ fun ChatContactsScreen(
     val usuarios by viewModel.usuarios.collectAsState()
     val mensagensNaoLidas by viewModel.mensagensNaoLidas.collectAsState()
     val colorScheme = MaterialTheme.colorScheme
-    val pullToRefreshState = rememberPullToRefreshState()
 
     val backgroundBrush = remember(colorScheme) {
         Brush.verticalGradient(
@@ -64,18 +61,6 @@ fun ChatContactsScreen(
                 duration = SnackbarDuration.Long
             )
             viewModel.limparErro()
-        }
-    }
-
-    LaunchedEffect(pullToRefreshState.isRefreshing) {
-        if (pullToRefreshState.isRefreshing && !state.isLoading) {
-            viewModel.recarregarUsuarios()
-        }
-    }
-
-    LaunchedEffect(state.isLoading) {
-        if (!state.isLoading && pullToRefreshState.isRefreshing) {
-            pullToRefreshState.endRefresh()
         }
     }
 
@@ -197,11 +182,6 @@ fun ChatContactsScreen(
                     }
                 }
             }
-
-            PullToRefreshContainer(
-                state = pullToRefreshState,
-                modifier = Modifier.align(Alignment.TopCenter)
-            )
         }
     }
 }

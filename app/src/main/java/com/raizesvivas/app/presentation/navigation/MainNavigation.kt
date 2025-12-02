@@ -42,15 +42,15 @@ fun rememberAdaptiveNavigationFontSize(): androidx.compose.ui.unit.TextUnit {
     val screenWidth = configuration.screenWidthDp
     
     // Lista de todos os textos possíveis na navigation bar
-    val allLabels = listOf("Início", "Mural", "Família", "Álbum")
+    val allLabels = listOf("Início", "Mural", "Família", "Rede", "Eu")
     
     // Encontrar o texto mais longo
-    val longestText = allLabels.maxByOrNull { it.length } ?: "Álbum"
+    val longestText = allLabels.maxByOrNull { it.length } ?: "Família"
     
     return remember(screenWidth) {
-        // Calcular largura disponível por item (assumindo 4 itens na navigation bar)
+        // Calcular largura disponível por item (assumindo 5 itens na navigation bar)
         // Usar 80% da largura disponível para dar margem de segurança
-        val availableWidthPerItem = (screenWidth / 4) * 0.80f
+        val availableWidthPerItem = (screenWidth / 5) * 0.80f
         
         // Calcular tamanho da fonte baseado no texto mais longo
         // Fator de 1.5 para dar mais espaço e permitir fonte maior
@@ -185,13 +185,27 @@ fun MainNavigation(
                         }
                     )
                     
-                    // Álbum
+                    // Rede
                     NavigationBarItem(
-                        icon = { Icon(Icons.Default.PhotoLibrary, contentDescription = "Álbum") },
-                        label = { AdaptiveNavigationLabel("Álbum") },
+                        icon = { Icon(Icons.Default.PhotoLibrary, contentDescription = "Rede") },
+                        label = { AdaptiveNavigationLabel("Rede") },
                         selected = currentDestination?.hierarchy?.any { it.route == Screen.AlbumFamilia.route } == true,
                         onClick = {
                             navController.navigate(Screen.AlbumFamilia.route) {
+                                popUpTo(Screen.Home.route) { inclusive = false }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
+                    )
+                    
+                    // Eu (Perfil)
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Default.Person, contentDescription = "Eu") },
+                        label = { AdaptiveNavigationLabel("Eu") },
+                        selected = currentDestination?.hierarchy?.any { it.route == Screen.Perfil.route } == true,
+                        onClick = {
+                            navController.navigate(Screen.Perfil.route) {
                                 popUpTo(Screen.Home.route) { inclusive = false }
                                 launchSingleTop = true
                                 restoreState = true

@@ -95,16 +95,31 @@ fun RaizesVivasTextField(
         shape = RoundedCornerShape(16.dp),
         textStyle = textStyle,
         colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.3f),
-            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.3f),
-            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+            focusedContainerColor = Color.Transparent,
+            unfocusedContainerColor = Color.Transparent,
+            disabledContainerColor = Color.Transparent,
             errorContainerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
             
             focusedBorderColor = if (hideBorder) Color.Transparent else MaterialTheme.colorScheme.primary,
             unfocusedBorderColor = if (hideBorder) Color.Transparent else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
             
+            focusedTextColor = Color.Black,
+            unfocusedTextColor = Color.Black,
+            disabledTextColor = Color.Black.copy(alpha = 0.6f),
+            errorTextColor = Color.Black,
+            
             focusedLabelColor = MaterialTheme.colorScheme.primary,
             unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            
+            focusedLeadingIconColor = MaterialTheme.colorScheme.tertiary,
+            unfocusedLeadingIconColor = MaterialTheme.colorScheme.tertiary,
+            disabledLeadingIconColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.6f),
+            errorLeadingIconColor = MaterialTheme.colorScheme.tertiary,
+            
+            focusedTrailingIconColor = MaterialTheme.colorScheme.tertiary,
+            unfocusedTrailingIconColor = MaterialTheme.colorScheme.tertiary,
+            disabledTrailingIconColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.6f),
+            errorTrailingIconColor = MaterialTheme.colorScheme.tertiary,
             
             cursorColor = MaterialTheme.colorScheme.primary
         )

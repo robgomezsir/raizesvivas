@@ -3,30 +3,30 @@ package com.raizesvivas.app.presentation.theme
 import androidx.compose.ui.graphics.Color
 
 // ============================================================================
-// PALETA RAÍZES VIVAS - Material Design 3 (Tema Azul/Pastel)
+// PALETA RAÍZES VIVAS - Material Design 3 (Nova Paleta Vibrante)
 // ============================================================================
 
 // ----------------------------------------------------------------------------
-// TEMA CLARO - Cores Primárias (Azul Vibrante & Pastéis)
+// TEMA CLARO - Cores Primárias (Nova Paleta)
 // ----------------------------------------------------------------------------
 
-// Primary: Azul Profundo (Color1)
-val RaizesPrimary = Color(0xFF381BE3)
-val RaizesOnPrimary = Color(0xFFFFFFFF)
-val RaizesPrimaryContainer = Color(0xFFE0E0FF) // Pastel muito claro
-val RaizesOnPrimaryContainer = Color(0xFF06006B)
+// Primary: Verde Vibrante (#00BF7D) - Contraste 8.75:1 com texto preto
+val RaizesPrimary = Color(0xFF00BF7D)
+val RaizesOnPrimary = Color(0xFF000000) // Preto para contraste
+val RaizesPrimaryContainer = Color(0xFFB3F0DD) // Versão pastel do verde
+val RaizesOnPrimaryContainer = Color(0xFF003D2A) // Verde muito escuro
 
-// Secondary: Azul Médio (Color3)
-val RaizesSecondary = Color(0xFF6940F1)
-val RaizesOnSecondary = Color(0xFFFFFFFF)
-val RaizesSecondaryContainer = Color(0xFFEADDFF) // Pastel lavanda
-val RaizesOnSecondaryContainer = Color(0xFF24005B)
+// Secondary: Teal/Azul-esverdeado (#00B4C5) - Contraste 8.33:1 com texto preto
+val RaizesSecondary = Color(0xFF00B4C5)
+val RaizesOnSecondary = Color(0xFF000000) // Preto para contraste
+val RaizesSecondaryContainer = Color(0xFFB3E8F0) // Versão pastel do teal
+val RaizesOnSecondaryContainer = Color(0xFF003A3F) // Teal muito escuro
 
-// Tertiary: Azul Claro/Roxo (Color5)
-val RaizesTertiary = Color(0xFF9A65FF)
-val RaizesOnTertiary = Color(0xFFFFFFFF)
-val RaizesTertiaryContainer = Color(0xFFF2E7FF) // Pastel roxo muito claro
-val RaizesOnTertiaryContainer = Color(0xFF2D006D)
+// Tertiary: Azul (#0073E6) - Contraste 4.57:1 com texto branco
+val RaizesTertiary = Color(0xFF0073E6)
+val RaizesOnTertiary = Color(0xFFFFFFFF) // Branco para contraste
+val RaizesTertiaryContainer = Color(0xFFB3D9FF) // Versão pastel do azul
+val RaizesOnTertiaryContainer = Color(0xFF001A3D) // Azul muito escuro
 
 // Background e Surface
 val RaizesBackground = Color(0xFFFDFBFF) // Branco com leve toque azul
@@ -44,26 +44,26 @@ val RaizesInverseOnSurface = Color(0xFFF3F0F4)
 val RaizesInversePrimary = Color(0xFFBFC2FF)
 
 // ----------------------------------------------------------------------------
-// TEMA ESCURO - Cores Suavizadas
+// TEMA ESCURO - Cores Suavizadas (Nova Paleta)
 // ----------------------------------------------------------------------------
 
-// Primary: Azul Suave
-val RaizesPrimaryDark = Color(0xFFBFC2FF)
-val RaizesOnPrimaryDark = Color(0xFF1F00A5)
-val RaizesPrimaryContainerDark = Color(0xFF3E3D98) // Azul médio escuro
-val RaizesOnPrimaryContainerDark = Color(0xFFE0E0FF)
+// Primary: Verde mais claro para tema escuro (#00BF7D com ajuste)
+val RaizesPrimaryDark = Color(0xFF00E699) // Versão mais clara para tema escuro
+val RaizesOnPrimaryDark = Color(0xFF003D2A) // Verde escuro
+val RaizesPrimaryContainerDark = Color(0xFF006B4D) // Verde médio escuro
+val RaizesOnPrimaryContainerDark = Color(0xFFB3F0DD)
 
-// Secondary: Lavanda Suave
-val RaizesSecondaryDark = Color(0xFFD3BBFF)
-val RaizesOnSecondaryDark = Color(0xFF3A0093)
-val RaizesSecondaryContainerDark = Color(0xFF5128D6)
-val RaizesOnSecondaryContainerDark = Color(0xFFEADDFF)
+// Secondary: Teal mais claro para tema escuro (#00B4C5 com ajuste)
+val RaizesSecondaryDark = Color(0xFF00D9F0) // Versão mais clara para tema escuro
+val RaizesOnSecondaryDark = Color(0xFF003A3F) // Teal escuro
+val RaizesSecondaryContainerDark = Color(0xFF006B75) // Teal médio escuro
+val RaizesOnSecondaryContainerDark = Color(0xFFB3E8F0)
 
-// Tertiary: Roxo Suave
-val RaizesTertiaryDark = Color(0xFFE5B8FF)
-val RaizesOnTertiaryDark = Color(0xFF5300A9)
-val RaizesTertiaryContainerDark = Color(0xFF7D4AE3)
-val RaizesOnTertiaryContainerDark = Color(0xFFF2E7FF)
+// Tertiary: Azul mais claro para tema escuro (#0073E6 com ajuste)
+val RaizesTertiaryDark = Color(0xFF4DA3FF) // Versão mais clara para tema escuro
+val RaizesOnTertiaryDark = Color(0xFF001A3D) // Azul escuro
+val RaizesTertiaryContainerDark = Color(0xFF004C99) // Azul médio escuro
+val RaizesOnTertiaryContainerDark = Color(0xFFB3D9FF)
 
 // Background e Surface
 val RaizesBackgroundDark = Color(0xFF1B1B1F)
@@ -105,20 +105,20 @@ val Heritage = Color(0xFF8D6E63)
 val HeritageLight = Color(0xFFD7CCC8)
 val HeritageDark = Color(0xFF5D4037)
 
-// Growth: Verde harmonizado
-val Growth = Color(0xFF66BB6A)
-val GrowthLight = Color(0xFFC8E6C9)
-val GrowthDark = Color(0xFF388E3C)
+// Growth: Verde da nova paleta (#00BF7D)
+val Growth = RaizesPrimary // #00BF7D
+val GrowthLight = RaizesPrimaryContainer // Verde pastel claro
+val GrowthDark = Color(0xFF006B4D) // Versão escura
 
-// Legacy: Dourado
-val Legacy = Color(0xFFFFB300)
-val LegacyLight = Color(0xFFFFECB3)
-val LegacyDark = Color(0xFFFF8F00)
+// Legacy: Azul escuro da nova paleta (#2546F0) - Contraste 6.54:1 com texto branco
+val Legacy = Color(0xFF2546F0)
+val LegacyLight = Color(0xFFB3C0FF) // Versão pastel
+val LegacyDark = Color(0xFF1A33B3) // Versão escura
 
-// Connection: Azul (agora alinhado com o tema principal)
-val Connection = RaizesPrimary
-val ConnectionLight = RaizesPrimaryContainer
-val ConnectionDark = RaizesPrimaryDark
+// Connection: Roxo da nova paleta (#5928ED) - Contraste 7.12:1 com texto branco
+val Connection = Color(0xFF5928ED)
+val ConnectionLight = Color(0xFFD4C6FF) // Versão pastel
+val ConnectionDark = Color(0xFF3D1CA3) // Versão escura
 
 // ----------------------------------------------------------------------------
 // CORES UTILITÁRIAS

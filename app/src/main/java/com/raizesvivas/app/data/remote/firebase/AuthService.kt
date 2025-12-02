@@ -166,6 +166,9 @@ class AuthService @Inject constructor(
         return try {
             Timber.d("📧 Enviando email de recuperação para: $email")
             
+            // Usar método simples sem ActionCodeSettings
+            // O Firebase gerará automaticamente um link que funciona
+            // O link será do Firebase (suasraizesvivas.firebaseapp.com) que já está autorizado
             firebaseAuth.sendPasswordResetEmail(email).await()
             
             Timber.d("✅ Email de recuperação enviado")
@@ -173,6 +176,28 @@ class AuthService @Inject constructor(
             
         } catch (e: Exception) {
             Timber.e(e, "❌ Erro ao enviar email de recuperação")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Confirma a redefinição de senha usando o código de verificação
+     * 
+     * @param oobCode Código de verificação recebido por email
+     * @param newPassword Nova senha
+     * @return Result indicando sucesso ou erro
+     */
+    suspend fun confirmarRedefinicaoSenha(oobCode: String, newPassword: String): Result<Unit> {
+        return try {
+            Timber.d("🔐 Confirmando redefinição de senha")
+            
+            firebaseAuth.confirmPasswordReset(oobCode, newPassword).await()
+            
+            Timber.d("✅ Senha redefinida com sucesso")
+            Result.success(Unit)
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao confirmar redefinição de senha")
             Result.failure(e)
         }
     }

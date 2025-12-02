@@ -14,8 +14,6 @@ import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -56,19 +54,6 @@ fun ChatConversationScreen(
     val mostrarModalLimpar = state.mostrarModalLimparMensagens
 
     val listState = rememberLazyListState()
-    val pullToRefreshState = rememberPullToRefreshState()
-
-    LaunchedEffect(pullToRefreshState.isRefreshing) {
-        if (pullToRefreshState.isRefreshing && !state.isRefreshingConversa) {
-            viewModel.recarregarConversa()
-        }
-    }
-
-    LaunchedEffect(state.isRefreshingConversa) {
-        if (!state.isRefreshingConversa && pullToRefreshState.isRefreshing) {
-            pullToRefreshState.endRefresh()
-        }
-    }
 
     // Auto-scroll para última mensagem quando nova mensagem chega (se usuário estiver próximo do final)
     LaunchedEffect(conversaState.mensagens.size) {
@@ -183,13 +168,6 @@ fun ChatConversationScreen(
                     .fillMaxSize()
                     .padding(paddingValues)
             ) {
-                if (state.isRefreshingConversa) {
-                    LinearProgressIndicator(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                    )
-                }
                 val mensagensDistinct = remember(conversaState.mensagens) {
                     val ordenadas = conversaState.mensagens.sortedBy { it.enviadoEm }
                     val mapa = LinkedHashMap<String, MensagemChat>()
@@ -334,11 +312,6 @@ fun ChatConversationScreen(
                     enabled = !state.isLoading
                 )
             }
-
-            PullToRefreshContainer(
-                state = pullToRefreshState,
-                modifier = Modifier.align(Alignment.TopCenter)
-            )
         }
 
         // Modal de confirmação para limpar mensagens
@@ -539,11 +512,10 @@ private fun MessageInputBar(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            RaizesVivasTextField(
+            TextField(
                 value = texto,
                 onValueChange = onTextoChange,
                 modifier = Modifier.weight(1f),
-                label = "",
                 placeholder = {
                     Text(
                         "Digite uma mensagem...",
@@ -551,7 +523,14 @@ private fun MessageInputBar(
                     )
                 },
                 enabled = enabled,
-                maxLines = 4
+                maxLines = 4,
+                colors = TextFieldDefaults.colors(
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    disabledIndicatorColor = Color.Transparent,
+                    errorIndicatorColor = Color.Transparent
+                ),
+                shape = RoundedCornerShape(16.dp)
             )
 
             FloatingActionButton(

@@ -12,6 +12,7 @@ import com.raizesvivas.app.data.remote.firebase.AuthService
 import com.raizesvivas.app.presentation.screens.auth.CadastroScreen
 import com.raizesvivas.app.presentation.screens.auth.LoginScreen
 import com.raizesvivas.app.presentation.screens.auth.RecuperarSenhaScreen
+import com.raizesvivas.app.presentation.screens.auth.RedefinirSenhaScreen
 import com.raizesvivas.app.presentation.screens.cadastro.CadastroPessoaScreen
 import com.raizesvivas.app.presentation.screens.convites.AceitarConvitesScreen
 import com.raizesvivas.app.presentation.screens.convites.GerenciarConvitesScreen
@@ -133,6 +134,32 @@ fun NavGraph(
             RecuperarSenhaScreen(
                 onNavigateBack = {
                     navController.popBackStack()
+                }
+            )
+        }
+        
+        composable(
+            route = Screen.RedefinirSenha.route,
+            arguments = listOf(
+                navArgument("oobCode") {
+                    type = NavType.StringType
+                }
+            ),
+            enterTransition = { Transitions.modalEnterTransition() },
+            exitTransition = { Transitions.modalExitTransition() },
+            popEnterTransition = { Transitions.popEnterTransition() },
+            popExitTransition = { Transitions.popExitTransition() }
+        ) { backStackEntry ->
+            val oobCode = backStackEntry.arguments?.getString("oobCode") ?: ""
+            RedefinirSenhaScreen(
+                oobCode = oobCode,
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onSenhaRedefinida = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(Screen.Login.route) { inclusive = true }
+                    }
                 }
             )
         }

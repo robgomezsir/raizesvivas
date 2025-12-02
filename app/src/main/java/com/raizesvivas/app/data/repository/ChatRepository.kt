@@ -278,7 +278,7 @@ class ChatRepository @Inject constructor(
 
             val resultado = firestoreService.deletarMensagensConversa(remetenteId, destinatarioId)
             resultado.onSuccess {
-                removerMensagensEnviadasLocal(remetenteId, destinatarioId)
+                removerTodasMensagensLocal(remetenteId, destinatarioId)
             }
             resultado
         } catch (e: Exception) {
@@ -562,7 +562,7 @@ class ChatRepository @Inject constructor(
         }
     }
 
-    private fun removerMensagensEnviadasLocal(
+    private fun removerTodasMensagensLocal(
         remetenteId: String,
         destinatarioId: String
     ) {
@@ -570,20 +570,19 @@ class ChatRepository @Inject constructor(
         conversas[conversaId]?.let { entry ->
             scope.launch {
                 entry.mutex.withLock {
-                    val filtradas = entry.memoria.filterNot {
-                        it.remetenteId == remetenteId && it.destinatarioId == destinatarioId
-                    }
-                    if (filtradas.size != entry.memoria.size) {
+                    // Limpar todas as mensagens da memória
+                    if (entry.memoria.isNotEmpty()) {
                         entry.memoria.clear()
-                        entry.memoria.addAll(filtradas)
-                        entry.oldestTimestamp = entry.memoria.firstOrNull()?.enviadoEm
-                        entry.hasMoreOlder = true
+                        entry.oldestTimestamp = null
+                        entry.hasMoreOlder = false
+                        
                         entry.state.updateState(
-                            mensagens = entry.memoria.toList(),
+                            mensagens = emptyList(),
                             isLoadingInicial = entry.state.value.isLoadingInicial,
                             isCarregandoMais = entry.state.value.isCarregandoMais,
-                            possuiMaisAntigas = entry.hasMoreOlder
+                            possuiMaisAntigas = false
                         )
+                        Timber.d("✅ Todas as mensagens removidas da memória local para conversa $conversaId")
                     }
                 }
             }

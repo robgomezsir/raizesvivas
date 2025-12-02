@@ -8,6 +8,9 @@ sealed class Screen(val route: String) {
     object Login : Screen("login")
     object Cadastro : Screen("cadastro")
     object RecuperarSenha : Screen("recuperar_senha")
+    object RedefinirSenha : Screen("redefinir_senha/{oobCode}") {
+        fun createRoute(oobCode: String) = "redefinir_senha/$oobCode"
+    }
     
     // Onboarding
     object FamiliaZero : Screen("familia_zero")

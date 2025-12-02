@@ -55,27 +55,6 @@ fun ImagePicker(
         }
     }
     
-    // Launcher para câmera
-    var imageUri by remember { mutableStateOf<Uri?>(null) }
-    val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicture()
-    ) { success ->
-        if (success) {
-            imageUri?.let { uri ->
-                Timber.d("📷 Foto tirada da câmera: $uri")
-                val arquivoLocal = copiarParaCache(context, uri)
-                if (arquivoLocal != null) {
-                    Timber.d("✅ Arquivo copiado para cache: ${arquivoLocal.absolutePath}")
-                    onImageSelected(arquivoLocal.absolutePath)
-                } else {
-                    Timber.e("❌ Erro ao copiar arquivo para cache")
-                }
-            } ?: Timber.e("❌ URI da imagem é null")
-        } else {
-            Timber.d("⚠️ Foto não foi capturada")
-        }
-    }
-    
     Card(
         modifier = modifier.size(size.dp),
         shape = CircleShape
@@ -170,4 +149,3 @@ private fun copiarParaCache(context: android.content.Context, uri: Uri): File? {
         null
     }
 }
-
