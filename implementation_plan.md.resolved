@@ -1,0 +1,160 @@
+# Reformular Álbum de Família - Estilo Instagram
+
+Reformular a página de Álbum de Família para replicar o estilo e funcionalidades do Instagram, incluindo comentários aprimorados, reações/emoções, zoom otimizado, e melhorias gerais na interface do usuário.
+
+## Análise da Implementação Atual
+
+O código atual já possui funcionalidades Instagram-style implementadas:
+- ✅ Comentários com expansão/contração
+- ✅ Sistema de apoios/reações (5 tipos de emoções)
+- ✅ Zoom com pinch-to-zoom e double-tap
+- ✅ Scroll vertical para ver comentários
+- ✅ Modal de foto expandida
+
+## Melhorias Propostas
+
+### 1. **Interface de Visualização de Fotos**
+- Melhorar a visualização em grid (estilo feed do Instagram)
+- Adicionar swipe horizontal entre fotos no modal expandido
+- Melhorar transições e animações
+- Adicionar indicador de posição (ex: "1/5")
+
+### 2. **Sistema de Comentários Aprimorado**
+- Adicionar avatares dos usuários nos comentários
+- Melhorar formatação de timestamps (ex: "há 2 horas", "há 3 dias")
+- Adicionar animação de "curtir" comentário (opcional)
+- Melhorar contraste e legibilidade
+
+### 3. **Sistema de Reações/Emoções**
+- Melhorar o modal de seleção de reações (mais visual, estilo Instagram)
+- Adicionar animação ao dar reação (coração pulsando)
+- Mostrar preview de quem reagiu ao tocar nos emojis
+- Adicionar feedback tátil (vibração) ao reagir
+
+### 4. **Funcionalidades de Zoom**
+- Otimizar gestos de pinch-to-zoom
+- Adicionar zoom progressivo com double-tap (2x, 4x, 1x)
+- Melhorar indicador visual de nível de zoom
+- Garantir que comentários permaneçam acessíveis durante zoom
+
+### 5. **Melhorias Gerais de UX**
+- Adicionar loading skeleton ao carregar fotos
+- Melhorar feedback visual ao tocar em botões
+- Adicionar haptic feedback em ações importantes
+- Melhorar acessibilidade (content descriptions)
+
+## Proposed Changes
+
+### Presentation Layer
+
+#### [MODIFY] [AlbumFamiliaScreen.kt](file:///c:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/album/AlbumFamiliaScreen.kt)
+
+**Mudanças principais:**
+
+1. **Função [ModalFotoExpandida](file:///c:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/album/AlbumFamiliaScreen.kt#933-1298)** (linhas 933-1297):
+   - Adicionar swipe horizontal para navegar entre fotos
+   - Melhorar animações de zoom
+   - Adicionar indicador de posição da foto
+   - Otimizar gestos de double-tap para zoom progressivo
+
+2. **Função [SecaoComentariosEApoios](file:///c:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/album/AlbumFamiliaScreen.kt#1299-1502)** (linhas 1299-1501):
+   - Adicionar avatares dos usuários
+   - Melhorar formatação de timestamps
+   - Adicionar animações ao expandir/contrair
+   - Melhorar contraste de cores
+
+3. **Função [ComentarioItem](file:///c:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/album/AlbumFamiliaScreen.kt#1503-1573)** (linhas 1503-1572):
+   - Adicionar avatar do usuário
+   - Formatar timestamp de forma relativa
+   - Melhorar layout e espaçamento
+
+4. **Função [ModalSelecionarApoio](file:///c:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/album/AlbumFamiliaScreen.kt#1574-1623)** (linhas 1574-1622):
+   - Redesenhar com layout mais visual (grid de emojis grandes)
+   - Adicionar animações ao selecionar
+   - Adicionar preview de quem reagiu com cada emoji
+   - Melhorar feedback visual
+
+5. **Nova Função `AvatarUsuario`**:
+   - Componente reutilizável para exibir avatar do usuário
+   - Suporte para placeholder quando não houver foto
+   - Tamanhos configuráveis
+
+6. **Nova Função `TimestampRelativo`**:
+   - Formatar timestamps de forma relativa (ex: "há 2h", "há 3d")
+   - Atualizar automaticamente
+
+7. **Melhorias em [FotoThumbnail](file:///c:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/album/AlbumFamiliaScreen.kt#610-726)** (linhas 610-725):
+   - Adicionar animação ao tocar
+   - Melhorar indicador de contagem de fotos
+   - Adicionar shimmer effect durante carregamento
+
+#### [MODIFY] [AlbumFamiliaViewModel.kt](file:///c:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/album/AlbumFamiliaViewModel.kt)
+
+**Mudanças:**
+
+1. Adicionar função para obter foto anterior/próxima (para swipe)
+2. Adicionar estado para controlar índice da foto atual no modal
+3. Melhorar gerenciamento de estado de zoom
+4. Adicionar cache de avatares de usuários
+
+### Domain Layer
+
+#### [MODIFY] [FotoAlbum.kt](file:///c:/Users/robgo/raizesvivas/app/domain/model/FotoAlbum.kt)
+
+**Mudanças:**
+
+1. Adicionar função para obter lista de usuários que reagiram com cada tipo de emoção
+2. Adicionar função helper para formatação de timestamps
+
+### Utilities
+
+#### [NEW] [TimeUtils.kt](file:///c:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/utils/TimeUtils.kt)
+
+Criar utilitário para formatação de timestamps relativos (ex: "há 2 horas", "há 3 dias", etc.)
+
+#### [NEW] [HapticFeedback.kt](file:///c:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/utils/HapticFeedback.kt)
+
+Criar utilitário para feedback tátil (vibração) em ações importantes.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+- Testar formatação de timestamps relativos
+- Validar lógica de navegação entre fotos
+- Testar cálculos de zoom e offset
+
+### Manual Verification
+1. **Gestos de Zoom:**
+   - Testar pinch-to-zoom (aumentar/diminuir)
+   - Testar double-tap para zoom progressivo (1x → 2x → 4x → 1x)
+   - Verificar que pan funciona apenas quando zoom > 1x
+   - Validar que comentários permanecem acessíveis
+
+2. **Navegação entre Fotos:**
+   - Testar swipe horizontal no modal expandido
+   - Verificar indicador de posição
+   - Validar que comentários são atualizados corretamente
+
+3. **Comentários:**
+   - Verificar exibição de avatares
+   - Validar formatação de timestamps relativos
+   - Testar expansão/contração com animações
+   - Verificar scroll de comentários
+
+4. **Reações:**
+   - Testar modal de seleção de reações
+   - Verificar animação ao reagir
+   - Validar preview de quem reagiu
+   - Testar remoção de reação
+
+5. **Performance:**
+   - Verificar carregamento suave de múltiplas fotos
+   - Validar que não há lag ao fazer zoom
+   - Testar com álbum completo (5 fotos por pessoa)
+
+6. **Acessibilidade:**
+   - Verificar content descriptions
+   - Testar com TalkBack ativado
+   - Validar contraste de cores

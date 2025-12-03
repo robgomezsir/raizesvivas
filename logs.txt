@@ -1,0 +1,40 @@
+Implementação de Abas de Visualização na FamiliaScreen
+Goal Description
+O usuário solicitou explicitamente a configuração da aba "Família" com duas visualizações distintas: "Arvore Genealogica Hierarquica" e "Arvore Genealogica Lista". Para atender a isso com clareza e boa UX, substituiremos o atual botão de toggle na barra superior por uma barra de abas (TabRow) logo abaixo da TopAppBar.
+
+User Review Required
+NOTE
+
+As abas serão rotuladas como "Lista" e "Hierárquica" (ou "Árvore") para caberem confortavelmente na tela, mas o contexto de "Árvore Genealógica" estará implícito na tela de Família.
+
+Proposed Changes
+FamiliaScreen.kt
+[MODIFY] 
+FamiliaScreen.kt
+Adicionar Imports:
+
+androidx.compose.material3.TabRow
+androidx.compose.material3.Tab
+androidx.compose.material3.TabRowDefaults
+androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+Modificar 
+FamiliaScreen
+:
+
+Remover o IconButton de toggle da TopAppBar.
+Inserir um TabRow dentro do Scaffold, logo abaixo da TopAppBar (ou dentro de uma Column que engloba o conteúdo).
+Configurar o TabRow para usar o estado modoVisualizacao.
+Definir duas abas:
+Index 0: "Lista" (seleciona ModoVisualizacao.LISTA)
+Index 1: "Hierárquica" (seleciona ModoVisualizacao.ARVORE)
+Ajustar Layout:
+
+Garantir que a lista de cards (LazyColumn) respeite o espaço ocupado pelas abas.
+Verification Plan
+Manual Verification
+Compilação: Executar build para garantir que não há erros de sintaxe.
+Visualização:
+Verificar se a TabRow aparece corretamente abaixo da barra superior.
+Confirmar se clicar na aba "Hierárquica" muda para a visualização de árvore.
+Confirmar se clicar na aba "Lista" muda para a visualização de lista.
+Verificar se a transição é suave e o estado é mantido.
