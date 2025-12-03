@@ -4,6 +4,9 @@ import com.raizesvivas.app.data.local.ChatPreferences
 import com.raizesvivas.app.data.remote.firebase.AuthService
 import com.raizesvivas.app.data.remote.firebase.FirestoreService
 import com.raizesvivas.app.domain.model.MensagemChat
+import com.raizesvivas.app.utils.ErrorHandler
+import com.raizesvivas.app.utils.RateLimiter
+import com.raizesvivas.app.utils.OperationType
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -30,7 +33,8 @@ import javax.inject.Singleton
 class ChatRepository @Inject constructor(
     private val firestoreService: FirestoreService,
     private val chatPreferences: ChatPreferences,
-    private val authService: AuthService
+    private val authService: AuthService,
+    private val rateLimiter: RateLimiter
 ) {
 
     companion object {
@@ -226,8 +230,14 @@ class ChatRepository @Inject constructor(
             }
     }
 
-    suspend fun enviarMensagem(mensagem: MensagemChat): Result<Unit> {
+    suspend fun enviarMensagem(mensagem: MensagemChat, userId: String? = null): Result<Unit> {
         return try {
+            // Verificar rate limiting
+            if (!rateLimiter.canExecute(OperationType.ENVIAR_MENSAGEM, userId)) {
+                val mensagemErro = rateLimiter.getLimitExceededMessage(OperationType.ENVIAR_MENSAGEM)
+                return Result.failure(Exception(mensagemErro))
+            }
+            
             try {
                 chatPreferences.salvarMensagem(mensagem)
                 Timber.d("✅ Mensagem salva no cache local: ${mensagem.id}")
@@ -236,13 +246,20 @@ class ChatRepository @Inject constructor(
             }
 
             val resultado = firestoreService.salvarMensagemChat(mensagem)
+            
+            // Registrar operação se bem-sucedida
+            resultado.onSuccess {
+                rateLimiter.recordOperation(OperationType.ENVIAR_MENSAGEM, userId)
+            }
+            
             resultado.onFailure { erro ->
                 Timber.e(erro, "❌ Erro ao salvar mensagem no Firestore")
             }
             resultado
         } catch (e: Exception) {
             Timber.e(e, "❌ Erro ao enviar mensagem")
-            Result.failure(e)
+            val appError = ErrorHandler.handle(e)
+            Result.failure(Exception(appError.message, e))
         }
     }
 
@@ -261,7 +278,8 @@ class ChatRepository @Inject constructor(
             resultado
         } catch (e: Exception) {
             Timber.e(e, "❌ Erro ao marcar mensagens como lidas")
-            Result.failure(e)
+            val appError = ErrorHandler.handle(e)
+            Result.failure(Exception(appError.message, e))
         }
     }
 
@@ -283,7 +301,8 @@ class ChatRepository @Inject constructor(
             resultado
         } catch (e: Exception) {
             Timber.e(e, "❌ Erro ao limpar mensagens da conversa")
-            Result.failure(e)
+            val appError = ErrorHandler.handle(e)
+            Result.failure(Exception(appError.message, e))
         }
     }
 
@@ -293,7 +312,8 @@ class ChatRepository @Inject constructor(
             Result.success(Unit)
         } catch (e: Exception) {
             Timber.e(e, "❌ Erro ao limpar mensagens locais")
-            Result.failure(e)
+            val appError = ErrorHandler.handle(e)
+            Result.failure(Exception(appError.message, e))
         }
     }
 

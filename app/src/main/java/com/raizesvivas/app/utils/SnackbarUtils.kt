@@ -85,5 +85,68 @@ object SnackbarUtils {
             showSuccess(snackbarHostState, message)
         }
     }
+    
+    /**
+     * Exibe um AppError como snackbar
+     * 
+     * @param snackbarHostState Estado do SnackbarHost
+     * @param error AppError a ser exibido
+     * @param onRetry Callback opcional para ação "Tentar novamente" (se erro for recuperável)
+     */
+    suspend fun showError(
+        snackbarHostState: SnackbarHostState,
+        error: AppError,
+        onRetry: (() -> Unit)? = null
+    ): SnackbarResult {
+        val isRecoverable = ErrorHandler.isRecoverable(error)
+        val actionLabel = if (isRecoverable && onRetry != null) "Tentar novamente" else null
+        
+        return showError(
+            snackbarHostState = snackbarHostState,
+            message = error.message,
+            actionLabel = actionLabel,
+            onAction = if (isRecoverable) onRetry else null
+        )
+    }
+    
+    /**
+     * Exibe um AppError em um CoroutineScope
+     */
+    fun showErrorAsync(
+        scope: CoroutineScope,
+        snackbarHostState: SnackbarHostState,
+        error: AppError,
+        onRetry: (() -> Unit)? = null
+    ) {
+        scope.launch {
+            showError(snackbarHostState, error, onRetry)
+        }
+    }
+    
+    /**
+     * Exibe uma Exception como snackbar (converte para AppError automaticamente)
+     */
+    suspend fun showError(
+        snackbarHostState: SnackbarHostState,
+        exception: Exception,
+        onRetry: (() -> Unit)? = null
+    ): SnackbarResult {
+        val error = ErrorHandler.handle(exception)
+        return showError(snackbarHostState, error, onRetry)
+    }
+    
+    /**
+     * Exibe uma Exception em um CoroutineScope
+     */
+    fun showErrorAsync(
+        scope: CoroutineScope,
+        snackbarHostState: SnackbarHostState,
+        exception: Exception,
+        onRetry: (() -> Unit)? = null
+    ) {
+        scope.launch {
+            showError(snackbarHostState, exception, onRetry)
+        }
+    }
 }
 

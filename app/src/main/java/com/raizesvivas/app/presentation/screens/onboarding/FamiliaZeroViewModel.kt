@@ -145,8 +145,9 @@ class FamiliaZeroViewModel @Inject constructor(
                 val maeComConjuge = mae.copy(conjugeAtual = paiId)
                 
                 // Salvar pessoas (admin = true, pois é o fundador)
-                val resultadoPai = pessoaRepository.salvar(paiComConjuge, ehAdmin = true)
-                val resultadoMae = pessoaRepository.salvar(maeComConjuge, ehAdmin = true)
+                val usuarioId = currentUser.uid
+                val resultadoPai = pessoaRepository.salvar(paiComConjuge, ehAdmin = true, usuarioId)
+                val resultadoMae = pessoaRepository.salvar(maeComConjuge, ehAdmin = true, usuarioId)
                 
                 if (resultadoPai.isFailure || resultadoMae.isFailure) {
                     _state.update { it.copy(

@@ -493,7 +493,8 @@ class FirestoreService @Inject constructor(
     }
     
     /**
-     * Busca todas as pessoas
+     * Busca todas as pessoas (método legado - mantido para compatibilidade)
+     * Nota: Este método tem limite de 100 documentos. Use buscarPessoasPaginado para listas maiores.
      */
     suspend fun buscarTodasPessoas(): Result<List<Pessoa>> {
         return try {
@@ -539,6 +540,136 @@ class FirestoreService @Inject constructor(
             
         } catch (e: Exception) {
             Timber.e(e, "❌ Erro ao buscar pessoas")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Busca pessoas com paginação
+     * 
+     * @param limit Número máximo de documentos por página (padrão: 50)
+     * @param startAfter Documento a partir do qual começar (null para primeira página)
+     * @return Resultado paginado com lista de pessoas
+     */
+    suspend fun buscarPessoasPaginado(
+        limit: Int = 50,
+        startAfter: com.google.firebase.firestore.DocumentSnapshot? = null
+    ): Result<PagedResult<Pessoa>> {
+        return try {
+            Timber.d("🔍 Buscando pessoas paginadas (limit: $limit)...")
+            
+            var query = peopleCollection
+                .orderBy("nome", Query.Direction.ASCENDING)
+                .limit(limit.toLong())
+            
+            // Se há um documento de início, começar a partir dele
+            if (startAfter != null) {
+                query = query.startAfter(startAfter)
+            }
+            
+            val snapshot = query.get().await()
+            
+            Timber.d("📦 Firestore retornou ${snapshot.documents.size} documentos")
+            
+            // Converter documentos para Pessoa
+            val pessoas = mutableListOf<Pessoa>()
+            snapshot.documents.forEachIndexed { index, doc ->
+                try {
+                    val pessoa = doc.toPessoa()
+                    if (pessoa != null) {
+                        val pessoaCompleta = pessoa.copy(
+                            id = doc.id,
+                            nome = pessoa.nome.takeIf { it.isNotBlank() } ?: "Sem nome",
+                            criadoPor = pessoa.criadoPor.takeIf { it.isNotBlank() } ?: "unknown",
+                            criadoEm = pessoa.criadoEm.takeIf { it.time > 0 } ?: JavaDate(),
+                            modificadoPor = pessoa.modificadoPor.takeIf { it.isNotBlank() } ?: pessoa.criadoPor,
+                            modificadoEm = pessoa.modificadoEm.takeIf { it.time > 0 } ?: pessoa.criadoEm
+                        )
+                        pessoas.add(pessoaCompleta)
+                    }
+                } catch (e: Exception) {
+                    Timber.e(e, "❌ Erro ao converter documento $index (ID: ${doc.id})")
+                }
+            }
+            
+            // Determinar se há mais páginas
+            val hasMore = snapshot.documents.size == limit
+            val lastDocument = snapshot.documents.lastOrNull()
+            
+            Timber.d("✅ ${pessoas.size} pessoas retornadas (hasMore: $hasMore)")
+            
+            Result.success(
+                PagedResult(
+                    data = pessoas,
+                    hasMore = hasMore,
+                    lastDocument = lastDocument
+                )
+            )
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao buscar pessoas paginadas")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Busca pessoas modificadas desde um timestamp específico (sincronização incremental)
+     * 
+     * @param timestamp Data a partir da qual buscar modificações
+     * @return Lista de pessoas modificadas desde o timestamp
+     */
+    suspend fun buscarPessoasModificadasDesde(timestamp: JavaDate): Result<List<Pessoa>> {
+        return try {
+            Timber.d("🔍 Buscando pessoas modificadas desde ${timestamp}...")
+            
+            val timestampFirestore = com.google.firebase.Timestamp(timestamp)
+            
+            val snapshot = peopleCollection
+                .whereGreaterThan("modificadoEm", timestampFirestore)
+                .orderBy("modificadoEm", Query.Direction.ASCENDING)
+                .get()
+                .await()
+            
+            Timber.d("📦 Firestore retornou ${snapshot.documents.size} documentos modificados")
+            
+            // Converter manualmente para ter melhor controle e logs
+            val pessoas = mutableListOf<Pessoa>()
+            snapshot.documents.forEachIndexed { index, doc ->
+                try {
+                    val pessoa = doc.toPessoa()
+                    if (pessoa != null) {
+                        // Garantir que campos obrigatórios não sejam nulos
+                        val pessoaCompleta = pessoa.copy(
+                            id = doc.id,
+                            nome = pessoa.nome.takeIf { it.isNotBlank() } ?: "Sem nome",
+                            criadoPor = pessoa.criadoPor.takeIf { it.isNotBlank() } ?: "unknown",
+                            criadoEm = pessoa.criadoEm.takeIf { it.time > 0 } ?: JavaDate(),
+                            modificadoPor = pessoa.modificadoPor.takeIf { it.isNotBlank() } ?: pessoa.criadoPor,
+                            modificadoEm = pessoa.modificadoEm.takeIf { it.time > 0 } ?: pessoa.criadoEm
+                        )
+                        pessoas.add(pessoaCompleta)
+                        Timber.d("✅ Documento $index convertido: ${pessoaCompleta.nome} (ID: ${pessoaCompleta.id})")
+                    } else {
+                        Timber.w("⚠️ Documento $index não pôde ser convertido para Pessoa (ID: ${doc.id})")
+                    }
+                } catch (e: Exception) {
+                    Timber.e(e, "❌ Erro ao converter documento $index (ID: ${doc.id})")
+                }
+            }
+            
+            Timber.d("✅ ${pessoas.size} pessoas modificadas encontradas (de ${snapshot.documents.size} documentos)")
+            Result.success(pessoas)
+            
+        } catch (e: com.google.firebase.firestore.FirebaseFirestoreException) {
+            // Se o índice não existir, fazer fallback para sincronização completa
+            if (e.code == com.google.firebase.firestore.FirebaseFirestoreException.Code.FAILED_PRECONDITION) {
+                Timber.w("⚠️ Índice não encontrado para modificadoEm, fazendo fallback para sincronização completa")
+                return buscarTodasPessoas()
+            }
+            Timber.e(e, "❌ Erro ao buscar pessoas modificadas")
+            Result.failure(e)
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao buscar pessoas modificadas")
             Result.failure(e)
         }
     }

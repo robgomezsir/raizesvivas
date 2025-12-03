@@ -3,6 +3,9 @@ package com.raizesvivas.app.data.repository
 import com.raizesvivas.app.data.remote.firebase.FirestoreService
 import com.raizesvivas.app.domain.model.FotoAlbum
 import com.raizesvivas.app.domain.model.ComentarioFoto
+import com.raizesvivas.app.utils.ErrorHandler
+import com.raizesvivas.app.utils.RateLimiter
+import com.raizesvivas.app.utils.OperationType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import timber.log.Timber
@@ -14,7 +17,8 @@ import javax.inject.Singleton
  */
 @Singleton
 class FotoAlbumRepository @Inject constructor(
-    private val firestoreService: FirestoreService
+    private val firestoreService: FirestoreService,
+    private val rateLimiter: RateLimiter
 ) {
     
     /**
@@ -27,7 +31,8 @@ class FotoAlbumRepository @Inject constructor(
             resultado
         } catch (e: Exception) {
             Timber.e(e, "❌ Erro ao buscar fotos do álbum")
-            Result.failure(e)
+            val appError = ErrorHandler.handle(e)
+            Result.failure(Exception(appError.message, e))
         }
     }
     
@@ -41,21 +46,35 @@ class FotoAlbumRepository @Inject constructor(
             resultado
         } catch (e: Exception) {
             Timber.e(e, "❌ Erro ao buscar fotos da pessoa")
-            Result.failure(e)
+            val appError = ErrorHandler.handle(e)
+            Result.failure(Exception(appError.message, e))
         }
     }
     
     /**
      * Salva uma nova foto no álbum
      */
-    suspend fun salvarFoto(foto: FotoAlbum): Result<String> {
+    suspend fun salvarFoto(foto: FotoAlbum, userId: String? = null): Result<String> {
         return try {
+            // Verificar rate limiting
+            if (!rateLimiter.canExecute(OperationType.UPLOAD_FOTO, userId)) {
+                val mensagem = rateLimiter.getLimitExceededMessage(OperationType.UPLOAD_FOTO)
+                return Result.failure(Exception(mensagem))
+            }
+            
             val resultado = firestoreService.salvarFotoAlbum(foto)
+            
+            // Registrar operação se bem-sucedida
+            resultado.onSuccess {
+                rateLimiter.recordOperation(OperationType.UPLOAD_FOTO, userId)
+            }
+            
             Timber.d("✅ Foto salva no álbum: ${foto.id}")
             resultado
         } catch (e: Exception) {
             Timber.e(e, "❌ Erro ao salvar foto no álbum")
-            Result.failure(e)
+            val appError = ErrorHandler.handle(e)
+            Result.failure(Exception(appError.message, e))
         }
     }
     
@@ -69,7 +88,8 @@ class FotoAlbumRepository @Inject constructor(
             resultado
         } catch (e: Exception) {
             Timber.e(e, "❌ Erro ao deletar foto do álbum")
-            Result.failure(e)
+            val appError = ErrorHandler.handle(e)
+            Result.failure(Exception(appError.message, e))
         }
     }
     
@@ -112,7 +132,8 @@ class FotoAlbumRepository @Inject constructor(
             resultado
         } catch (e: Exception) {
             Timber.e(e, "❌ Erro ao adicionar apoio à foto")
-            Result.failure(e)
+            val appError = ErrorHandler.handle(e)
+            Result.failure(Exception(appError.message, e))
         }
     }
     
@@ -126,7 +147,8 @@ class FotoAlbumRepository @Inject constructor(
             resultado
         } catch (e: Exception) {
             Timber.e(e, "❌ Erro ao remover apoio da foto")
-            Result.failure(e)
+            val appError = ErrorHandler.handle(e)
+            Result.failure(Exception(appError.message, e))
         }
     }
     
@@ -140,7 +162,8 @@ class FotoAlbumRepository @Inject constructor(
             resultado
         } catch (e: Exception) {
             Timber.e(e, "❌ Erro ao buscar comentários")
-            Result.failure(e)
+            val appError = ErrorHandler.handle(e)
+            Result.failure(Exception(appError.message, e))
         }
     }
     
@@ -154,7 +177,8 @@ class FotoAlbumRepository @Inject constructor(
             resultado
         } catch (e: Exception) {
             Timber.e(e, "❌ Erro ao adicionar comentário")
-            Result.failure(e)
+            val appError = ErrorHandler.handle(e)
+            Result.failure(Exception(appError.message, e))
         }
     }
     
@@ -168,7 +192,8 @@ class FotoAlbumRepository @Inject constructor(
             resultado
         } catch (e: Exception) {
             Timber.e(e, "❌ Erro ao deletar comentário")
-            Result.failure(e)
+            val appError = ErrorHandler.handle(e)
+            Result.failure(Exception(appError.message, e))
         }
     }
     

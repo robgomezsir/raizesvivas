@@ -314,7 +314,7 @@ class ChatViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                val resultado = chatRepository.enviarMensagem(mensagem)
+                val resultado = chatRepository.enviarMensagem(mensagem, remetenteId)
                 resultado.onSuccess {
                     Timber.d("💬 Mensagem enviada com sucesso: ${mensagem.id}")
                 }.onFailure { error ->

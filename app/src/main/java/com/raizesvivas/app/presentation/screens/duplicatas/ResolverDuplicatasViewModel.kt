@@ -115,7 +115,8 @@ class ResolverDuplicatasViewModel @Inject constructor(
                 )
                 
                 // Salvar pessoa merged
-                val resultado = pessoaRepository.salvar(pessoaMerged, ehAdmin = true)
+                val usuarioId = authService.currentUser?.uid
+                val resultado = pessoaRepository.salvar(pessoaMerged, ehAdmin = true, usuarioId)
                 
                 resultado.onSuccess {
                     // Atualizar todas as referências de pessoa2 para pessoa1

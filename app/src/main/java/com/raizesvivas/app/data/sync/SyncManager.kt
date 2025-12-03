@@ -46,26 +46,28 @@ class SyncManager @Inject constructor(
             }
             
             // Sincronização incremental baseada em timestamp
-            // TODO: Implementar query Firestore para buscar apenas documentos modificados após lastSyncTime
-            // Por enquanto, faz sincronização completa se cache expirou
-            val cacheExpired = !CachePolicy.isCacheValid(
-                lastSyncTime,
-                CachePolicy.CACHE_TIME_PESSOAS
-            )
+            // Fazer cópia local para evitar problema de smart cast
+            val syncTime = lastSyncTime ?: return@flow
+            val lastSyncDate = Date(syncTime)
+            Timber.d("🔄 Sincronização incremental iniciada desde ${lastSyncDate}")
             
-            if (cacheExpired) {
-                Timber.d("🔄 Cache expirado, sincronizando...")
-                val result = pessoaRepository.sincronizarDoFirestore()
-                
-                if (result.isSuccess) {
-                    lastSyncTime = Date().time
-                    emit(SyncResult.Success("Sincronização incremental concluída"))
-                } else {
-                    emit(SyncResult.Error(result.exceptionOrNull()?.message ?: "Erro desconhecido"))
-                }
+            val result = pessoaRepository.sincronizarModificadasDesde(lastSyncDate)
+            
+            if (result.isSuccess) {
+                // Atualizar timestamp apenas se sincronização foi bem-sucedida
+                lastSyncTime = Date().time
+                emit(SyncResult.Success("Sincronização incremental concluída"))
             } else {
-                Timber.d("✅ Cache válido, não precisa sincronizar")
-                emit(SyncResult.Success("Cache atualizado, sem sincronização necessária"))
+                // Se falhar, fazer fallback para sincronização completa
+                Timber.w("⚠️ Sincronização incremental falhou, tentando sincronização completa...")
+                val fallbackResult = pessoaRepository.sincronizarDoFirestore()
+                
+                if (fallbackResult.isSuccess) {
+                    lastSyncTime = Date().time
+                    emit(SyncResult.Success("Sincronização completa concluída (fallback)"))
+                } else {
+                    emit(SyncResult.Error(fallbackResult.exceptionOrNull()?.message ?: "Erro desconhecido"))
+                }
             }
             
         } catch (e: Exception) {

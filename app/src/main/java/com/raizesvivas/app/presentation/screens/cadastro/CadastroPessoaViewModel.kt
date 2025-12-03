@@ -289,7 +289,7 @@ class CadastroPessoaViewModel @Inject constructor(
                 // Se há foto para fazer upload, fazer antes de salvar
                 // Sempre fazer upload se houver fotoPath (nova foto selecionada)
                 val fotoUrl = if (estadoParaSalvar.fotoPath != null) {
-                    val fotoPath = estadoParaSalvar.fotoPath!!
+                    val fotoPath = estadoParaSalvar.fotoPath
                     // Validar se o arquivo existe
                     val arquivo = java.io.File(fotoPath)
                     if (!arquivo.exists()) {
@@ -303,17 +303,20 @@ class CadastroPessoaViewModel @Inject constructor(
                     
                     Timber.d("📤 Fazendo upload da foto do perfil...")
                     val uploadResult = fazerUploadFoto(fotoPath, pessoaId)
-                    uploadResult.getOrNull()?.also {
-                        Timber.d("✅ Upload da foto concluído: $it")
-                    } ?: run {
-                        val exception = uploadResult.exceptionOrNull()
-                        Timber.e(exception, "❌ Erro no upload da foto")
-                        _state.update { it.copy(
-                            isLoading = false,
-                            erro = "Erro ao fazer upload da foto: ${exception?.message ?: "Erro desconhecido"}"
-                        ) }
-                        return@launch
-                    }
+                    uploadResult.fold(
+                        onSuccess = { url ->
+                            Timber.d("✅ Upload da foto concluído: $url")
+                            url
+                        },
+                        onFailure = { exception ->
+                            Timber.e(exception, "❌ Erro no upload da foto")
+                            _state.update { it.copy(
+                                isLoading = false,
+                                erro = "Erro ao fazer upload da foto: ${exception.message ?: "Erro desconhecido"}"
+                            ) }
+                            return@launch
+                        }
+                    )
                 } else {
                     // Se não há nova foto, manter a fotoUrl existente
                     estadoParaSalvar.fotoUrl ?: pessoa.fotoUrl
@@ -380,10 +383,12 @@ class CadastroPessoaViewModel @Inject constructor(
             null
         }
         
+        val usuarioId = authService.currentUser?.uid
+        
         val resultado = if (isEditing) {
             pessoaRepository.atualizar(pessoa, ehAdmin)
         } else {
-            pessoaRepository.salvar(pessoa, ehAdmin)
+            pessoaRepository.salvar(pessoa, ehAdmin, usuarioId)
         }
         
         resultado.onSuccess {
@@ -392,8 +397,6 @@ class CadastroPessoaViewModel @Inject constructor(
             // Atualizar relacionamentos bidirecionais após salvar com sucesso
             atualizarRelacionamentosBidirecionais(pessoaId, pessoaOriginal, pessoa, ehAdmin)
             ParentescoCalculator.limparCache()
-            
-            val usuarioId = authService.currentUser?.uid
             
             if (!isEditing && usuarioId != null) { // Apenas para novas pessoas
                 // Detectar duplicatas após salvar

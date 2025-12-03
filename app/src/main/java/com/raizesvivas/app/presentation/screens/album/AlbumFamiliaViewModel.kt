@@ -415,7 +415,7 @@ class AlbumFamiliaViewModel @Inject constructor(
                 )
                 
                 Timber.d("💾 Salvando foto no Firestore...")
-                val saveResult = fotoAlbumRepository.salvarFoto(foto)
+                val saveResult = fotoAlbumRepository.salvarFoto(foto, firebaseUser?.uid)
                 saveResult.fold(
                     onSuccess = {
                         Timber.d("✅ Foto salva com sucesso no Firestore")

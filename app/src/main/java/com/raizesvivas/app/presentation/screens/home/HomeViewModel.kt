@@ -222,7 +222,7 @@ class HomeViewModel @Inject constructor(
                     pessoasComFamiliaZero.forEach { pessoaAntiga ->
                         if (pessoaAntiga.id != paiId && pessoaAntiga.id != maeId) {
                             val pessoaAtualizada = pessoaAntiga.copy(ehFamiliaZero = false)
-                            pessoaRepository.salvar(pessoaAtualizada, ehAdmin = true)
+                            pessoaRepository.salvar(pessoaAtualizada, ehAdmin = true, usuarioId)
                             Timber.d("   ➖ Removido Família Zero de: ${pessoaAntiga.nome}")
                         }
                     }
@@ -239,8 +239,8 @@ class HomeViewModel @Inject constructor(
                         conjugeAtual = paiId
                     )
                     
-                    pessoaRepository.salvar(paiAtualizado, ehAdmin = true)
-                    pessoaRepository.salvar(maeAtualizada, ehAdmin = true)
+                    pessoaRepository.salvar(paiAtualizado, ehAdmin = true, usuarioId)
+                    pessoaRepository.salvar(maeAtualizada, ehAdmin = true, usuarioId)
                     
                     Timber.d("   ✅ Marcado como Família Zero: ${pai.nome} e ${mae.nome}")
                     

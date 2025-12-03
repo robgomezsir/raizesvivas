@@ -8,25 +8,42 @@ service firebase.storage {
       return request.auth != null;
     }
     
+    // Valida extensão de arquivo no nome do arquivo
+    function isValidImageExtension(fileName) {
+      return fileName.matches('.*\\.(jpg|jpeg|png|webp)$') ||
+             fileName.matches('.*\\.(JPG|JPEG|PNG|WEBP)$');
+    }
+    
+    // Valida tipo de conteúdo MIME
+    function isValidImageContentType() {
+      return request.resource.contentType == "image/jpeg" ||
+             request.resource.contentType == "image/jpg" ||
+             request.resource.contentType == "image/png" ||
+             request.resource.contentType == "image/webp";
+    }
+    
+    // Tamanho máximo unificado: 300KB
+    function isValidFileSize() {
+      return request.resource.size <= 300 * 1024;
+    }
+    
     // PASTA: pessoas/{pessoaId}/arquivo
     match /pessoas/{pessoaId}/{fileName} {
       
       // Todos autenticados podem LER fotos de qualquer cadastro
       allow read: if isAuthenticated();
       
-      // Todos autenticados podem ENVIAR ou ATUALIZAR fotos
+      // Todos autenticados podem ENVIAR ou ATUALIZAR fotos (app colaborativo)
       allow write: if isAuthenticated()
                    &&
-                   // Só imagens
-                   (
-                     request.resource.contentType == "image/jpeg" ||
-                     request.resource.contentType == "image/jpg"  ||
-                     request.resource.contentType == "image/png"  ||
-                     request.resource.contentType == "image/webp"
-                   )
+                   // Validação de extensão no nome do arquivo
+                   isValidImageExtension(fileName)
                    &&
-                   // Máximo 250 KB
-                   request.resource.size < 250 * 1024;
+                   // Validação de tipo de conteúdo MIME
+                   isValidImageContentType()
+                   &&
+                   // Máximo 300 KB (unificado)
+                   isValidFileSize();
     }
     
     // PASTA: album_familia/{pessoaId}/{fotoId}.jpg
@@ -35,19 +52,17 @@ service firebase.storage {
       // Todos autenticados podem LER fotos do álbum
       allow read: if isAuthenticated();
       
-      // Todos autenticados podem CRIAR ou ATUALIZAR fotos do álbum
+      // Todos autenticados podem CRIAR ou ATUALIZAR fotos do álbum (app colaborativo)
       allow create, update: if isAuthenticated()
                    &&
-                   // Só imagens
-                   (
-                     request.resource.contentType == "image/jpeg" ||
-                     request.resource.contentType == "image/jpg"  ||
-                     request.resource.contentType == "image/png"  ||
-                     request.resource.contentType == "image/webp"
-                   )
+                   // Validação de extensão no nome do arquivo
+                   isValidImageExtension(fileName)
                    &&
-                   // Máximo 500 KB (fotos do álbum podem ser um pouco maiores)
-                   request.resource.size < 500 * 1024;
+                   // Validação de tipo de conteúdo MIME
+                   isValidImageContentType()
+                   &&
+                   // Máximo 300 KB (unificado)
+                   isValidFileSize();
       
       // Todos autenticados podem DELETAR fotos do álbum
       allow delete: if isAuthenticated();

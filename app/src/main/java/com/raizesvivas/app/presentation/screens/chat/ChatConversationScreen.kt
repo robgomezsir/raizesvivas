@@ -1,3 +1,4 @@
+
 package com.raizesvivas.app.presentation.screens.chat
 
 import androidx.compose.foundation.background
@@ -508,29 +509,17 @@ private fun MessageInputBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 4.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             TextField(
                 value = texto,
                 onValueChange = onTextoChange,
                 modifier = Modifier.weight(1f),
-                placeholder = {
-                    Text(
-                        "Digite uma mensagem...",
-                        color = colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                    )
-                },
+                placeholder = { Text("Digite uma mensagem...") },
                 enabled = enabled,
                 maxLines = 4,
-                colors = TextFieldDefaults.colors(
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    disabledIndicatorColor = Color.Transparent,
-                    errorIndicatorColor = Color.Transparent
-                ),
-                shape = RoundedCornerShape(16.dp)
+                singleLine = false
             )
 
             FloatingActionButton(

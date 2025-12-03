@@ -8,9 +8,13 @@ import com.raizesvivas.app.data.remote.firebase.FirestoreService
 import com.raizesvivas.app.domain.model.Pessoa
 import com.raizesvivas.app.domain.model.Genero
 import com.raizesvivas.app.presentation.components.agruparPessoasPorFamilias
+import com.raizesvivas.app.utils.ErrorHandler
+import com.raizesvivas.app.utils.RateLimiter
+import com.raizesvivas.app.utils.OperationType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
+import java.util.Date
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -27,7 +31,8 @@ import javax.inject.Singleton
 class PessoaRepository @Inject constructor(
     private val pessoaDao: PessoaDao,
     private val firestoreService: FirestoreService,
-    private val edicaoPendenteRepository: EdicaoPendenteRepository
+    private val edicaoPendenteRepository: EdicaoPendenteRepository,
+    private val rateLimiter: RateLimiter
 ) {
     
     /**
@@ -117,7 +122,63 @@ class PessoaRepository @Inject constructor(
             
         } catch (e: Exception) {
             Timber.e(e, "❌ Erro fatal na sincronização")
-            Result.failure(e)
+            val appError = ErrorHandler.handle(e)
+            Result.failure(Exception(appError.message, e))
+        }
+    }
+    
+    /**
+     * Sincroniza apenas pessoas modificadas desde um timestamp específico (sincronização incremental)
+     * 
+     * @param timestamp Data a partir da qual buscar modificações
+     * @return Result indicando sucesso ou erro
+     */
+    suspend fun sincronizarModificadasDesde(timestamp: Date): Result<Unit> {
+        return try {
+            Timber.d("🔄 Sincronizando pessoas modificadas desde ${timestamp}...")
+            
+            // Buscar apenas pessoas modificadas desde o timestamp
+            val resultado = firestoreService.buscarPessoasModificadasDesde(timestamp)
+            
+            resultado.onSuccess { pessoas ->
+                if (pessoas.isEmpty()) {
+                    Timber.d("✅ Nenhuma pessoa modificada desde ${timestamp}")
+                    return@onSuccess
+                }
+                
+                Timber.d("📥 Recebidas ${pessoas.size} pessoas modificadas do Firestore")
+                
+                // Converter para entities
+                val entities = mutableListOf<PessoaEntity>()
+                pessoas.forEachIndexed { index, pessoa ->
+                    try {
+                        val entity = pessoa.toEntity()
+                        entities.add(entity)
+                        Timber.d("📝 Convertida pessoa modificada $index: ${pessoa.nome} (ID: ${pessoa.id})")
+                    } catch (e: Exception) {
+                        Timber.e(e, "❌ Erro ao converter pessoa $index: ${pessoa.nome} (ID: ${pessoa.id})")
+                    }
+                }
+                
+                Timber.d("💾 Salvando ${entities.size} pessoas modificadas no cache local...")
+                pessoaDao.inserirTodas(entities)
+                
+                // Verificar se realmente foram salvas
+                val totalDepois = pessoaDao.contarPessoas()
+                val atualizadas = entities.size
+                Timber.d("✅ ${pessoas.size} pessoas modificadas sincronizadas. Total no cache: $totalDepois (atualizadas: $atualizadas)")
+            }
+            
+            resultado.onFailure { error ->
+                Timber.e(error, "❌ Erro na sincronização incremental")
+            }
+            
+            resultado.map { }
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro fatal na sincronização incremental")
+            val appError = ErrorHandler.handle(e)
+            Result.failure(Exception(appError.message, e))
         }
     }
     
@@ -172,14 +233,15 @@ class PessoaRepository @Inject constructor(
             
         } catch (e: Exception) {
             Timber.e(e, "❌ Erro fatal ao recarregar do Firestore")
-            Result.failure(e)
+            val appError = ErrorHandler.handle(e)
+            Result.failure(Exception(appError.message, e))
         }
     }
     
     /**
      * Salva pessoa (local + remoto)
      */
-    suspend fun salvar(pessoa: Pessoa, ehAdmin: Boolean): Result<Unit> {
+    suspend fun salvar(pessoa: Pessoa, ehAdmin: Boolean, userId: String? = null): Result<Unit> {
         return try {
             // Validações básicas
             if (pessoa.id.isBlank()) {
@@ -189,11 +251,29 @@ class PessoaRepository @Inject constructor(
                 return Result.failure(Exception("Nome da pessoa não pode estar vazio"))
             }
             
+            // Verificar se é uma nova pessoa (não existe no cache) para aplicar rate limiting
+            val pessoaExistente = buscarPorId(pessoa.id)
+            val ehNovaPessoa = pessoaExistente == null
+            
+            // Rate limiting apenas para criação de novas pessoas
+            if (ehNovaPessoa && !rateLimiter.canExecute(OperationType.CRIAR_PESSOA, userId)) {
+                val mensagem = rateLimiter.getLimitExceededMessage(OperationType.CRIAR_PESSOA)
+                return Result.failure(Exception(mensagem))
+            }
+            
             // Se não for admin, marca como não aprovado
+            // Sempre atualiza modificadoEm para data atual
+            val agora = Date()
             var pessoaFinal = if (!ehAdmin) {
-                pessoa.copy(aprovado = false)
+                pessoa.copy(
+                    aprovado = false,
+                    modificadoEm = agora
+                )
             } else {
-                pessoa.copy(aprovado = true)
+                pessoa.copy(
+                    aprovado = true,
+                    modificadoEm = agora
+                )
             }
             
             // Validar e corrigir consistência das relações antes de salvar
@@ -217,6 +297,12 @@ class PessoaRepository @Inject constructor(
             resultado.onSuccess {
                 // Salvar no cache local
                 pessoaDao.inserir(pessoaFinal.toEntity())
+                
+                // Registrar operação se for nova pessoa
+                if (ehNovaPessoa) {
+                    rateLimiter.recordOperation(OperationType.CRIAR_PESSOA, userId)
+                }
+                
                 Timber.d("✅ Pessoa salva: ${pessoaFinal.nome}")
             }
             
@@ -224,7 +310,8 @@ class PessoaRepository @Inject constructor(
             
         } catch (e: Exception) {
             Timber.e(e, "❌ Erro ao salvar pessoa")
-            Result.failure(e)
+            val appError = ErrorHandler.handle(e)
+            Result.failure(Exception(appError.message, e))
         }
     }
     
@@ -257,9 +344,11 @@ class PessoaRepository @Inject constructor(
             
             if (ehAdmin) {
                 // Admin: atualizar diretamente
+                val agora = Date()
                 val pessoaAtualizada = pessoa.copy(
                     versao = pessoa.versao + 1,
-                    aprovado = true
+                    aprovado = true,
+                    modificadoEm = agora
                 )
                 
                 val resultado = firestoreService.salvarPessoa(pessoaAtualizada)
@@ -291,7 +380,8 @@ class PessoaRepository @Inject constructor(
             
         } catch (e: Exception) {
             Timber.e(e, "❌ Erro ao atualizar pessoa")
-            Result.failure(e)
+            val appError = ErrorHandler.handle(e)
+            Result.failure(Exception(appError.message, e))
         }
     }
     
