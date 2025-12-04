@@ -4,11 +4,14 @@ package com.raizesvivas.app.presentation.screens.familia
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
@@ -152,9 +155,7 @@ fun FamiliaScreen(
     viewModel: FamiliaViewModel = hiltViewModel(),
     onNavigateToDetalhesPessoa: (String) -> Unit,
     onNavigateToCadastroPessoa: () -> Unit = {},
-    onNavigateToAdicionarAmigo: () -> Unit = {},
-    onNavigateToAlbum: () -> Unit = {},
-    onNavigateToArvoreHierarquica: () -> Unit = {}
+    onNavigateToAlbum: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
     val pullRefreshState = rememberPullToRefreshState()
@@ -189,6 +190,7 @@ fun FamiliaScreen(
     val nomeEditado = remember { mutableStateOf("") }
     var mostrarBusca by rememberSaveable { mutableStateOf(false) }
     var termoBusca by rememberSaveable { mutableStateOf("") }
+    @Suppress("UNUSED_VARIABLE")
     var modoVisualizacao by rememberSaveable { mutableStateOf(ModoVisualizacao.LISTA) }
     var abaSelecionada by rememberSaveable { mutableStateOf(0) } // 0 = Hierárquica, 1 = Lista
     var contadorAcessoHierarquica by rememberSaveable { mutableStateOf(0) } // Contador para mudar imagem ao acessar aba
@@ -272,15 +274,8 @@ fun FamiliaScreen(
             ExpandableFab(
                 actions = listOf(
                     FabAction(
-                        label = "Adicionar Amigo",
-                        icon = Icons.Outlined.GroupAdd,
-                        onClick = onNavigateToAdicionarAmigo,
-                        containerColor = MaterialTheme.colorScheme.secondary,
-                        contentColor = MaterialTheme.colorScheme.onSecondary
-                    ),
-                    FabAction(
                         label = "Adicionar Pessoa",
-                        icon = Icons.Filled.Person,
+                        icon = Icons.Default.Add,
                         onClick = onNavigateToCadastroPessoa,
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary
@@ -353,7 +348,8 @@ fun FamiliaScreen(
                         onClick = { abaSelecionada = 1 },
                         text = { Text("Lista") },
                         icon = {
-                                        Icon(
+                            @Suppress("DEPRECATION")
+                            Icon(
                                 imageVector = Icons.Filled.ViewList,
                                 contentDescription = "Árvore Lista"
                             )
@@ -396,8 +392,7 @@ fun FamiliaScreen(
                             nomeAmigoEditado = nomeAmigoEditado,
                             telefoneAmigoEditado = telefoneAmigoEditado,
                             termoBusca = termoBusca,
-                            onNavigateToDetalhesPessoa = onNavigateToDetalhesPessoa,
-                            onNavigateToAdicionarAmigo = onNavigateToAdicionarAmigo
+                            onNavigateToDetalhesPessoa = onNavigateToDetalhesPessoa
                         )
                     }
                 }
@@ -1047,6 +1042,10 @@ private fun FamiliaHierarquiaNode(
     val expanded = expansionState[nodeKey] ?: false
     val rotation by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
+        animationSpec = tween(
+            durationMillis = 350,
+            easing = FastOutSlowInEasing
+        ),
         label = "seta-filhos"
     )
 
@@ -1203,8 +1202,33 @@ private fun FamiliaHierarquiaNode(
         if (hasChildren) {
             AnimatedVisibility(
                 visible = expanded,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically()
+                enter = expandVertically(
+                    animationSpec = tween(
+                        durationMillis = 300,
+                        easing = FastOutSlowInEasing
+                    ),
+                    expandFrom = Alignment.Top
+                ) + fadeIn(
+                    animationSpec = tween(
+                        durationMillis = 300,
+                        easing = FastOutSlowInEasing
+                    ),
+                    initialAlpha = 0.3f
+                ),
+                exit = shrinkVertically(
+                    animationSpec = tween(
+                        durationMillis = 250,
+                        easing = FastOutSlowInEasing
+                    ),
+                    shrinkTowards = Alignment.Top
+                ) + fadeOut(
+                    animationSpec = tween(
+                        durationMillis = 250,
+                        easing = FastOutSlowInEasing
+                    ),
+                    targetAlpha = 0f
+                ),
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
                     modifier = Modifier
@@ -1612,7 +1636,7 @@ private fun ConteudoAbaHierarquica(
     fun coletarNosNiveisAnteriores(nodeId: String, raiz: NoArvore?): List<String> {
         if (raiz == null) return emptyList()
         val todosNos = mutableListOf<String>()
-        var nivelAlvo = -1
+        val nivelAlvo: Int
         
         fun encontrarNivel(no: NoArvore, nivelAtual: Int): Int {
             if (no.pessoa.id == nodeId) return nivelAtual
@@ -1708,12 +1732,9 @@ private fun ConteudoAbaHierarquica(
         }
     }
     
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .transformable(state = transformableState)
-    ) {
-        // Imagem de fundo com opacidade de 60% - renderizada primeiro para ficar atrás de tudo
+    // Box principal que cobre toda a tela
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Camada 1: Imagem de fundo (cobre toda a tela, incluindo padding do Scaffold)
         if (imagensBackground.isNotEmpty() && imagemAtualIndex >= 0 && imagemAtualIndex < imagensBackground.size) {
             Image(
                 painter = painterResource(id = imagensBackground[imagemAtualIndex]),
@@ -1721,7 +1742,7 @@ private fun ConteudoAbaHierarquica(
                 modifier = Modifier
                     .fillMaxSize()
                     .alpha(0.6f),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.FillBounds
             )
         } else {
             // Fallback: background sólido se não houver imagem
@@ -1731,8 +1752,15 @@ private fun ConteudoAbaHierarquica(
                     .background(Heritage50)
             )
         }
-        when {
-            state.isLoading && todasPessoas.isEmpty() -> {
+        
+        // Camada 2: Conteúdo da árvore (com transformable)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .transformable(state = transformableState)
+        ) {
+            when {
+                state.isLoading && todasPessoas.isEmpty() -> {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -1833,65 +1861,105 @@ private fun ConteudoAbaHierarquica(
                         val isSpouseVisible = expandedSpouseIds.contains(node.id) && node.conjuge != null
                         val cardWidth = if (isSpouseVisible) avatarSize * 2 + 10.dp else avatarSize
                         
-                        Box(
-                            modifier = Modifier
-                                .offset(
-                                    x = with(density) { nodeX.toDp() } - (cardWidth / 2),
-                                    y = with(density) { nodeY.toDp() } - (avatarSize / 2)
-                                )
-                                .width(cardWidth)
-                                .height(avatarSize + 50.dp)
-                        ) {
-                            PessoaVerticalCard(
-                                pessoa = node.pessoa,
-                                conjuge = node.conjuge,
-                                corBorda = getCorPorNivel(node.level),
-                                tamanho = avatarSize,
-                                isSpouseVisible = isSpouseVisible,
-                                onSingleTap = { 
-                                    val isCurrentlyExpanded = expandedNodeIds.contains(node.id) || expandedSpouseIds.contains(node.id)
-                                    
-                                    if (isCurrentlyExpanded) {
-                                        expandedNodeIds.remove(node.id)
-                                        expandedSpouseIds.remove(node.id)
-                                    } else {
-                                        val caminhoAncestral = encontrarCaminhoAncestral(node.id, arvoreRaiz)
-                                        val nosNiveisAnteriores = coletarNosNiveisAnteriores(node.id, arvoreRaiz)
+                        // Determinar se este nó deve ser visível (raiz sempre visível, filhos só se pai expandido)
+                        val shouldBeVisible = if (node.level == 0) {
+                            true // Raiz sempre visível
+                        } else {
+                            // Encontrar o pai deste nó e verificar se está expandido
+                            val parentNode = verticalNodes.find { it.childrenIds.contains(node.id) }
+                            parentNode?.let { expandedNodeIds.contains(it.id) } ?: false
+                        }
+                        
+                        // Animar escala e alpha baseado na visibilidade
+                        val targetScale = if (shouldBeVisible) 1f else 0.8f
+                        val targetAlpha = if (shouldBeVisible) 1f else 0f
+                        
+                        val animatedScale by animateFloatAsState(
+                            targetValue = targetScale,
+                            animationSpec = tween(
+                                durationMillis = if (shouldBeVisible) 300 else 250,
+                                easing = FastOutSlowInEasing
+                            ),
+                            label = "scale-${node.id}"
+                        )
+                        
+                        val animatedAlpha by animateFloatAsState(
+                            targetValue = targetAlpha,
+                            animationSpec = tween(
+                                durationMillis = if (shouldBeVisible) 300 else 250,
+                                easing = FastOutSlowInEasing
+                            ),
+                            label = "alpha-${node.id}"
+                        )
+                        
+                        // Só renderizar se tiver alguma visibilidade
+                        if (animatedAlpha > 0.01f) {
+                            Box(
+                                modifier = Modifier
+                                    .offset(
+                                        x = with(density) { nodeX.toDp() } - (cardWidth / 2),
+                                        y = with(density) { nodeY.toDp() } - (avatarSize / 2)
+                                    )
+                                    .width(cardWidth)
+                                    .height(avatarSize + 50.dp)
+                                    .graphicsLayer {
+                                        scaleX = animatedScale
+                                        scaleY = animatedScale
+                                        alpha = animatedAlpha
+                                    }
+                            ) {
+                                PessoaVerticalCard(
+                                    pessoa = node.pessoa,
+                                    conjuge = node.conjuge,
+                                    corBorda = getCorPorNivel(node.level),
+                                    tamanho = avatarSize,
+                                    isSpouseVisible = isSpouseVisible,
+                                    onSingleTap = { 
+                                        val isCurrentlyExpanded = expandedNodeIds.contains(node.id) || expandedSpouseIds.contains(node.id)
                                         
-                                        nosNiveisAnteriores.forEach { noId ->
-                                            if (!caminhoAncestral.contains(noId)) {
-                                                expandedNodeIds.remove(noId)
-                                                expandedSpouseIds.remove(noId)
+                                        if (isCurrentlyExpanded) {
+                                            expandedNodeIds.remove(node.id)
+                                            expandedSpouseIds.remove(node.id)
+                                        } else {
+                                            val caminhoAncestral = encontrarCaminhoAncestral(node.id, arvoreRaiz)
+                                            val nosNiveisAnteriores = coletarNosNiveisAnteriores(node.id, arvoreRaiz)
+                                            
+                                            nosNiveisAnteriores.forEach { noId ->
+                                                if (!caminhoAncestral.contains(noId)) {
+                                                    expandedNodeIds.remove(noId)
+                                                    expandedSpouseIds.remove(noId)
+                                                }
+                                            }
+                                            
+                                            val irmaos = encontrarIrmaos(node.id, arvoreRaiz)
+                                            irmaos.forEach { irmaoId ->
+                                                expandedNodeIds.remove(irmaoId)
+                                                expandedSpouseIds.remove(irmaoId)
+                                            }
+                                            
+                                            if (node.hasChildren) {
+                                                expandedNodeIds.add(node.id)
+                                            }
+                                            if (node.conjuge != null) {
+                                                expandedSpouseIds.add(node.id)
                                             }
                                         }
-                                        
-                                        val irmaos = encontrarIrmaos(node.id, arvoreRaiz)
-                                        irmaos.forEach { irmaoId ->
-                                            expandedNodeIds.remove(irmaoId)
-                                            expandedSpouseIds.remove(irmaoId)
-                                        }
-                                        
-                                        if (node.hasChildren) {
-                                            expandedNodeIds.add(node.id)
-                                        }
-                                        if (node.conjuge != null) {
-                                            expandedSpouseIds.add(node.id)
-                                        }
-                                    }
-                                },
-                                onDoubleTap = {
-                                    onNavigateToDetalhesPessoa(node.id)
-                                },
-                                label = getLabelPorNivel(node.level, node.pessoa.genero),
-                                isExpanded = expandedNodeIds.contains(node.id) || expandedSpouseIds.contains(node.id),
-                                hasChildren = node.hasChildren
-                            )
+                                    },
+                                    onDoubleTap = {
+                                        onNavigateToDetalhesPessoa(node.id)
+                                    },
+                                    label = getLabelPorNivel(node.level, node.pessoa.genero),
+                                    isExpanded = expandedNodeIds.contains(node.id) || expandedSpouseIds.contains(node.id),
+                                    hasChildren = node.hasChildren
+                                )
+                            }
                         }
                     }
                 }
+                }
             }
         }
-    }
+    } // Fim do Box principal com background
 }
 
 /**
@@ -1921,8 +1989,7 @@ private fun ConteudoAbaLista(
     nomeAmigoEditado: androidx.compose.runtime.MutableState<String>,
     telefoneAmigoEditado: androidx.compose.runtime.MutableState<String>,
     termoBusca: String,
-    onNavigateToDetalhesPessoa: (String) -> Unit,
-    onNavigateToAdicionarAmigo: () -> Unit
+    onNavigateToDetalhesPessoa: (String) -> Unit
 ) {
     // Buscar pessoas individuais quando houver termo de busca
     val pessoasFiltradas = remember(
@@ -2794,8 +2861,32 @@ private fun FamiliaCardHierarquia(
 
             AnimatedVisibility(
                 visible = isExpanded,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut()
+                enter = expandVertically(
+                    animationSpec = tween(
+                        durationMillis = 300,
+                        easing = FastOutSlowInEasing
+                    ),
+                    expandFrom = Alignment.Top
+                ) + fadeIn(
+                    animationSpec = tween(
+                        durationMillis = 300,
+                        easing = FastOutSlowInEasing
+                    ),
+                    initialAlpha = 0.3f
+                ),
+                exit = shrinkVertically(
+                    animationSpec = tween(
+                        durationMillis = 250,
+                        easing = FastOutSlowInEasing
+                    ),
+                    shrinkTowards = Alignment.Top
+                ) + fadeOut(
+                    animationSpec = tween(
+                        durationMillis = 250,
+                        easing = FastOutSlowInEasing
+                    ),
+                    targetAlpha = 0f
+                )
             ) {
                 Column(
                     modifier = Modifier
@@ -2980,11 +3071,10 @@ fun calcularLayoutVertical(
         )
         
         if (expandedNodeIds.contains(no.pessoa.id)) {
-            var currentX = xLeft
             val realChildrenWidth = no.filhos.sumOf { calcularLarguraSubarvore(it).toDouble() }.toFloat()
             val startX = xLeft + (width - realChildrenWidth) / 2
             
-            currentX = startX
+            var currentX = startX
             
             no.filhos.forEach { filho ->
                 val childWidth = calcularLarguraSubarvore(filho)

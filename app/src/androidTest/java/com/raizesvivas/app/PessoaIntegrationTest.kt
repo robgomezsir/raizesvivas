@@ -11,6 +11,7 @@ import com.raizesvivas.app.data.remote.firebase.FirestoreService
 import com.raizesvivas.app.data.repository.EdicaoPendenteRepository
 import com.raizesvivas.app.data.repository.PessoaRepository
 import com.raizesvivas.app.domain.model.Pessoa
+import com.raizesvivas.app.utils.RateLimiter
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.tasks.await
 import org.junit.After
@@ -69,10 +70,12 @@ class PessoaIntegrationTest {
         ).allowMainThreadQueries().build()
         
         val edicaoPendenteRepository = EdicaoPendenteRepository(firestoreService, authService)
+        val rateLimiter = RateLimiter(context)
         pessoaRepository = PessoaRepository(
             database.pessoaDao(),
             firestoreService,
-            edicaoPendenteRepository
+            edicaoPendenteRepository,
+            rateLimiter
         )
         
         Timber.d("✅ Setup completo para testes de pessoa")

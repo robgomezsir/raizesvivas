@@ -311,18 +311,12 @@ fun MainNavigation(
                     onNavigateToCadastroPessoa = {
                         navControllerPrincipal.navigate(Screen.CadastroPessoa.route)
                     },
-                    onNavigateToAdicionarAmigo = {
-                        navControllerPrincipal.navigate(Screen.AdicionarAmigo.route)
-                    },
                     onNavigateToAlbum = {
                         navController.navigate(Screen.AlbumFamilia.route) {
                             popUpTo(Screen.Home.route) { inclusive = false }
                             launchSingleTop = true
                             restoreState = true
                         }
-                    },
-                    onNavigateToArvoreHierarquica = {
-                        navControllerPrincipal.navigate(Screen.ArvoreHierarquica.route)
                     }
                 )
             }

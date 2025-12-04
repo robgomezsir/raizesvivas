@@ -44,11 +44,11 @@ class StorageService @Inject constructor(
                     )
                 }
                 
-                // Validar tamanho (máximo 5MB conforme storage.rules)
-                val tamanhoMaximo = 5 * 1024 * 1024L // 5MB
+                // Validar tamanho (máximo 300KB conforme storage.rules)
+                val tamanhoMaximo = 300 * 1024L // 300KB
                 if (bytes.size > tamanhoMaximo) {
                     return@withNetworkRetry Result.failure(
-                        IllegalArgumentException("Imagem muito grande. Tamanho máximo: 5MB")
+                        IllegalArgumentException("Imagem muito grande. Tamanho máximo: 300KB")
                     )
                 }
                 
@@ -75,6 +75,15 @@ class StorageService @Inject constructor(
                 
             } catch (e: Exception) {
                 Timber.e(e, "❌ Erro ao fazer upload de imagem")
+                Timber.e("   Tipo de erro: ${e.javaClass.simpleName}")
+                Timber.e("   Mensagem: ${e.message}")
+                Timber.e("   Caminho: $caminho")
+                Timber.e("   Tamanho: ${bytes.size / 1024}KB")
+                Timber.e("   ContentType: $contentType")
+                if (e.message?.contains("permission", ignoreCase = true) == true || 
+                    e.message?.contains("denied", ignoreCase = true) == true) {
+                    Timber.e("   ⚠️ ERRO DE PERMISSÃO DETECTADO - Verifique as regras do Storage")
+                }
                 Result.failure(e)
             }
         }
@@ -94,6 +103,9 @@ class StorageService @Inject constructor(
         contentType: String? = null
     ): Result<String> {
         return RetryHelper.withNetworkRetry {
+            // Detectar contentType se não fornecido (fora do try para estar acessível no catch)
+            val mimeType = contentType ?: detectarContentType(file)
+            
             try {
                 // Validar que o arquivo existe
                 if (!file.exists() || !file.isFile) {
@@ -102,17 +114,14 @@ class StorageService @Inject constructor(
                     )
                 }
                 
-                // Validar tamanho (máximo 5MB conforme storage.rules)
-                val tamanhoMaximo = 5 * 1024 * 1024L // 5MB
+                // Validar tamanho (máximo 300KB conforme storage.rules)
+                val tamanhoMaximo = 300 * 1024L // 300KB
                 val tamanhoArquivo = file.length()
                 if (tamanhoArquivo > tamanhoMaximo) {
                     return@withNetworkRetry Result.failure(
-                        IllegalArgumentException("Imagem muito grande (${tamanhoArquivo / 1024 / 1024}MB). Tamanho máximo: 5MB")
+                        IllegalArgumentException("Imagem muito grande (${tamanhoArquivo / 1024}KB). Tamanho máximo: 300KB")
                     )
                 }
-                
-                // Detectar contentType se não fornecido
-                val mimeType = contentType ?: detectarContentType(file)
                 
                 // Validar tipo de arquivo
                 if (!validarTipoImagem(mimeType)) {
@@ -127,7 +136,7 @@ class StorageService @Inject constructor(
                 // Validar tamanho dos bytes (reutilizar tamanhoMaximo já declarado)
                 if (bytes.size > tamanhoMaximo) {
                     return@withNetworkRetry Result.failure(
-                        IllegalArgumentException("Imagem muito grande. Tamanho máximo: 5MB")
+                        IllegalArgumentException("Imagem muito grande. Tamanho máximo: 300KB")
                     )
                 }
                 
@@ -154,6 +163,16 @@ class StorageService @Inject constructor(
                 
             } catch (e: Exception) {
                 Timber.e(e, "❌ Erro ao fazer upload de imagem")
+                Timber.e("   Tipo de erro: ${e.javaClass.simpleName}")
+                Timber.e("   Mensagem: ${e.message}")
+                Timber.e("   Arquivo: ${file.absolutePath}")
+                Timber.e("   Tamanho: ${file.length() / 1024}KB")
+                Timber.e("   Caminho Storage: $caminho")
+                Timber.e("   ContentType: $mimeType")
+                if (e.message?.contains("permission", ignoreCase = true) == true || 
+                    e.message?.contains("denied", ignoreCase = true) == true) {
+                    Timber.e("   ⚠️ ERRO DE PERMISSÃO DETECTADO - Verifique as regras do Storage")
+                }
                 Result.failure(e)
             }
         }
@@ -282,8 +301,8 @@ class StorageService @Inject constructor(
     suspend fun uploadFotoAlbum(file: File, pessoaId: String, fotoId: String): Result<String> {
         val caminho = gerarCaminhoFotoAlbum(pessoaId, fotoId)
         
-        // Validar tamanho específico para fotos do álbum (máximo 500KB conforme storage.rules)
-        val tamanhoMaximoAlbum = 500 * 1024L // 500KB
+        // Validar tamanho específico para fotos do álbum (máximo 300KB conforme storage.rules)
+        val tamanhoMaximoAlbum = 300 * 1024L // 300KB
         val tamanhoArquivo = file.length()
         
         if (tamanhoArquivo > tamanhoMaximoAlbum) {
@@ -291,7 +310,7 @@ class StorageService @Inject constructor(
             return Result.failure(
                 IllegalArgumentException(
                     "Imagem muito grande para o álbum (${tamanhoKB}KB). " +
-                    "Tamanho máximo permitido: 500KB. " +
+                    "Tamanho máximo permitido: 300KB. " +
                     "A imagem foi comprimida, mas ainda está acima do limite. " +
                     "Tente usar uma imagem menor ou com menos detalhes."
                 )

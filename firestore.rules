@@ -497,8 +497,8 @@ service cloud.firestore {
       // A hierarquia é respeitada através do familiaId armazenado nas fotos
       allow read, list: if isAuthenticated();
       
-      // CRIAÇÃO: Apenas ADMIN e ADMIN SR podem criar fotos
-      allow create: if isAdmin() &&
+      // CRIAÇÃO: TODOS os usuários autenticados podem criar fotos (app colaborativo)
+      allow create: if isAuthenticated() &&
                      validarFotoAlbumCriacao();
       
       // ATUALIZAÇÃO: 
@@ -508,8 +508,8 @@ service cloud.firestore {
                      (isAdmin() || isApenasAtualizacaoApoios()) &&
                      validarFotoAlbumAtualizacao();
       
-      // DELEÇÃO: Apenas ADMIN e ADMIN SR podem deletar fotos
-      allow delete: if isAdmin();
+      // DELEÇÃO: TODOS os usuários autenticados podem deletar fotos (app colaborativo)
+      allow delete: if isAuthenticated();
       
       // Função auxiliar: verifica se é apenas atualização de apoios
       // Quando um apoio é adicionado/removido, apenas o campo 'apoios' (ou subcampos como 'apoios.$usuarioId') é alterado

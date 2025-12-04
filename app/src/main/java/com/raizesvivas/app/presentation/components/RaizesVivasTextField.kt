@@ -103,10 +103,10 @@ fun RaizesVivasTextField(
             focusedBorderColor = if (hideBorder) Color.Transparent else MaterialTheme.colorScheme.primary,
             unfocusedBorderColor = if (hideBorder) Color.Transparent else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
             
-            focusedTextColor = Color.Black,
-            unfocusedTextColor = Color.Black,
-            disabledTextColor = Color.Black.copy(alpha = 0.6f),
-            errorTextColor = Color.Black,
+            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+            disabledTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            errorTextColor = MaterialTheme.colorScheme.onError,
             
             focusedLabelColor = MaterialTheme.colorScheme.primary,
             unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,

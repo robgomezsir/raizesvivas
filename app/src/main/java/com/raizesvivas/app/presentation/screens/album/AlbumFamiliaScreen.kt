@@ -366,6 +366,7 @@ fun AlbumFamiliaScreen(
             if (state.mostrarModalDeletar && state.fotoSelecionadaParaDeletar != null) {
                 ModalDeletarFoto(
                     foto = state.fotoSelecionadaParaDeletar!!,
+                    carregando = state.carregando,
                     onConfirmar = {
                         viewModel.deletarFoto(state.fotoSelecionadaParaDeletar!!)
                     },
@@ -880,6 +881,7 @@ fun ModalAdicionarFoto(
 @Composable
 fun ModalDeletarFoto(
     foto: FotoAlbum,
+    carregando: Boolean = false,
     onConfirmar: () -> Unit,
     onCancelar: () -> Unit
 ) {
@@ -888,6 +890,25 @@ fun ModalDeletarFoto(
         title = { Text("Deletar Foto") },
         text = {
             Column {
+                if (carregando) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "Aguarde...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
                 Text("Tem certeza que deseja deletar esta foto?")
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
@@ -905,6 +926,7 @@ fun ModalDeletarFoto(
         confirmButton = {
             Button(
                 onClick = onConfirmar,
+                enabled = !carregando,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.error
                 )
@@ -913,7 +935,10 @@ fun ModalDeletarFoto(
             }
         },
         dismissButton = {
-            TextButton(onClick = onCancelar) {
+            TextButton(
+                onClick = onCancelar,
+                enabled = !carregando
+            ) {
                 Text("Cancelar")
             }
         }

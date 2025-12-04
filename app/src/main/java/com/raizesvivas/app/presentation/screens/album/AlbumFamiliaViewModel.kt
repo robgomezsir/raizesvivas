@@ -166,6 +166,9 @@ class AlbumFamiliaViewModel @Inject constructor(
                 Timber.d("🔍 Verificando arquivo: $imagePath, existe: ${arquivo.exists()}")
                 if (!arquivo.exists()) {
                     Timber.e("❌ Arquivo de imagem não existe: $imagePath")
+                    Timber.e("   Caminho absoluto: ${arquivo.absolutePath}")
+                    Timber.e("   Arquivo existe: ${arquivo.exists()}")
+                    Timber.e("   É arquivo: ${arquivo.isFile}")
                     _state.update { 
                         it.copy(
                             carregando = false,
@@ -317,11 +320,11 @@ class AlbumFamiliaViewModel @Inject constructor(
                 
                 Timber.d("✅ FamiliaId encontrado: $familiaIdFinal")
                 
-                // Comprimir imagem automaticamente até 500KB
-                Timber.d("🗜️ Comprimindo imagem para álbum (máximo 500KB)...")
+                // Comprimir imagem automaticamente até 300KB
+                Timber.d("🗜️ Comprimindo imagem para álbum (máximo 300KB)...")
                 val compressedFile = ImageCompressor.compressToFile(
                     imagePath, 
-                    targetSizeKB = 500, 
+                    targetSizeKB = 300, 
                     paraPerfil = false,
                     paraAlbum = true
                 )
@@ -337,9 +340,9 @@ class AlbumFamiliaViewModel @Inject constructor(
                     return@launch
                 }
                 
-                // Verificar tamanho após compressão (deve estar <= 500KB)
+                // Verificar tamanho após compressão (deve estar <= 300KB)
                 val tamanhoKB = compressedFile.length() / 1024
-                val tamanhoMaximoKB = 500
+                val tamanhoMaximoKB = 300
                 Timber.d("✅ Imagem comprimida: ${compressedFile.absolutePath} (${tamanhoKB}KB)")
                 
                 // Se ainda estiver acima do limite, tentar comprimir novamente
@@ -351,7 +354,7 @@ class AlbumFamiliaViewModel @Inject constructor(
                     // Tentar comprimir novamente a partir do arquivo já comprimido
                     val recompressedFile = ImageCompressor.compressToFile(
                         compressedFile.absolutePath,
-                        targetSizeKB = 500,
+                        targetSizeKB = 300,
                         paraPerfil = false,
                         paraAlbum = true
                     )
@@ -388,6 +391,10 @@ class AlbumFamiliaViewModel @Inject constructor(
                 if (fotoUrl == null) {
                     val exception = uploadResult.exceptionOrNull()
                     Timber.e(exception, "❌ Erro ao fazer upload da foto")
+                    Timber.e("   Tipo de erro: ${exception?.javaClass?.simpleName}")
+                    Timber.e("   Mensagem: ${exception?.message}")
+                    Timber.e("   Tamanho do arquivo: ${finalFile.length() / 1024}KB")
+                    Timber.e("   Caminho do arquivo: ${finalFile.absolutePath}")
                     finalFile.delete()
                     _state.update { 
                         it.copy(
