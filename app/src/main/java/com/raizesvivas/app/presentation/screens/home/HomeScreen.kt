@@ -1096,32 +1096,93 @@ fun UsuarioCard(
                     )
                 }
                 
-                // Ícone de dropdown
+                // Ícone de seta (agora sempre ChevronRight pois abre modal)
                 Icon(
-                    imageVector = if (mostrarDropdown) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    imageVector = Icons.Default.ChevronRight,
                     contentDescription = "Ver parentes",
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
             
-            // Dropdown de parentes
-            DropdownMenu(
-                expanded = mostrarDropdown,
-                onDismissRequest = onDismissDropdown,
-                modifier = Modifier.fillMaxWidth(0.95f)
+            // Modal de parentes (substituindo Dropdown)
+            if (mostrarDropdown) {
+                ModalListaParentes(
+                    parentescos = parentescos,
+                    onDismiss = onDismissDropdown,
+                    onNavigateToDetalhes = { id ->
+                        onDismissDropdown()
+                        onNavigateToDetalhes(id)
+                    },
+                    onVerMeuPerfil = {
+                        onDismissDropdown()
+                        onNavigateToDetalhes(pessoa.id)
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ModalListaParentes(
+    parentescos: List<Pair<Pessoa, ParentescoCalculator.ResultadoParentesco>>,
+    onDismiss: () -> Unit,
+    onNavigateToDetalhes: (String) -> Unit,
+    onVerMeuPerfil: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                imageVector = Icons.Default.FamilyRestroom,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+        },
+        title = {
+            Text(
+                text = "Meus Parentes",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 if (parentescos.isEmpty()) {
-                    DropdownMenuItem(
-                        text = { Text("Nenhum parente encontrado") },
-                        onClick = onDismissDropdown
+                    Text(
+                        text = "Nenhum parente encontrado na árvore.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)
                     )
                 } else {
-                    parentescos.take(50).forEach { pair: Pair<Pessoa, ParentescoCalculator.ResultadoParentesco> ->
-                        val (parente, resultadoParentesco) = pair
-                        key(parente.id) {
-                            DropdownMenuItem(
-                                leadingIcon = {
-                                    // Avatar circular com foto do perfil
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 400.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(parentescos, key = { it.first.id }) { pair ->
+                            val (parente, resultadoParentesco) = pair
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .clickable { onNavigateToDetalhes(parente.id) },
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    // Avatar menor
                                     Surface(
                                         modifier = Modifier.size(40.dp),
                                         shape = CircleShape,
@@ -1134,10 +1195,8 @@ fun UsuarioCard(
                                                         .data(parente.fotoUrl)
                                                         .build()
                                                 ),
-                                                contentDescription = "Foto de ${parente.nome}",
-                                                modifier = Modifier
-                                                    .fillMaxSize()
-                                                    .clip(CircleShape),
+                                                contentDescription = null,
+                                                modifier = Modifier.fillMaxSize(),
                                                 contentScale = ContentScale.Crop
                                             )
                                         } else {
@@ -1146,37 +1205,58 @@ fun UsuarioCard(
                                                     imageVector = Icons.Default.Person,
                                                     contentDescription = null,
                                                     tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                                    modifier = Modifier.size(24.dp)
+                                                    modifier = Modifier.size(20.dp)
                                                 )
                                             }
                                         }
                                     }
-                                },
-                                text = { 
-                                    Column {
+                                    
+                                    Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                             text = parente.nome,
                                             style = MaterialTheme.typography.bodyMedium,
-                                            fontWeight = FontWeight.Medium
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onSurface
                                         )
                                         Text(
                                             text = resultadoParentesco.parentesco,
                                             style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            color = MaterialTheme.colorScheme.primary
                                         )
                                     }
-                                },
-                                onClick = {
-                                    onDismissDropdown()
-                                    onNavigateToDetalhes(parente.id)
+                                    
+                                    Icon(
+                                        imageVector = Icons.Default.ChevronRight,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                        modifier = Modifier.size(20.dp)
+                                    )
                                 }
-                            )
+                            }
                         }
                     }
                 }
             }
+        },
+        confirmButton = {
+            Button(
+                onClick = onVerMeuPerfil
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Ver meu perfil")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Fechar")
+            }
         }
-    }
+    )
 }
 
 /**
