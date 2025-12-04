@@ -59,7 +59,6 @@ import com.raizesvivas.app.presentation.ui.theme.RaizesVivasButtonDefaults
 import com.raizesvivas.app.presentation.components.RaizesVivasTextField
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
-import com.raizesvivas.app.presentation.ui.theme.inputColorsPastel
 
 /**
  * Modal para criar um novo recado
@@ -77,9 +76,6 @@ fun ModalNovoRecado(
     var destinatarioSelecionado by remember { mutableStateOf<Pessoa?>(null) }
     var corSelecionada by remember { mutableStateOf("primary") }
     var mostrarSeletorDestinatario by remember { mutableStateOf(false) }
-    
-    // Obter cores dos inputs uma vez (dentro do contexto @Composable)
-    val inputColors = inputColorsPastel()
     
     val coresDisponiveis = listOf(
         "primary" to "Brisa Hortelã",

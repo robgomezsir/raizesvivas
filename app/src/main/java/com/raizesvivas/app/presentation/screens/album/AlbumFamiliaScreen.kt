@@ -35,9 +35,10 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material3.*
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.runtime.*
@@ -229,7 +230,7 @@ fun AlbumFamiliaScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Voltar"
                         )
                     }
@@ -316,7 +317,7 @@ fun AlbumFamiliaScreen(
                                 },
                                 onNavigateToDetalhesPessoa = onNavigateToDetalhesPessoa
                             )
-                            Divider(
+                            HorizontalDivider(
                                 color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f),
                                 thickness = 8.dp
                             )
@@ -1139,7 +1140,7 @@ fun ModalFotoExpandida(
                     .transformable(state = transformableState)
                     .pointerInput(Unit) {
                         detectTapGestures(
-                            onDoubleTap = { tapOffset ->
+                            onDoubleTap = { _ ->
                                 // Progressive zoom animado: 1x → 2x → 1x
                                 scope.launch {
                                     val targetScale = if (scaleAnimatable.value < 1.5f) 2f else 1f
@@ -1545,7 +1546,7 @@ fun SecaoComentariosEApoios(
                     modifier = Modifier.size(48.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Send,
+                        imageVector = Icons.AutoMirrored.Filled.Send,
                         contentDescription = "Enviar comentário",
                         tint = if (textoComentario.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                     )
@@ -1932,7 +1933,7 @@ fun PostItemInstagram(
                 modifier = Modifier.size(40.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Comment,
+                    imageVector = Icons.AutoMirrored.Filled.Comment,
                     contentDescription = "Comentar",
                     tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(24.dp)
@@ -1949,7 +1950,7 @@ fun PostItemInstagram(
                 modifier = Modifier.size(40.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Send,
+                    imageVector = Icons.AutoMirrored.Filled.Send,
                     contentDescription = "Compartilhar",
                     tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(24.dp)

@@ -61,9 +61,6 @@ fun PerfilScreen(
     val perfilGamificacao by gamificacaoViewModel.perfil.collectAsState()
     val conquistasComProgresso by gamificacaoViewModel.conquistasComProgresso.collectAsState()
     
-    // Obter currentUserId do ViewModel
-    val currentUserId = remember { viewModel.getCurrentUserId() }
-    
     val snackbarHostState = remember { SnackbarHostState() }
     var ultimaVinculacaoId by remember { mutableStateOf<String?>(null) }
     val dateFormatter = remember { SimpleDateFormat("dd/MM/yyyy", Locale("pt", "BR")) }

@@ -10,8 +10,6 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
@@ -62,7 +60,6 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.foundation.border
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -108,11 +105,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -146,6 +140,7 @@ import com.raizesvivas.app.presentation.theme.LocalThemeController
 import com.raizesvivas.app.presentation.theme.ThemeMode
 import com.raizesvivas.app.presentation.components.ExpandableFab
 import com.raizesvivas.app.presentation.components.FabAction
+import com.raizesvivas.app.R
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 
@@ -182,9 +177,9 @@ fun FamiliaScreen(
     val outrosFamiliaresExpandidos = rememberSaveable { mutableStateOf(false) }
     var familiasRejeitadasExpandidas by rememberSaveable { mutableStateOf(false) }
     val amigosExpandidos = rememberSaveable { mutableStateOf(false) }
-    val amigoParaVincular = remember { mutableStateOf<com.raizesvivas.app.domain.model.Amigo?>(null) }
-    val amigoParaExcluir = remember { mutableStateOf<com.raizesvivas.app.domain.model.Amigo?>(null) }
-    val amigoParaEditar = remember { mutableStateOf<com.raizesvivas.app.domain.model.Amigo?>(null) }
+    val amigoParaVincular = remember { mutableStateOf<Amigo?>(null) }
+    val amigoParaExcluir = remember { mutableStateOf<Amigo?>(null) }
+    val amigoParaEditar = remember { mutableStateOf<Amigo?>(null) }
     val nomeAmigoEditado = remember { mutableStateOf("") }
     val telefoneAmigoEditado = remember { mutableStateOf("") }
     val nomeEditado = remember { mutableStateOf("") }
@@ -1560,7 +1555,7 @@ private fun AmigoCard(
  */
 @Composable
 private fun ConteudoAbaHierarquica(
-    state: com.raizesvivas.app.presentation.screens.familia.FamiliaState,
+    state: FamiliaState,
     onNavigateToDetalhesPessoa: (String) -> Unit,
     keyAcesso: Int = 0 // Chave que muda a cada acesso à aba
 ) {
@@ -1692,19 +1687,23 @@ private fun ConteudoAbaHierarquica(
     val PaternalColor = Color(0xFFFFA726)
     val Slate = Color(0xFF00A200)
     
-    // Obter contexto para acessar recursos dinamicamente
-    val context = LocalContext.current
-    
-    // Lista de nomes de recursos de imagens (img_01.png até img_012.png)
-    // Os arquivos foram renomeados para seguir a convenção do Android (nomes devem começar com letra)
-    val nomesImagens = listOf("img_01", "img_02", "img_03", "img_04", "img_05", "img_06", "img_07", "img_08", "img_09", "img_010", "img_011", "img_012")
-    
-    // Obter IDs dos recursos dinamicamente
-    val imagensBackground = remember(context) {
-        nomesImagens.mapNotNull { nome ->
-            val resourceId = context.resources.getIdentifier(nome, "drawable", context.packageName)
-            if (resourceId != 0) resourceId else null
-        }
+    // Lista de IDs dos recursos de imagens (img_01.png até img_012.png)
+    // Acesso direto aos recursos sem usar reflection
+    val imagensBackground = remember {
+        listOf(
+            R.drawable.img_01,
+            R.drawable.img_02,
+            R.drawable.img_03,
+            R.drawable.img_04,
+            R.drawable.img_05,
+            R.drawable.img_06,
+            R.drawable.img_07,
+            R.drawable.img_08,
+            R.drawable.img_09,
+            R.drawable.img_010,
+            R.drawable.img_011,
+            R.drawable.img_012
+        )
     }
     
     // Estado para rastrear a imagem atual e a última usada
@@ -1809,7 +1808,9 @@ private fun ConteudoAbaHierarquica(
                     val density = LocalDensity.current
                     
                     // Centralizar a Raiz inicialmente no topo/centro
-                    val startX = constraints.maxWidth / 2f
+                    // Usar constraints explicitamente para evitar warning
+                    val maxWidth = constraints.maxWidth
+                    val startX = maxWidth / 2f
                     val startY = 100f
                     
                     // 1. Desenhar Conexões (Background)
@@ -1823,8 +1824,8 @@ private fun ConteudoAbaHierarquica(
                                         val end = childNode.position.copy(y = childNode.position.y - 35f)
                                         
                                         val color = when (childNode.genero) {
-                                            com.raizesvivas.app.domain.model.Genero.FEMININO -> MaternalColor
-                                            com.raizesvivas.app.domain.model.Genero.MASCULINO -> PaternalColor
+                                            Genero.FEMININO -> MaternalColor
+                                            Genero.MASCULINO -> PaternalColor
                                             else -> Slate
                                         }
                                         
@@ -1967,7 +1968,7 @@ private fun ConteudoAbaHierarquica(
  */
 @Composable
 private fun ConteudoAbaLista(
-    state: com.raizesvivas.app.presentation.screens.familia.FamiliaState,
+    state: FamiliaState,
     todasPessoasDasFamilias: List<Pessoa>,
     familiaSendoArrastada: String?,
     offsetYArrastado: Float,
@@ -2065,7 +2066,7 @@ private fun ConteudoAbaLista(
                             text = "Cadastre novos membros para visualizar a hierarquia familiar.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
@@ -2197,7 +2198,7 @@ private fun ConteudoAbaLista(
                                                 
                                                 if (novoIndice != indiceInicialArrasto && novoIndice >= 0 && !familia.ehFamiliaZero) {
                                                     val familiaZeroIndex = familiasFiltradas.indexOfFirst { f: FamiliaUiModel -> f.ehFamiliaZero }
-                                                    if (novoIndice != familiaZeroIndex && novoIndice >= 0) {
+                                                    if (novoIndice != familiaZeroIndex) {
                                                         val novaOrdem = familiasFiltradas.toMutableList()
                                                         novaOrdem.removeAt(indiceInicialArrasto)
                                                         novaOrdem.add(novoIndice, familia)

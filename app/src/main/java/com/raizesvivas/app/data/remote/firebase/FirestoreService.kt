@@ -3960,6 +3960,7 @@ class FirestoreService @Inject constructor(
                         }
                         
                         Timber.d("📷 Foto válida: id=${doc.id}, familiaId=$fotoFamiliaId, pessoaId=${data["pessoaId"]}, pessoaNome=${data["pessoaNome"]}")
+                        @Suppress("UNCHECKED_CAST")
                         val apoiosMap = (data["apoios"] as? Map<String, String>)?.mapValues { (_, tipoString) ->
                             TipoApoioFoto.fromString(tipoString) ?: TipoApoioFoto.CORACAO
                         } ?: emptyMap()

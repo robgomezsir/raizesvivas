@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ZoomIn
 import androidx.compose.material.icons.filled.ZoomOut
@@ -147,7 +148,6 @@ fun ArvoreHierarquicaScreen(
     fun coletarNosNiveisAnteriores(nodeId: String, raiz: NoArvore?): List<String> {
         if (raiz == null) return emptyList()
         val todosNos = mutableListOf<String>()
-        var nivelAlvo = -1
         
         // Primeiro, encontrar o nível do nó
         fun encontrarNivel(no: NoArvore, nivelAtual: Int): Int {
@@ -159,7 +159,7 @@ fun ArvoreHierarquicaScreen(
             return -1
         }
         
-        nivelAlvo = encontrarNivel(raiz, 0)
+        val nivelAlvo = encontrarNivel(raiz, 0)
         if (nivelAlvo == -1) return emptyList()
         
         // Coletar todos os nós em níveis anteriores
@@ -217,7 +217,7 @@ fun ArvoreHierarquicaScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Voltar",
                             tint = Heritage900
                         )
@@ -486,7 +486,6 @@ fun calcularLayoutVertical(
         
         // Só processar filhos se estiver expandido
         if (expandedNodeIds.contains(no.pessoa.id)) {
-            var currentX = xLeft
             // Centralizar filhos abaixo do pai se a largura total dos filhos for menor que a largura alocada
             // (Isso já é tratado pelo xCenter do pai, mas precisamos distribuir os filhos corretamente no espaço width)
             
@@ -494,7 +493,7 @@ fun calcularLayoutVertical(
             val realChildrenWidth = no.filhos.sumOf { calcularLarguraSubarvore(it).toDouble() }.toFloat()
             val startX = xLeft + (width - realChildrenWidth) / 2
             
-            currentX = startX
+            var currentX = startX
             
             no.filhos.forEach { filho ->
                 val childWidth = calcularLarguraSubarvore(filho)
