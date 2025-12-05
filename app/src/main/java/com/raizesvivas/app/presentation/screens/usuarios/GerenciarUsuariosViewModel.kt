@@ -36,7 +36,12 @@ class GerenciarUsuariosViewModel @Inject constructor(
             val usuarioAtual = authService.currentUser
             if (usuarioAtual != null) {
                 val usuario = usuarioRepository.buscarPorId(usuarioAtual.uid)
-                _state.update { it.copy(ehAdmin = usuario?.ehAdministrador == true) }
+                _state.update { 
+                    it.copy(
+                        ehAdmin = usuario?.ehAdministrador == true,
+                        ehAdminSenior = usuario?.ehAdministradorSenior == true
+                    ) 
+                }
                 
                 if (usuario?.ehAdministrador != true) {
                     _state.update { it.copy(erro = "Apenas administradores podem gerenciar usuários") }
@@ -185,6 +190,7 @@ data class GerenciarUsuariosState(
     val erro: String? = null,
     val sucesso: String? = null,
     val ehAdmin: Boolean = false,
+    val ehAdminSenior: Boolean = false,
     val nomesPessoasVinculadas: Map<String, String> = emptyMap()
 )
 

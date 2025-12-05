@@ -68,10 +68,10 @@ service cloud.firestore {
       }
     }
 
-    // Verifica se o usuário é administrador
     function isAdmin() {
       return isAuthenticated() &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.ehAdministrador == true;
+             (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.ehAdministrador == true ||
+              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.ehAdministradorSenior == true);
     }
 
     // Verifica se o usuário é administrador sênior

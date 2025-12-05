@@ -238,7 +238,8 @@ fun LoginScreen(
                         keyboardActions = KeyboardActions(
                             onNext = { focusManager.moveFocus(FocusDirection.Down) }
                         ),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        textColor = Color.Black
                     )
 
                     var senhaVisivel by remember { mutableStateOf(false) }
@@ -277,7 +278,8 @@ fun LoginScreen(
                                 viewModel.login()
                             }
                         ),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        textColor = Color.Black
                     )
 
                     Row(

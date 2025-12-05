@@ -614,6 +614,13 @@ class HomeViewModel @Inject constructor(
     }
     
     /**
+     * Limpa a mensagem de erro
+     */
+    fun limparErro() {
+        _state.update { it.copy(erro = null) }
+    }
+    
+    /**
      * Gera dados de teste com 3 gerações
      */
     fun gerarDadosTeste() {
@@ -678,6 +685,18 @@ class HomeViewModel @Inject constructor(
             } catch (e: Exception) {
                 Timber.e(e, "Erro ao carregar dados")
                 _state.update { it.copy(erro = "Erro ao carregar dados: ${e.message}") }
+            }
+        }
+        
+        // Sincronizar dados do usuário para garantir permissões atualizadas
+        viewModelScope.launch {
+            try {
+                val currentUser = authService.currentUser
+                if (currentUser != null) {
+                    usuarioRepository.sincronizar(currentUser.uid)
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Erro ao sincronizar usuário")
             }
         }
         

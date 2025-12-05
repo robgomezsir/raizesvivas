@@ -46,6 +46,7 @@ fun GerenciarUsuariosScreen(
     var nomeEditado by remember { mutableStateOf("") }
     var emailEditado by remember { mutableStateOf("") }
     var ehAdminEditado by remember { mutableStateOf(false) }
+    var ehAdminSeniorEditado by remember { mutableStateOf(false) }
     
     // Estado para confirmação de exclusão
     var usuarioParaDeletar by remember { mutableStateOf<Usuario?>(null) }
@@ -265,6 +266,7 @@ fun GerenciarUsuariosScreen(
                             nomeEditado = usuario.nome
                             emailEditado = usuario.email
                             ehAdminEditado = usuario.ehAdministrador
+                            ehAdminSeniorEditado = usuario.ehAdministradorSenior
                         },
                         onDeletar = {
                             usuarioParaDeletar = usuario
@@ -320,9 +322,34 @@ fun GerenciarUsuariosScreen(
                         )
                         Switch(
                             checked = ehAdminEditado,
-                            onCheckedChange = { ehAdminEditado = it },
+                            onCheckedChange = { 
+                                ehAdminEditado = it
+                                if (!it) ehAdminSeniorEditado = false
+                            },
                             enabled = !state.isLoading
                         )
+                    }
+                    
+                    if (state.ehAdminSenior) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Administrador Sênior:",
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Switch(
+                                checked = ehAdminSeniorEditado,
+                                onCheckedChange = { 
+                                    ehAdminSeniorEditado = it
+                                    if (it) ehAdminEditado = true
+                                },
+                                enabled = !state.isLoading
+                            )
+                        }
                     }
                 }
             },
@@ -331,7 +358,8 @@ fun GerenciarUsuariosScreen(
                     onClick = {
                         val usuarioAtualizado = usuario.copy(
                             nome = nomeEditado.trim(),
-                            ehAdministrador = ehAdminEditado
+                            ehAdministrador = ehAdminEditado || ehAdminSeniorEditado,
+                            ehAdministradorSenior = ehAdminSeniorEditado
                         )
                         viewModel.atualizarUsuario(usuarioAtualizado)
                         usuarioEditando = null

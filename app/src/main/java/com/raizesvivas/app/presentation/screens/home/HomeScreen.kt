@@ -367,6 +367,17 @@ fun HomeScreen(
     // Snackbar para mensagens
     val snackbarHostState = remember { SnackbarHostState() }
     
+    // Mostra erro se houver
+    LaunchedEffect(state.erro) {
+        state.erro?.let { erro ->
+            snackbarHostState.showSnackbar(
+                message = erro,
+                duration = SnackbarDuration.Long
+            )
+            viewModel.limparErro()
+        }
+    }
+    
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val themeController = LocalThemeController.current
     val isAdmin = state.usuario?.ehAdministrador == true
@@ -515,7 +526,7 @@ fun HomeScreen(
                     familiaZeroExiste = state.familiaZeroExiste,
                     paiNome = state.familiaZeroPaiNome,
                     maeNome = state.familiaZeroMaeNome,
-                    ehAdministrador = state.usuario?.ehAdministrador == true,
+                    ehAdministrador = isAdminSenior, // Apenas ADMIN SR pode alterar
                     onEditarNome = { viewModel.abrirModalEditarNome() },
                     onAbrirModal = { viewModel.abrirModalFamiliaZero() }
                 )

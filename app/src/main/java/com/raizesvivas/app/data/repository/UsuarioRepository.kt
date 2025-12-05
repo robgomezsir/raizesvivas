@@ -52,6 +52,27 @@ class UsuarioRepository @Inject constructor(
         
         return local
     }
+
+    /**
+     * Sincroniza dados do usuário do Firestore para o cache local
+     */
+    suspend fun sincronizar(userId: String): Result<Usuario?> {
+        return try {
+            val resultado = firestoreService.buscarUsuario(userId)
+            
+            resultado.onSuccess { usuario ->
+                if (usuario != null) {
+                    usuarioDao.inserir(usuario.toEntity())
+                    Timber.d("✅ Usuário sincronizado: ${usuario.nome}")
+                }
+            }
+            
+            resultado
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao sincronizar usuário")
+            Result.failure(e)
+        }
+    }
     
     /**
      * Salva usuário (local + remoto)

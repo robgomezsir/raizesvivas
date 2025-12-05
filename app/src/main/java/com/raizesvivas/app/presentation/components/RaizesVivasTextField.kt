@@ -40,7 +40,8 @@ fun RaizesVivasTextField(
     maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
     minLines: Int = 1,
     hideBorder: Boolean = false,
-    isSearchExpanded: Boolean = false  // Novo parâmetro para indicar se a pesquisa está expandida
+    isSearchExpanded: Boolean = false,  // Novo parâmetro para indicar se a pesquisa está expandida
+    textColor: Color? = null
 ) {
     // Calcular textStyle - apenas para barra de pesquisa, outros usam padrão Material 3
     val textStyle = if (singleLine && label.isEmpty()) {
@@ -103,13 +104,13 @@ fun RaizesVivasTextField(
             focusedBorderColor = if (hideBorder) Color.Transparent else MaterialTheme.colorScheme.primary,
             unfocusedBorderColor = if (hideBorder) Color.Transparent else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
             
-            focusedTextColor = MaterialTheme.colorScheme.onSurface,
-            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-            disabledTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            focusedTextColor = textColor ?: MaterialTheme.colorScheme.onSurface,
+            unfocusedTextColor = textColor ?: MaterialTheme.colorScheme.onSurface,
+            disabledTextColor = (textColor ?: MaterialTheme.colorScheme.onSurface).copy(alpha = 0.6f),
             errorTextColor = MaterialTheme.colorScheme.onError,
             
             focusedLabelColor = MaterialTheme.colorScheme.primary,
-            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            unfocusedLabelColor = textColor?.copy(alpha = 0.7f) ?: MaterialTheme.colorScheme.onSurfaceVariant,
             
             focusedLeadingIconColor = MaterialTheme.colorScheme.tertiary,
             unfocusedLeadingIconColor = MaterialTheme.colorScheme.tertiary,
