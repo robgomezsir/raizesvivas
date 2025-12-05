@@ -3,6 +3,7 @@ package com.raizesvivas.app.presentation.screens.familia
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.raizesvivas.app.data.repository.AmigoRepository
+import com.raizesvivas.app.data.repository.FamiliaExcluidaRepository
 import com.raizesvivas.app.data.repository.FamiliaPersonalizadaRepository
 import com.raizesvivas.app.data.repository.FamiliaZeroRepository
 import com.raizesvivas.app.data.repository.GamificacaoRepository
@@ -45,6 +46,7 @@ class FamiliaViewModel @Inject constructor(
     private val pessoaRepository: PessoaRepository,
     private val familiaZeroRepository: FamiliaZeroRepository,
     private val familiaPersonalizadaRepository: FamiliaPersonalizadaRepository,
+    private val familiaExcluidaRepository: FamiliaExcluidaRepository,
     private val usuarioRepository: UsuarioRepository,
     private val authService: AuthService,
     private val gamificacaoRepository: GamificacaoRepository,
@@ -65,6 +67,19 @@ class FamiliaViewModel @Inject constructor(
         carregarOrdemFamilias()
         observarDados()
         registrarVisualizacaoArvore()
+        sincronizarBlacklist()
+    }
+
+    private fun sincronizarBlacklist() {
+        viewModelScope.launch {
+            try {
+                familiaExcluidaRepository.sincronizar()
+                    .onSuccess { Timber.d("✅ Blacklist sincronizada com sucesso") }
+                    .onFailure { e -> Timber.e(e, "❌ Erro ao sincronizar blacklist") }
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao iniciar sincronização da blacklist")
+            }
+        }
     }
     
     /**
@@ -125,42 +140,58 @@ class FamiliaViewModel @Inject constructor(
 
     private fun observarDados() {
         viewModelScope.launch {
-            // Combinar os primeiros 5 flows
-            val dadosParciaisFlow = combine(
+            // Combinar flows em duas etapas (combine suporta até 5 flows)
+            // Primeira etapa: combinar 5 flows
+            val dadosParciais1Flow = combine(
                 pessoaRepository.observarTodasPessoas(),
                 familiaZeroRepository.observar(),
                 familiaPersonalizadaRepository.observarTodas(),
                 observarUsuarioAtual(),
                 familiasMonoparentaisRejeitadas
-            ) { pessoas: List<Pessoa>, familiaZero: FamiliaZero?, personalizadas: List<FamiliaPersonalizada>, usuario: Usuario?, rejeitados: Set<String> ->
-                Triple(pessoas, familiaZero, Triple(personalizadas, usuario, rejeitados))
+            ) { pessoas, familiaZero, personalizadas, usuario, rejeitados ->
+                DadosParciais1(pessoas, familiaZero, personalizadas, usuario, rejeitados)
             }
             
-            // Combinar com o último flow
+            // Segunda etapa: combinar resultado anterior com famílias excluídas
+            val dadosParciais2Flow = combine(
+                dadosParciais1Flow,
+                familiaExcluidaRepository.observarTodas()
+            ) { parcial1, excluidas ->
+                val familiasExcluidasIds = excluidas.map { it.familiaId }.toSet()
+                DadosParciais2(
+                    pessoas = parcial1.pessoas,
+                    familiaZero = parcial1.familiaZero,
+                    personalizadas = parcial1.personalizadas,
+                    usuario = parcial1.usuario,
+                    rejeitados = parcial1.rejeitados,
+                    familiasExcluidasIds = familiasExcluidasIds
+                )
+            }
+            
+            // Terceira etapa: combinar com amigos
             val dadosFamiliaFlow = combine(
-                dadosParciaisFlow,
+                dadosParciais2Flow,
                 amigoRepository.observarTodosAmigos()
-            ) { parcial, amigos ->
-                val (pessoas, familiaZero, dadosExtras) = parcial
-                val (personalizadas, usuario, rejeitados) = dadosExtras
-                
+            ) { parcial2, amigos ->
                 val montagem = montarFamilias(
-                    pessoas = pessoas,
-                    familiaZero = familiaZero,
-                    nomesPersonalizados = personalizadas
+                    pessoas = parcial2.pessoas,
+                    familiaZero = parcial2.familiaZero,
+                    nomesPersonalizados = parcial2.personalizadas,
+                    familiasExcluidasIds = parcial2.familiasExcluidasIds
                 )
 
-                val outrosFamiliares = pessoas.filter { pessoa ->
+                val outrosFamiliares = parcial2.pessoas.filter { pessoa ->
                     pessoa.id.isNotBlank() && pessoa.id !in montagem.membrosAssociados
                 }.distinctBy { pessoa -> pessoa.id }
 
                 // Montar famílias rejeitadas com informações completas
-                val familiasRejeitadas = montarFamiliasRejeitadas(pessoas, rejeitados)
+                val familiasRejeitadas = montarFamiliasRejeitadas(parcial2.pessoas, parcial2.rejeitados)
 
                 DadosFamilia(
                     familias = montagem.familias,
                     outrosFamiliares = outrosFamiliares,
-                    usuarioEhAdmin = usuario?.ehAdministrador == true,
+                    usuarioEhAdmin = parcial2.usuario?.ehAdministrador == true,
+                    usuarioEhAdminSr = parcial2.usuario?.ehAdministradorSenior == true,
                     familiasPendentes = montagem.familiasPendentes,
                     familiasRejeitadas = familiasRejeitadas,
                     amigos = amigos
@@ -179,6 +210,7 @@ class FamiliaViewModel @Inject constructor(
                         familias = familiasOrdenadas,
                         outrosFamiliares = dados.outrosFamiliares,
                         usuarioEhAdmin = dados.usuarioEhAdmin,
+                        usuarioEhAdminSr = dados.usuarioEhAdminSr,
                         expandedFamilias = expandidas,
                         isLoading = false,
                         familiasMonoparentaisPendentes = dados.familiasPendentes,
@@ -620,25 +652,107 @@ class FamiliaViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Atualiza dados usando sincronização incremental (mais eficiente)
+     * Busca apenas dados modificados desde a última sincronização
+     */
     fun onRefresh() {
         viewModelScope.launch {
             _state.update { it.copy(isRefreshing = true, erro = null) }
-
-            val resultadoPessoas = pessoaRepository.recarregarDoFirestore()
-            val resultadoFamilias = familiaPersonalizadaRepository.sincronizar()
-            val resultadoAmigos = amigoRepository.sincronizar()
-
-            val erro = resultadoPessoas.exceptionOrNull()
-                ?: resultadoFamilias.exceptionOrNull()
-                ?: resultadoAmigos.exceptionOrNull()
-
-            _state.update {
-                it.copy(
-                    isRefreshing = false,
-                    erro = erro?.message
-                )
+            
+            try {
+                // Obter timestamp da última sincronização (ou usar data antiga para primeira sync)
+                val ultimaSincronizacao = obterUltimaSincronizacao()
+                
+                Timber.d("🔄 Iniciando sincronização incremental desde: $ultimaSincronizacao")
+                
+                // Sincronização incremental de pessoas (apenas modificadas)
+                val resultadoPessoas = if (ultimaSincronizacao != null) {
+                    pessoaRepository.sincronizarModificadasDesde(ultimaSincronizacao)
+                } else {
+                    // Primeira sincronização: buscar tudo
+                    Timber.d("📥 Primeira sincronização - carregando todos os dados")
+                    pessoaRepository.sincronizarDoFirestore()
+                }
+                
+                // Sincronizar outros dados (já são incrementais)
+                val resultadoFamilias = familiaPersonalizadaRepository.sincronizar()
+                val resultadoAmigos = amigoRepository.sincronizar()
+                val resultadoExcluidas = familiaExcluidaRepository.sincronizar()
+                
+                // Verificar erros
+                val erro = resultadoPessoas.exceptionOrNull()
+                    ?: resultadoFamilias.exceptionOrNull()
+                    ?: resultadoAmigos.exceptionOrNull()
+                    ?: resultadoExcluidas.exceptionOrNull()
+                
+                if (erro == null) {
+                    // Atualizar timestamp da última sincronização bem-sucedida
+                    salvarUltimaSincronizacao(Date())
+                    Timber.d("✅ Sincronização incremental concluída com sucesso")
+                } else {
+                    Timber.e(erro, "❌ Erro na sincronização incremental")
+                }
+                
+                _state.update {
+                    it.copy(
+                        isRefreshing = false,
+                        erro = erro?.message
+                    )
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro fatal na sincronização")
+                _state.update {
+                    it.copy(
+                        isRefreshing = false,
+                        erro = "Erro ao sincronizar: ${e.message}"
+                    )
+                }
             }
         }
+    }
+    
+    /**
+     * Obtém o timestamp da última sincronização bem-sucedida
+     */
+    private fun obterUltimaSincronizacao(): Date? {
+        return try {
+            val prefs = context.getSharedPreferences("sync_prefs", Context.MODE_PRIVATE)
+            val timestamp = prefs.getLong("ultima_sincronizacao", 0L)
+            if (timestamp > 0) Date(timestamp) else null
+        } catch (e: Exception) {
+            Timber.e(e, "Erro ao obter última sincronização")
+            null
+        }
+    }
+    
+    /**
+     * Salva o timestamp da última sincronização bem-sucedida
+     */
+    private fun salvarUltimaSincronizacao(data: Date) {
+        try {
+            val prefs = context.getSharedPreferences("sync_prefs", Context.MODE_PRIVATE)
+            prefs.edit().putLong("ultima_sincronizacao", data.time).apply()
+            Timber.d("💾 Última sincronização salva: $data")
+        } catch (e: Exception) {
+            Timber.e(e, "Erro ao salvar última sincronização")
+        }
+    }
+    
+    /**
+     * Calcula a posição detalhada de uma pessoa dentro de seu grupo de parentesco
+     * relativo à Família Zero.
+     * 
+     * @param pessoaId ID da pessoa para calcular a posição
+     * @return Pair contendo o nome do grupo (e.g., "Filhos", "Netos") e o ranking (1-based)
+     */
+    suspend fun calcularPosicaoDetalhada(pessoaId: String): Pair<String, Int> {
+        val familiaZero = familiaZeroRepository.buscar()
+        return pessoaRepository.calcularPosicaoDetalhada(
+            pessoaId = pessoaId,
+            familiaZeroPaiId = familiaZero?.pai,
+            familiaZeroMaeId = familiaZero?.mae
+        )
     }
     
     /**
@@ -792,11 +906,93 @@ class FamiliaViewModel @Inject constructor(
         val atualizada = familiaZeroAtual.copy(arvoreNome = nome)
         return familiaZeroRepository.salvar(atualizada)
     }
+    
+    fun deletarFamilia(familiaId: String) {
+        if (familiaId.isBlank()) {
+            _state.update {
+                it.copy(erro = "ID da família não pode ser vazio")
+            }
+            return
+        }
+        
+        // Verificar se o usuário é ADMIN SR
+        if (!_state.value.usuarioEhAdminSr) {
+            _state.update {
+                it.copy(erro = "Apenas administradores sênior podem excluir famílias")
+            }
+            return
+        }
+        
+        // Verificar se é a Família Zero
+        val familia = _state.value.familias.firstOrNull { it.id == familiaId }
+        if (familia?.ehFamiliaZero == true) {
+            _state.update {
+                it.copy(erro = "Não é possível excluir a Família Zero")
+            }
+            return
+        }
+        
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, erro = null) }
+            
+            val usuarioId = authService.currentUser?.uid
+            if (usuarioId == null) {
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        erro = "Usuário não autenticado"
+                    )
+                }
+                return@launch
+            }
+            
+            // IMPORTANTE: Adicionar à blacklist ANTES de deletar
+            // Isso garante que a família não será recriada automaticamente
+            val familiaExcluida = com.raizesvivas.app.domain.model.FamiliaExcluida(
+                familiaId = familiaId,
+                excluidoPor = usuarioId,
+                excluidoEm = Date(),
+                motivo = "Excluída por ADMIN SR"
+            )
+            
+            val resultadoBlacklist = familiaExcluidaRepository.salvar(familiaExcluida)
+            
+            if (resultadoBlacklist.isFailure) {
+                Timber.e("❌ Erro ao adicionar família à blacklist")
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        erro = "Erro ao adicionar família à blacklist: ${resultadoBlacklist.exceptionOrNull()?.message}"
+                    )
+                }
+                return@launch
+            }
+            
+            // Deletar FamiliaPersonalizada (se existir)
+            val resultado = familiaPersonalizadaRepository.deletar(familiaId)
+            
+            if (resultado.isSuccess) {
+                // Limpar cache de parentesco
+                ParentescoCalculator.limparCache()
+                Timber.d("✅ Família deletada e adicionada à blacklist: $familiaId")
+            } else {
+                Timber.w("⚠️ Família adicionada à blacklist mas erro ao deletar FamiliaPersonalizada: ${resultado.exceptionOrNull()?.message}")
+            }
+            
+            _state.update {
+                it.copy(
+                    isLoading = false,
+                    erro = resultado.exceptionOrNull()?.message
+                )
+            }
+        }
+    }
 
     private fun montarFamilias(
         pessoas: List<Pessoa>,
         familiaZero: FamiliaZero?,
-        nomesPersonalizados: List<FamiliaPersonalizada>
+        nomesPersonalizados: List<FamiliaPersonalizada>,
+        familiasExcluidasIds: Set<String> = emptySet()
     ): FamiliaMontagem {
         if (pessoas.isEmpty()) return FamiliaMontagem(emptyList(), emptySet(), emptyList())
 
@@ -889,9 +1085,18 @@ class FamiliaViewModel @Inject constructor(
             compareByDescending<FamiliaUiModel> { it.ehFamiliaZero }
                 .thenBy { it.nomeExibicao.lowercase(Locale.getDefault()) }
         )
+        
+        // IMPORTANTE: Filtrar famílias que estão na blacklist (excluídas por ADMIN SR)
+        val familiasFiltradasSemExcluidas = familias.filter { familia ->
+            val estaExcluida = familia.id in familiasExcluidasIds
+            if (estaExcluida) {
+                Timber.d("🚫 Família ${familia.nomeExibicao} (${familia.id}) está na blacklist, não será exibida")
+            }
+            !estaExcluida
+        }
 
         return FamiliaMontagem(
-            familias = familias,
+            familias = familiasFiltradasSemExcluidas,
             membrosAssociados = membrosAssociados,
             familiasPendentes = familiasPendentes
         )
@@ -1007,6 +1212,27 @@ class FamiliaViewModel @Inject constructor(
         val sobrenome = candidato.trim().split(" ").lastOrNull() ?: candidato
         return "Família ${sobrenome.uppercase(Locale.getDefault())}"
     }
+    
+    /**
+     * Calcula a posição global em relação à família zero
+     * Para ser usado na tela para exibir a posição correta
+     */
+    suspend fun calcularPosicaoGlobal(pessoaId: String): Int {
+        if (pessoaId.isBlank()) return 0
+        
+        // Obter IDs do casal zero para excluir
+        val familiaZero = familiaZeroRepository.buscar()
+        val idsExcluir = mutableListOf<String>()
+        familiaZero?.let { fz ->
+            if (fz.pai.isNotBlank()) idsExcluir.add(fz.pai)
+            if (fz.mae.isNotBlank()) idsExcluir.add(fz.mae)
+        }
+        
+        return pessoaRepository.calcularPosicaoGlobal(
+            pessoaId = pessoaId,
+            excluirIds = idsExcluir
+        )
+    }
 }
 
 private data class FamiliaMontagem(
@@ -1015,10 +1241,28 @@ private data class FamiliaMontagem(
     val familiasPendentes: List<FamiliaMonoparentalPendente> = emptyList()
 )
 
+private data class DadosParciais1(
+    val pessoas: List<Pessoa>,
+    val familiaZero: FamiliaZero?,
+    val personalizadas: List<FamiliaPersonalizada>,
+    val usuario: Usuario?,
+    val rejeitados: Set<String>
+)
+
+private data class DadosParciais2(
+    val pessoas: List<Pessoa>,
+    val familiaZero: FamiliaZero?,
+    val personalizadas: List<FamiliaPersonalizada>,
+    val usuario: Usuario?,
+    val rejeitados: Set<String>,
+    val familiasExcluidasIds: Set<String>
+)
+
 private data class DadosFamilia(
     val familias: List<FamiliaUiModel>,
     val outrosFamiliares: List<Pessoa>,
     val usuarioEhAdmin: Boolean,
+    val usuarioEhAdminSr: Boolean,
     val familiasPendentes: List<FamiliaMonoparentalPendente> = emptyList(),
     val familiasRejeitadas: List<FamiliaMonoparentalPendente> = emptyList(),
     val amigos: List<Amigo> = emptyList()
@@ -1055,6 +1299,7 @@ data class FamiliaState(
     val familias: List<FamiliaUiModel> = emptyList(),
     val expandedFamilias: Set<String> = emptySet(),
     val usuarioEhAdmin: Boolean = false,
+    val usuarioEhAdminSr: Boolean = false,
     val familiasMonoparentaisPendentes: List<FamiliaMonoparentalPendente> = emptyList(),
     val mostrarDialogFamiliaPendente: Boolean = false,
     val familiaPendenteAtual: FamiliaMonoparentalPendente? = null,

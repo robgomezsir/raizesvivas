@@ -26,6 +26,7 @@ import com.raizesvivas.app.data.local.entities.*
  * Versão 12: Adiciona coluna ehAdministradorSenior na tabela usuarios
  * Versão 13: Adiciona tabela amigos para gerenciar amigos da família
  * Versão 14: Adiciona índices otimizados na tabela pessoas para melhor performance
+ * Versão 15: Adiciona tabela familias_excluidas para rastrear famílias deletadas por ADMIN SR
  */
 @Database(
     entities = [
@@ -38,9 +39,10 @@ import com.raizesvivas.app.data.local.entities.*
         ConquistaEntity::class,
         PerfilGamificacaoEntity::class,
         FamiliaPersonalizadaEntity::class,
-        AmigoEntity::class
+        AmigoEntity::class,
+        FamiliaExcluidaEntity::class
     ],
-    version = 14,
+    version = 15,
     exportSchema = true,
     autoMigrations = []
 )
@@ -96,6 +98,11 @@ abstract class RaizesVivasDatabase : RoomDatabase() {
      * DAO para operações com amigos da família
      */
     abstract fun amigoDao(): AmigoDao
+    
+    /**
+     * DAO para operações com famílias excluídas
+     */
+    abstract fun familiaExcluidaDao(): FamiliaExcluidaDao
     
     companion object {
         /**

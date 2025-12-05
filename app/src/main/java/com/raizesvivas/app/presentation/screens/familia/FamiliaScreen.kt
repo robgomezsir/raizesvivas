@@ -52,6 +52,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -171,6 +172,7 @@ fun FamiliaScreen(
     val familiaParaGerenciar = remember { mutableStateOf<FamiliaUiModel?>(null) }
     val familiaParaRemocao = remember { mutableStateOf<FamiliaUiModel?>(null) }
     val familiaParaAdicao = remember { mutableStateOf<FamiliaUiModel?>(null) }
+    val familiaParaExcluir = remember { mutableStateOf<FamiliaUiModel?>(null) }
     val mostrarSelecaoAdicionar = rememberSaveable { mutableStateOf(false) }
     val pessoaParaConfirmarRemocao = remember { mutableStateOf<Pessoa?>(null) }
     val pessoaParaConfirmarAdicao = remember { mutableStateOf<Pessoa?>(null) }
@@ -469,6 +471,21 @@ fun FamiliaScreen(
                         enabled = !state.isLoading
                     ) {
                         Text("Remover familiar")
+                    }
+                    // Botão de excluir família - apenas para ADMIN SR e não para Família Zero
+                    if (state.usuarioEhAdminSr && !familiaSelecionada.ehFamiliaZero) {
+                        OutlinedButton(
+                            onClick = {
+                                familiaParaExcluir.value = familiaSelecionada
+                                familiaParaGerenciar.value = null
+                            },
+                            enabled = !state.isLoading,
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error
+                            )
+                        ) {
+                            Text("Excluir família")
+                        }
                     }
                 }
             },
@@ -803,6 +820,60 @@ fun FamiliaScreen(
             },
             dismissButton = {
                 OutlinedButton(onClick = { pessoaParaConfirmarRemocao.value = null }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+    
+    // Diálogo de confirmação para excluir família
+    familiaParaExcluir.value?.let { familiaSelecionada ->
+        AlertDialog(
+            onDismissRequest = { familiaParaExcluir.value = null },
+            icon = {
+                Icon(
+                    imageVector = Icons.Filled.Delete,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+            },
+            title = {
+                Text(
+                    text = "Confirmar exclusão",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.error
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "Tem certeza que deseja excluir a família \"${familiaSelecionada.nomeExibicao}\"?",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = "Esta ação não pode ser desfeita. Todos os dados relacionados a esta família serão removidos.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deletarFamilia(familiaSelecionada.id)
+                        familiaParaExcluir.value = null
+                    },
+                    enabled = !state.isLoading,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    )
+                ) {
+                    Text("Excluir")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { familiaParaExcluir.value = null }) {
                     Text("Cancelar")
                 }
             }
@@ -1250,6 +1321,8 @@ private data class FamiliaHierarquiaItem(
     val nivel: Int,
     val papel: PapelHierarquia,
     val ordemEntreIrmaos: Int? = null,
+    val posicaoGrupo: String? = null,      // Grupo de parentesco (e.g., "Filhos", "Netos")
+    val posicaoRanking: Int? = null,       // Ranking dentro do grupo (1-based)
     val filhos: List<FamiliaHierarquiaItem> = emptyList()
 )
 
@@ -1258,9 +1331,14 @@ private enum class PapelHierarquia {
     DESCENDENTE
 }
 
-private fun construirHierarquiaFamilia(familia: FamiliaUiModel): List<FamiliaHierarquiaItem> {
+private fun construirHierarquiaFamilia(
+    familia: FamiliaUiModel, 
+    idsCasalZero: Set<String> = emptySet(),
+    todasPessoas: List<Pessoa> = emptyList(),
+    posicoesDetalhadas: Map<String, Pair<String, Int>> = emptyMap()
+): List<FamiliaHierarquiaItem> {
     val raiz = familia.treeRoot ?: return construirHierarquiaSemArvore(familia)
-    return raiz.normalizarAscendente().toHierarchyList()
+    return raiz.normalizarAscendente().toHierarchyList(idsCasalZero, todasPessoas, posicoesDetalhadas)
 }
 
 private fun construirHierarquiaSemArvore(familia: FamiliaUiModel): List<FamiliaHierarquiaItem> {
@@ -1315,12 +1393,34 @@ private fun TreeNodeData.normalizarAscendente(): TreeNodeData {
     }
 }
 
-private fun TreeNodeData.toHierarchyList(): List<FamiliaHierarquiaItem> {
+private fun TreeNodeData.toHierarchyList(
+    idsExcluir: Set<String> = emptySet(),
+    todasPessoas: List<Pessoa> = emptyList(),
+    posicoesDetalhadas: Map<String, Pair<String, Int>> = emptyMap()  // Map of pessoaId to (grupo, ranking)
+): List<FamiliaHierarquiaItem> {
     fun adicionar(node: TreeNodeData, nivel: Int, papel: PapelHierarquia, ordem: Int?): FamiliaHierarquiaItem {
         val filhosOrdenados = ordenarDescendentes(node.children)
-        val filhos = filhosOrdenados.mapIndexed { index, filho ->
-            adicionar(filho, nivel + 1, PapelHierarquia.DESCENDENTE, index + 1)
+        
+        // Calcular posição global baseada na data de nascimento de TODAS as pessoas
+        val filhos = filhosOrdenados.map { filho ->
+            // Calcular posição global: contar TODAS as pessoas que nasceram antes, excluindo apenas o casal zero
+            val posicaoGlobal = if (filho.pessoa.dataNascimento != null && todasPessoas.isNotEmpty()) {
+                val pessoasQueNasceramAntes = todasPessoas.count { outraPessoa ->
+                    outraPessoa.id != filho.pessoa.id &&
+                    outraPessoa.id !in idsExcluir &&
+                    outraPessoa.dataNascimento != null &&
+                    outraPessoa.dataNascimento.before(filho.pessoa.dataNascimento)
+                }
+                // A posição é o número de pessoas que nasceram antes + 1
+                pessoasQueNasceramAntes + 1
+            } else {
+                null
+            }
+            adicionar(filho, nivel + 1, PapelHierarquia.DESCENDENTE, posicaoGlobal)
         }
+        
+        // Get detailed position for this person
+        val posicaoDetalhada = posicoesDetalhadas[node.pessoa.id]
         
         return FamiliaHierarquiaItem(
             pessoa = node.pessoa,
@@ -1328,6 +1428,8 @@ private fun TreeNodeData.toHierarchyList(): List<FamiliaHierarquiaItem> {
             nivel = nivel,
             papel = papel,
             ordemEntreIrmaos = ordem,
+            posicaoGrupo = posicaoDetalhada?.first,
+            posicaoRanking = posicaoDetalhada?.second,
             filhos = filhos
         )
     }
@@ -1370,21 +1472,27 @@ private fun obterCorCardPorNivel(nivel: Int, colorScheme: ColorScheme): Color {
 }
 
 private fun obterTituloHierarquia(item: FamiliaHierarquiaItem): String {
-    val genero = item.pessoa.genero
-    return when (item.nivel) {
-        0 -> when (genero) {
+    // For Family Zero parents, show their role without position
+    if (item.nivel == 0) {
+        return when (item.pessoa.genero) {
             Genero.FEMININO -> "MÃE"
             Genero.MASCULINO -> "PAI"
             else -> "RESPONSÁVEL"
         }
-        1 -> {
-            val base = when (genero) {
-                Genero.FEMININO -> "FILHA"
-                Genero.MASCULINO -> "FILHO"
-                else -> "FILHO/FILHA"
-            }
-            val posicao = item.ordemEntreIrmaos ?: 0
-            if (posicao > 0) "$base ($posicao)" else base
+    }
+    
+    // For others, show detailed kinship position if available
+    if (item.posicaoGrupo != null && item.posicaoRanking != null && item.posicaoRanking > 0) {
+        return "${item.posicaoGrupo.uppercase()} #${item.posicaoRanking}"
+    }
+    
+    // Fallback to generic label based on level and gender
+    val genero = item.pessoa.genero
+    val base = when (item.nivel) {
+        1 -> when (genero) {
+            Genero.FEMININO -> "FILHA"
+            Genero.MASCULINO -> "FILHO"
+            else -> "FILHO/FILHA"
         }
         2 -> when (genero) {
             Genero.FEMININO -> "NETA"
@@ -1412,6 +1520,13 @@ private fun obterTituloHierarquia(item: FamiliaHierarquiaItem): String {
             else -> "PENTANETO/PENTANETA"
         }
         else -> "DESCENDENTE"
+    }
+    
+    // Add sibling position if available (fallback)
+    return if (item.ordemEntreIrmaos != null && item.ordemEntreIrmaos > 0) {
+        "$base (#${item.ordemEntreIrmaos})"
+    } else {
+        base
     }
 }
 
@@ -2233,7 +2348,11 @@ private fun ConteudoAbaLista(
                                 familiaParaGerenciar.value = familiaSelecionada
                             },
                             onNavigateToPessoa = onNavigateToDetalhesPessoa,
-                            modoVisualizacao = ModoVisualizacao.LISTA
+                            viewModel = viewModel,
+                            modoVisualizacao = ModoVisualizacao.LISTA,
+                            familias = state.familias,
+                            todasPessoas = todasPessoasDasFamilias,
+                            outrosFamiliares = state.outrosFamiliares
                         )
                     }
                 }
@@ -2533,7 +2652,11 @@ private fun FamiliaCardLista(
     onToggle: () -> Unit,
     onEditarNome: () -> Unit,
     onGerenciarFamilia: (FamiliaUiModel) -> Unit,
-    onNavigateToPessoa: (String) -> Unit
+    onNavigateToPessoa: (String) -> Unit,
+    viewModel: FamiliaViewModel,
+    familias: List<FamiliaUiModel> = emptyList(),
+    todasPessoas: List<Pessoa> = emptyList(),
+    outrosFamiliares: List<Pessoa> = emptyList()
 ) {
     val colorScheme = MaterialTheme.colorScheme
     
@@ -2734,13 +2857,63 @@ private fun FamiliaCardLista(
                         .padding(top = 16.dp, bottom = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    // Obter IDs do casal zero para excluir do cálculo de posição
+                    val idsCasalZero = remember(familias) {
+                        val familiaZero = familias.find { it.ehFamiliaZero }
+                        mutableSetOf<String>().apply {
+                            familiaZero?.conjuguePrincipal?.id?.let { add(it) }
+                            familiaZero?.conjugueSecundario?.id?.let { add(it) }
+                        }.toSet()
+                    }
+                    
+                    // Combinar todas as pessoas (famílias + outros familiares) para cálculo de posição global
+                    val todasPessoasCompletas = remember(todasPessoas, outrosFamiliares) {
+                        (todasPessoas + outrosFamiliares).distinctBy { it.id }
+                    }
+                    
+                    // State para armazenar posições detalhadas calculadas
+                    val posicoesDetalhadas = remember { mutableStateOf<Map<String, Pair<String, Int>>>(emptyMap()) }
+                    
+                    // Calcular posições detalhadas para todos os membros da família
+                    LaunchedEffect(familia.id, familia.membrosFlatten, isExpanded) {
+                        if (!isExpanded) return@LaunchedEffect
+                        
+                        val posicoes = mutableMapOf<String, Pair<String, Int>>()
+                        
+                        // Coletar todos os IDs de pessoas na família
+                        val pessoasIds = mutableSetOf<String>()
+                        familia.conjuguePrincipal?.id?.let { pessoasIds.add(it) }
+                        familia.conjugueSecundario?.id?.let { pessoasIds.add(it) }
+                        familia.membrosFlatten.forEach { item ->
+                            pessoasIds.add(item.pessoa.id)
+                            item.conjuge?.id?.let { pessoasIds.add(it) }
+                        }
+                        
+                        // Calcular posição para cada pessoa
+                        pessoasIds.forEach { pessoaId ->
+                            try {
+                                val posicao = viewModel.calcularPosicaoDetalhada(pessoaId)
+                                if (posicao.first.isNotBlank() && posicao.second > 0) {
+                                    posicoes[pessoaId] = posicao
+                                }
+                            } catch (e: Exception) {
+                                // Ignorar erros de cálculo de posição
+                            }
+                        }
+                        
+                        posicoesDetalhadas.value = posicoes
+                    }
+                    
                     val hierarquia = remember(
                         familia.treeRoot,
                         familia.conjuguePrincipal,
                         familia.conjugueSecundario,
-                        familia.membrosFlatten
+                        familia.membrosFlatten,
+                        idsCasalZero,
+                        todasPessoasCompletas,
+                        posicoesDetalhadas.value
                     ) {
-                        construirHierarquiaFamilia(familia)
+                        construirHierarquiaFamilia(familia, idsCasalZero, todasPessoasCompletas, posicoesDetalhadas.value)
                     }
 
                     val expansionState = remember(familia.id) {
@@ -2800,7 +2973,11 @@ private fun FamiliaCardHierarquia(
     familia: FamiliaUiModel,
     isExpanded: Boolean,
     onToggle: () -> Unit,
-    onNavigateToPessoa: (String) -> Unit
+    onNavigateToPessoa: (String) -> Unit,
+    viewModel: FamiliaViewModel,
+    familias: List<FamiliaUiModel> = emptyList(),
+    todasPessoas: List<Pessoa> = emptyList(),
+    outrosFamiliares: List<Pessoa> = emptyList()
 ) {
     val colorScheme = MaterialTheme.colorScheme
     
@@ -2895,13 +3072,63 @@ private fun FamiliaCardHierarquia(
                         .padding(top = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    // Obter IDs do casal zero para excluir do cálculo de posição
+                    val idsCasalZero = remember(familias) {
+                        val familiaZero = familias.find { it.ehFamiliaZero }
+                        mutableSetOf<String>().apply {
+                            familiaZero?.conjuguePrincipal?.id?.let { add(it) }
+                            familiaZero?.conjugueSecundario?.id?.let { add(it) }
+                        }.toSet()
+                    }
+                    
+                    // Combinar todas as pessoas (famílias + outros familiares) para cálculo de posição global
+                    val todasPessoasCompletas = remember(todasPessoas, outrosFamiliares) {
+                        (todasPessoas + outrosFamiliares).distinctBy { it.id }
+                    }
+                    
+                    // State para armazenar posições detalhadas calculadas
+                    val posicoesDetalhadas = remember { mutableStateOf<Map<String, Pair<String, Int>>>(emptyMap()) }
+                    
+                    // Calcular posições detalhadas para todos os membros da família
+                    LaunchedEffect(familia.id, familia.membrosFlatten, isExpanded) {
+                        if (!isExpanded) return@LaunchedEffect
+                        
+                        val posicoes = mutableMapOf<String, Pair<String, Int>>()
+                        
+                        // Coletar todos os IDs de pessoas na família
+                        val pessoasIds = mutableSetOf<String>()
+                        familia.conjuguePrincipal?.id?.let { pessoasIds.add(it) }
+                        familia.conjugueSecundario?.id?.let { pessoasIds.add(it) }
+                        familia.membrosFlatten.forEach { item ->
+                            pessoasIds.add(item.pessoa.id)
+                            item.conjuge?.id?.let { pessoasIds.add(it) }
+                        }
+                        
+                        // Calcular posição para cada pessoa
+                        pessoasIds.forEach { pessoaId ->
+                            try {
+                                val posicao = viewModel.calcularPosicaoDetalhada(pessoaId)
+                                if (posicao.first.isNotBlank() && posicao.second > 0) {
+                                    posicoes[pessoaId] = posicao
+                                }
+                            } catch (e: Exception) {
+                                // Ignorar erros de cálculo de posição
+                            }
+                        }
+                        
+                        posicoesDetalhadas.value = posicoes
+                    }
+                    
                     val hierarquia = remember(
                         familia.treeRoot,
                         familia.conjuguePrincipal,
                         familia.conjugueSecundario,
-                        familia.membrosFlatten
+                        familia.membrosFlatten,
+                        idsCasalZero,
+                        todasPessoasCompletas,
+                        posicoesDetalhadas.value
                     ) {
-                        construirHierarquiaFamilia(familia)
+                        construirHierarquiaFamilia(familia, idsCasalZero, todasPessoasCompletas, posicoesDetalhadas.value)
                     }
 
                     val expansionState = remember(familia.id) {
@@ -2945,7 +3172,11 @@ private fun FamiliaCard(
     onEditarNome: () -> Unit,
     onGerenciarFamilia: (FamiliaUiModel) -> Unit,
     onNavigateToPessoa: (String) -> Unit,
-    modoVisualizacao: ModoVisualizacao = ModoVisualizacao.LISTA
+    viewModel: FamiliaViewModel,
+    modoVisualizacao: ModoVisualizacao = ModoVisualizacao.LISTA,
+    familias: List<FamiliaUiModel> = emptyList(),
+    todasPessoas: List<Pessoa> = emptyList(),
+    outrosFamiliares: List<Pessoa> = emptyList()
 ) {
     when (modoVisualizacao) {
         ModoVisualizacao.LISTA -> {
@@ -2956,7 +3187,11 @@ private fun FamiliaCard(
                 onToggle = onToggle,
                 onEditarNome = onEditarNome,
                 onGerenciarFamilia = onGerenciarFamilia,
-                onNavigateToPessoa = onNavigateToPessoa
+                onNavigateToPessoa = onNavigateToPessoa,
+                viewModel = viewModel,
+                familias = familias,
+                todasPessoas = todasPessoas,
+                outrosFamiliares = outrosFamiliares
             )
         }
         ModoVisualizacao.ARVORE -> {
@@ -2964,7 +3199,11 @@ private fun FamiliaCard(
                 familia = familia,
                 isExpanded = isExpanded,
                 onToggle = onToggle,
-                onNavigateToPessoa = onNavigateToPessoa
+                onNavigateToPessoa = onNavigateToPessoa,
+                viewModel = viewModel,
+                familias = familias,
+                todasPessoas = todasPessoas,
+                outrosFamiliares = outrosFamiliares
             )
         }
     }

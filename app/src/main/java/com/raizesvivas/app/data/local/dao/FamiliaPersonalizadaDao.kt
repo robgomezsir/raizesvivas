@@ -25,6 +25,9 @@ interface FamiliaPersonalizadaDao {
 
     @Query("DELETE FROM familias_personalizadas")
     suspend fun deletarTodas()
+    
+    @Query("DELETE FROM familias_personalizadas WHERE familiaId = :familiaId")
+    suspend fun deletarPorId(familiaId: String)
 
     @Update
     suspend fun atualizar(entity: FamiliaPersonalizadaEntity)

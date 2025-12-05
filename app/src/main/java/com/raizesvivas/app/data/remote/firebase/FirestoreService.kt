@@ -45,6 +45,7 @@ class FirestoreService @Inject constructor(
     private val familiasPersonalizadasCollection = firestore.collection("familias_personalizadas")
     private val fotosAlbumCollection = firestore.collection("fotos_album")
     private val amigosCollection = firestore.collection("amigos")
+    private val familiasExcluidasCollection = firestore.collection("familias_excluidas")
     
     // NOVA ESTRUTURA: Coleções de conquistas
     private val usuariosCollection = firestore.collection("usuarios")
@@ -1641,6 +1642,27 @@ class FirestoreService @Inject constructor(
         }
     }
     
+    suspend fun deletarFamiliaPersonalizada(familiaId: String): Result<Unit> {
+        return RetryHelper.withNetworkRetry {
+            try {
+                if (familiaId.isBlank()) {
+                    return@withNetworkRetry Result.failure(IllegalArgumentException("familiaId não pode ser vazio"))
+                }
+                
+                familiasPersonalizadasCollection
+                    .document(familiaId)
+                    .delete()
+                    .await()
+                
+                Timber.d("✅ Família personalizada deletada: $familiaId")
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao deletar família personalizada")
+                Result.failure(e)
+            }
+        }
+    }
+    
     @Suppress("unused")
     fun observarFamiliasPersonalizadas(): Flow<List<FamiliaPersonalizada>> = callbackFlow {
         // Limite de 100 para economizar leituras e cumprir regras de segurança
@@ -1659,6 +1681,99 @@ class FirestoreService @Inject constructor(
         }
         
         awaitClose { listener.remove() }
+    }
+    
+    // ============================================
+    // FAMÍLIAS EXCLUÍDAS
+    // ============================================
+    
+    /**
+     * Salva uma família excluída no Firestore (blacklist)
+     */
+    suspend fun salvarFamiliaExcluida(familiaExcluida: FamiliaExcluida): Result<Unit> {
+        return RetryHelper.withNetworkRetry {
+            try {
+                if (familiaExcluida.familiaId.isBlank()) {
+                    return@withNetworkRetry Result.failure(IllegalArgumentException("familiaId não pode ser vazio"))
+                }
+                
+                val data = hashMapOf(
+                    "familiaId" to familiaExcluida.familiaId,
+                    "excluidoPor" to familiaExcluida.excluidoPor,
+                    "excluidoEm" to com.google.firebase.Timestamp(familiaExcluida.excluidoEm),
+                    "motivo" to familiaExcluida.motivo
+                )
+                
+                familiasExcluidasCollection
+                    .document(familiaExcluida.familiaId)
+                    .set(data)
+                    .await()
+                
+                Timber.d("✅ Família excluída salva na blacklist: ${familiaExcluida.familiaId} (por: ${familiaExcluida.excluidoPor})")
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao salvar família excluída")
+                Result.failure(e)
+            }
+        }
+    }
+    
+    /**
+     * Busca todas as famílias excluídas
+     */
+    suspend fun buscarFamiliasExcluidas(): Result<List<FamiliaExcluida>> {
+        return RetryHelper.withNetworkRetry {
+            try {
+                val snapshot = familiasExcluidasCollection
+                    .get()
+                    .await()
+                
+                val familiasExcluidas = snapshot.documents.mapNotNull { doc ->
+                    try {
+                        val data = doc.data ?: return@mapNotNull null
+                        FamiliaExcluida(
+                            familiaId = doc.id,
+                            excluidoPor = data["excluidoPor"] as? String ?: "",
+                            excluidoEm = (data["excluidoEm"] as? com.google.firebase.Timestamp)?.toDate() ?: JavaDate(),
+                            motivo = data["motivo"] as? String
+                        )
+                    } catch (e: Exception) {
+                        Timber.e(e, "❌ Erro ao converter família excluída: ${doc.id}")
+                        null
+                    }
+                }
+                
+                Timber.d("✅ ${familiasExcluidas.size} famílias excluídas carregadas")
+                Result.success(familiasExcluidas)
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao buscar famílias excluídas")
+                Result.failure(e)
+            }
+        }
+    }
+    
+    /**
+     * Remove uma família da blacklist (restaurar)
+     */
+    suspend fun removerFamiliaExcluida(familiaId: String): Result<Unit> {
+        return RetryHelper.withNetworkRetry {
+            try {
+                if (familiaId.isBlank()) {
+                    return@withNetworkRetry Result.failure(IllegalArgumentException("familiaId não pode ser vazio"))
+                }
+                
+                familiasExcluidasCollection
+                    .document(familiaId)
+                    .delete()
+                    .await()
+                
+                Timber.d("✅ Família removida da blacklist: $familiaId")
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao remover família excluída")
+                Result.failure(e)
+            }
+        }
     }
     
     // ============================================

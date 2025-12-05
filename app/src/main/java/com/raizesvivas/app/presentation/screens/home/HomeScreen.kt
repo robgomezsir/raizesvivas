@@ -615,8 +615,8 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     StatCard(
-                        title = "Posição",
-                        value = if (state.rankingPessoas > 0) "#${state.rankingPessoas + 1}" else "-",
+                        title = if (state.posicaoGrupo.isNotBlank()) state.posicaoGrupo else "Posição",
+                        value = if (state.posicaoRanking > 0) "#${state.posicaoRanking}" else "-",
                         painter = painterResource(id = com.raizesvivas.app.R.drawable.posicao),
                         modifier = Modifier.weight(1f)
                     )

@@ -17,6 +17,7 @@ import com.raizesvivas.app.data.local.dao.PerfilGamificacaoDao
 import com.raizesvivas.app.data.local.dao.FamiliaPersonalizadaDao
 import com.raizesvivas.app.data.local.dao.UsuarioDao
 import com.raizesvivas.app.data.local.dao.AmigoDao
+import com.raizesvivas.app.data.local.dao.FamiliaExcluidaDao
 import com.raizesvivas.app.data.local.migration.RoomMigrations
 import dagger.Module
 import dagger.Provides
@@ -160,6 +161,17 @@ object DatabaseModule {
         database: RaizesVivasDatabase
     ): AmigoDao {
         return database.amigoDao()
+    }
+    
+    /**
+     * Provê DAO de Famílias Excluídas
+     */
+    @Provides
+    @Singleton
+    fun provideFamiliaExcluidaDao(
+        database: RaizesVivasDatabase
+    ): FamiliaExcluidaDao {
+        return database.familiaExcluidaDao()
     }
     
     /**

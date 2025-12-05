@@ -895,5 +895,230 @@ class PessoaRepository @Inject constructor(
         
         return totalSobrinhos
     }
+    
+    /**
+     * Calcula a posição global de uma pessoa em relação à família zero
+     * Conta TODAS as pessoas que nasceram antes, excluindo apenas o casal zero
+     * A posição começa do primeiro filho da família zero (posição 1)
+     * 
+     * @param pessoaId ID da pessoa para calcular a posição
+     * @param excluirIds IDs do casal zero para excluir da contagem
+     * @return Posição global (1 = primeiro filho, 2 = segundo, etc.) ou 0 se não for possível calcular
+     */
+    suspend fun calcularPosicaoGlobal(
+        pessoaId: String,
+        excluirIds: List<String> = emptyList()
+    ): Int {
+        if (pessoaId.isBlank()) return 0
+        
+        val pessoa = buscarPorId(pessoaId) ?: return 0
+        val dataNascimento = pessoa.dataNascimento ?: return 0
+        
+        // Buscar TODAS as pessoas (não apenas irmãos)
+        val todasPessoas = buscarTodas()
+        
+        // IDs para excluir (casal zero)
+        val idsExcluir = excluirIds.toSet()
+        
+        // Contar quantas pessoas nasceram antes, excluindo apenas o casal zero
+        val count = todasPessoas.count { outraPessoa ->
+            outraPessoa.id != pessoaId &&
+            outraPessoa.id !in idsExcluir &&
+            outraPessoa.dataNascimento != null &&
+            outraPessoa.dataNascimento.before(dataNascimento)
+        }
+        
+        // A posição é o número de pessoas que nasceram antes + 1
+        // Se 0 pessoas nasceram antes, a posição é 1 (primeiro filho)
+        // Se 5 pessoas nasceram antes, a posição é 6
+        return count + 1
+    }
+    
+    /**
+     * Calcula a posição entre irmãos de forma unificada
+     * Exclui o casal zero e aplica o ajuste de -1
+     * 
+     * @param pessoaId ID da pessoa para calcular a posição
+     * @param excluirIds IDs adicionais para excluir da contagem (ex: casal zero)
+     * @return Posição entre irmãos (1 = primeiro, 2 = segundo, etc.) ou 0 se não for possível calcular
+     */
+    suspend fun calcularPosicaoEntreIrmaos(
+        pessoaId: String,
+        excluirIds: List<String> = emptyList()
+    ): Int {
+        if (pessoaId.isBlank()) return 0
+        
+        val pessoa = buscarPorId(pessoaId) ?: return 0
+        val dataNascimento = pessoa.dataNascimento ?: return 0
+        
+        // Buscar todos os irmãos (mesmos pais)
+        val irmaos = buscarIrmaos(pessoa.pai, pessoa.mae, pessoaId)
+        
+        // IDs para excluir (casal zero + IDs adicionais)
+        val idsExcluir = excluirIds.toSet()
+        
+        // Contar quantos irmãos nasceram antes, excluindo o casal zero
+        val count = irmaos.count { irmao ->
+            irmao.id !in idsExcluir &&
+            irmao.dataNascimento != null &&
+            irmao.dataNascimento.before(dataNascimento)
+        }
+        
+        // Aplicar ajuste de -1 e garantir que o resultado seja >= 0
+        // Se count = 0, posição = 0 (será tratado na exibição)
+        // Se count = 1, posição = 0 (será exibido como 1 na tela)
+        // Se count = 2, posição = 1 (será exibido como 2 na tela)
+        return maxOf(0, count - 1)
+    }
+    /**
+     * Normaliza o nome do parentesco para o nome do grupo (plural)
+     */
+    private fun normalizarGrupoParentesco(parentesco: String): String {
+        val p = parentesco.lowercase()
+        return when {
+            // Primeiro verificar descendentes diretos (filhos, netos, bisnetos, etc.)
+            p.contains("filho") || p.contains("filha") -> "Filhos"
+            p.contains("neto") || p.contains("neta") -> {
+                if (p.contains("bisneto") || p.contains("bisneta")) "Bisnetos"
+                else if (p.contains("trisneto") || p.contains("trisneta")) "Trisnetos"
+                else if (p.contains("sobrinho") || p.contains("sobrinha")) {
+                     if (p.contains("neto") || p.contains("neta")) "Sobrinhos-netos"
+                     else "Sobrinhos"
+                }
+                else "Netos"
+            }
+            // Parentescos colaterais (irmãos, primos, tios, sobrinhos)
+            p.contains("sobrinho") || p.contains("sobrinha") -> "Sobrinhos"
+            p.contains("primo") || p.contains("prima") -> "Primos"
+            p.contains("tio") || p.contains("tia") -> "Tios"
+            p.contains("irmão") || p.contains("irmã") -> "Irmãos"
+            // INVERTER parentescos ascendentes para descendentes (em relação à Família Zero)
+            // Ordem importante: verificar gerações mais distantes primeiro (bisavô, trisavô) antes de avô
+            // Quando retorna "Trisavô" ou "Trisavó", significa que a pessoa é trisneto da Família Zero
+            (p.contains("trisavô") || p.contains("trisavó")) && !p.contains("neto") && !p.contains("neta") -> "Trisnetos"
+            // Quando retorna "Bisavô" ou "Bisavó", significa que a pessoa é bisneto da Família Zero
+            (p.contains("bisavô") || p.contains("bisavó")) && !p.contains("neto") && !p.contains("neta") -> "Bisnetos"
+            // Quando retorna "Avô" ou "Avó", significa que a pessoa é neto da Família Zero
+            (p.contains("avô") || p.contains("avó")) && !p.contains("neto") && !p.contains("neta") -> "Netos"
+            // Quando o ParentescoCalculator retorna "Pai" ou "Mãe", significa que a pessoa é filho da Família Zero
+            // Então invertemos para mostrar "Filhos" em vez de "Pais"
+            (p.contains("pai") || p.contains("mãe")) && !p.contains("filho") && !p.contains("filha") -> "Filhos"
+            else -> "Outros"
+        }
+    }
+
+    /**
+     * Calcula a posição detalhada de uma pessoa em seu grupo familiar (ex: Neto #3)
+     * em relação à Família Zero.
+     * 
+     * @return Pair<NomeDoGrupo, Posicao> (ex: "Netos", 3)
+     */
+    suspend fun calcularPosicaoDetalhada(
+        pessoaId: String,
+        familiaZeroPaiId: String?,
+        familiaZeroMaeId: String?
+    ): Pair<String, Int> {
+        if (pessoaId.isBlank()) return Pair("", 0)
+        
+        // Se a pessoa é um dos pais da família zero, não tem posição
+        if (pessoaId == familiaZeroPaiId || pessoaId == familiaZeroMaeId) {
+            return Pair("Fundador", 0)
+        }
+
+        val pessoa = buscarPorId(pessoaId) ?: return Pair("", 0)
+        val dataNascimento = pessoa.dataNascimento ?: return Pair("", 0)
+        
+        // Determinar parentesco com Família Zero
+        // Tentar calcular em relação ao Pai e à Mãe e pegar o mais próximo/relevante
+        val todasPessoas = buscarTodas()
+        val pessoasMap = todasPessoas.associateBy { it.id }
+        
+        var parentescoFinal = ""
+        var menorDistancia = Int.MAX_VALUE
+        
+        // Verificar parentesco com Pai da Família Zero
+        if (!familiaZeroPaiId.isNullOrBlank()) {
+            val paiZero = pessoasMap[familiaZeroPaiId]
+            if (paiZero != null) {
+                val res = com.raizesvivas.app.utils.ParentescoCalculator.calcularParentesco(pessoa, paiZero, pessoasMap)
+                if (res.distancia >= 0 && res.distancia < menorDistancia) {
+                    menorDistancia = res.distancia
+                    parentescoFinal = res.parentesco
+                }
+            }
+        }
+        
+        // Verificar parentesco com Mãe da Família Zero
+        if (!familiaZeroMaeId.isNullOrBlank()) {
+            val maeZero = pessoasMap[familiaZeroMaeId]
+            if (maeZero != null) {
+                val res = com.raizesvivas.app.utils.ParentescoCalculator.calcularParentesco(pessoa, maeZero, pessoasMap)
+                if (res.distancia >= 0 && res.distancia < menorDistancia) {
+                    // Se empatar, preferir o que já temos ou lógica específica?
+                    // Geralmente é o mesmo (ex: Neto de ambos)
+                    menorDistancia = res.distancia
+                    parentescoFinal = res.parentesco
+                }
+            }
+        }
+        
+        if (parentescoFinal.isBlank()) return Pair("Desconhecido", 0)
+        
+        val meuGrupo = normalizarGrupoParentesco(parentescoFinal)
+        
+        // Agora buscar TODAS as pessoas desse mesmo grupo
+        // Excluir Família Zero da contagem
+        val idsExcluir = listOfNotNull(familiaZeroPaiId, familiaZeroMaeId).toSet()
+        
+        val pessoasDoGrupo = todasPessoas.filter { p ->
+            if (p.id in idsExcluir) return@filter false
+            if (p.dataNascimento == null) return@filter false
+            
+            // Calcular parentesco dessa pessoa com Família Zero
+            var pParentesco = ""
+            var pDistancia = Int.MAX_VALUE
+            
+             if (!familiaZeroPaiId.isNullOrBlank()) {
+                val paiZero = pessoasMap[familiaZeroPaiId]
+                if (paiZero != null) {
+                    val res = com.raizesvivas.app.utils.ParentescoCalculator.calcularParentesco(p, paiZero, pessoasMap)
+                    if (res.distancia >= 0 && res.distancia < pDistancia) {
+                        pDistancia = res.distancia
+                        pParentesco = res.parentesco
+                    }
+                }
+            }
+            
+            if (!familiaZeroMaeId.isNullOrBlank()) {
+                val maeZero = pessoasMap[familiaZeroMaeId]
+                if (maeZero != null) {
+                    val res = com.raizesvivas.app.utils.ParentescoCalculator.calcularParentesco(p, maeZero, pessoasMap)
+                    if (res.distancia >= 0 && res.distancia < pDistancia) {
+                        pDistancia = res.distancia
+                        pParentesco = res.parentesco
+                    }
+                }
+            }
+            
+            if (pParentesco.isBlank()) return@filter false
+            
+            val grupo = normalizarGrupoParentesco(pParentesco)
+            grupo == meuGrupo
+        }
+        
+        // Ordenar por data de nascimento
+        val pessoasOrdenadas = pessoasDoGrupo.sortedWith(
+            compareBy { it.dataNascimento?.time ?: Long.MAX_VALUE }
+        )
+        
+        // Encontrar posição (1-based)
+        val index = pessoasOrdenadas.indexOfFirst { it.id == pessoaId }
+        
+        return if (index >= 0) {
+            Pair(meuGrupo, index + 1)
+        } else {
+            Pair(meuGrupo, 0)
+        }
+    }
 }
 

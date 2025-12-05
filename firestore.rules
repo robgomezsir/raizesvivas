@@ -805,5 +805,67 @@ service cloud.firestore {
         return camposCriticosOk && nomeOk && telefoneOk && familiaresVinculadosOk && modificadoEmOk;
       }
     }
+
+    // ==============================
+    // 🚫 Coleção: familias_excluidas (BLACKLIST DE FAMÍLIAS DELETADAS)
+    // ==============================
+    // LEITURA: Todos os usuários autenticados (necessário para filtragem no app)
+    // ESCRITA: Apenas ADMIN SR (apenas eles podem deletar famílias)
+    // - Esta coleção armazena IDs de famílias excluídas para prevenir recriação automática
+    match /familias_excluidas/{familiaExcluidaId} {
+      // LEITURA E LISTAGEM: Todos os usuários autenticados podem ler a blacklist
+      // Isso é necessário para que o app possa filtrar famílias deletadas na UI
+      allow read, list: if isAuthenticated();
+      
+      // CRIAÇÃO: Apenas ADMIN SR pode adicionar à blacklist
+      allow create: if isAdminSenior() &&
+                     validarFamiliaExcluidaCriacao();
+      
+      // ATUALIZAÇÃO: Apenas ADMIN SR pode atualizar
+      allow update: if isAdminSenior() &&
+                     validarFamiliaExcluidaAtualizacao();
+      
+      // DELEÇÃO: Apenas ADMIN SR pode remover da blacklist
+      allow delete: if isAdminSenior();
+      
+      // Função auxiliar para validar dados de família excluída na criação
+      function validarFamiliaExcluidaCriacao() {
+        let dados = request.resource.data;
+        return dados.keys().hasAll(['familiaId', 'excluidoPor', 'excluidoEm']) &&
+               dados.familiaId is string &&
+               dados.familiaId.size() > 0 &&
+               dados.excluidoPor is string &&
+               dados.excluidoPor == request.auth.uid &&
+               dados.excluidoEm is timestamp &&
+               // Campos opcionais
+               (!dados.keys().hasAny(['motivo']) || dados.motivo == null || dados.motivo is string) &&
+               (!dados.keys().hasAny(['sincronizadoEm']) || dados.sincronizadoEm == null || dados.sincronizadoEm is timestamp) &&
+               (!dados.keys().hasAny(['precisaSincronizar']) || dados.precisaSincronizar is bool);
+      }
+      
+      // Função auxiliar para validar dados de família excluída na atualização
+      function validarFamiliaExcluidaAtualizacao() {
+        let dados = request.resource.data;
+        let dadosAntigos = resource.data;
+        
+        // Campos críticos não podem ser alterados
+        let camposCriticosOk = dados.familiaId == dadosAntigos.familiaId &&
+                              dados.excluidoPor == dadosAntigos.excluidoPor &&
+                              dados.excluidoEm == dadosAntigos.excluidoEm;
+        
+        // Validar campos editáveis (sincronização)
+        let sincronizacaoOk = (!dados.keys().hasAny(['sincronizadoEm']) || 
+                              dados.sincronizadoEm == null || 
+                              dados.sincronizadoEm is timestamp) &&
+                             (!dados.keys().hasAny(['precisaSincronizar']) || 
+                              dados.precisaSincronizar is bool);
+        
+        let motivoOk = !dados.keys().hasAny(['motivo']) || 
+                      dados.motivo == null || 
+                      dados.motivo is string;
+        
+        return camposCriticosOk && sincronizacaoOk && motivoOk;
+      }
+    }
   }
 }

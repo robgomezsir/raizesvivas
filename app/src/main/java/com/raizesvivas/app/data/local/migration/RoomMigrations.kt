@@ -448,6 +448,24 @@ object RoomMigrations {
         }
     }
 
+    val MIGRATION_14_15 = object : Migration(14, 15) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // Criar tabela familias_excluidas para rastrear famílias deletadas por ADMIN SR
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS familias_excluidas (
+                    familiaId TEXT NOT NULL PRIMARY KEY,
+                    excluidoPor TEXT NOT NULL,
+                    excluidoEm INTEGER NOT NULL,
+                    motivo TEXT,
+                    sincronizadoEm INTEGER,
+                    precisaSincronizar INTEGER NOT NULL
+                )
+                """.trimIndent()
+            )
+        }
+    }
+
     fun getAllMigrations(): Array<Migration> {
         return arrayOf(
             MIGRATION_1_2,
@@ -462,7 +480,8 @@ object RoomMigrations {
             MIGRATION_10_11,
             MIGRATION_11_12,
             MIGRATION_12_13,
-            MIGRATION_13_14
+            MIGRATION_13_14,
+            MIGRATION_14_15
         )
     }
 }

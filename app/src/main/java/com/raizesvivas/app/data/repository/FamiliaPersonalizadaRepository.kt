@@ -85,5 +85,32 @@ class FamiliaPersonalizadaRepository @Inject constructor(
             Result.failure(e)
         }
     }
+    
+    suspend fun deletar(familiaId: String): Result<Unit> {
+        return try {
+            if (familiaId.isBlank()) {
+                return Result.failure(IllegalArgumentException("familiaId não pode ser vazio"))
+            }
+            
+            val resultado = firestoreService.deletarFamiliaPersonalizada(familiaId)
+            resultado.onSuccess {
+                // Remover do banco local também
+                familiaPersonalizadaDao.deletarPorId(familiaId)
+                Timber.d("✅ Família personalizada deletada localmente: $familiaId")
+            }.onFailure { erro ->
+                Timber.e(erro, "❌ Falha ao deletar família personalizada no Firestore")
+                // Mesmo assim, tentar remover do banco local
+                try {
+                    familiaPersonalizadaDao.deletarPorId(familiaId)
+                } catch (e: Exception) {
+                    Timber.e(e, "❌ Erro ao deletar família personalizada do banco local")
+                }
+            }
+            resultado
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro inesperado ao deletar família personalizada")
+            Result.failure(e)
+        }
+    }
 }
 

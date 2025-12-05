@@ -79,11 +79,7 @@ import com.raizesvivas.app.domain.model.Pessoa
 import com.raizesvivas.app.presentation.components.ImagePicker
 import com.raizesvivas.app.presentation.components.RaizesVivasTextField
 import com.raizesvivas.app.presentation.components.AnimatedSearchBar
-import com.raizesvivas.app.presentation.ui.theme.FabDefaults
-import com.raizesvivas.app.presentation.ui.theme.fabContainerColor
 import com.raizesvivas.app.utils.TextUtils
-import com.raizesvivas.app.presentation.ui.theme.fabContentColor
-import com.raizesvivas.app.presentation.ui.theme.fabElevation
 import com.raizesvivas.app.utils.TimeUtils
 import com.raizesvivas.app.utils.rememberHapticFeedback
 import com.raizesvivas.app.utils.HapticFeedback
@@ -236,6 +232,13 @@ fun AlbumFamiliaScreen(
                     }
                 },
                 actions = {
+                    // Ícone de adicionar foto
+                    IconButton(onClick = { viewModel.abrirModalAdicionar() }) {
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = if (fotos.isEmpty()) "Adicionar primeira foto" else "Adicionar foto"
+                        )
+                    }
                     // Ícone de pesquisa
                     if (!mostrarPesquisa) {
                         IconButton(onClick = { mostrarPesquisa = true }) {
@@ -247,24 +250,6 @@ fun AlbumFamiliaScreen(
                     }
                 }
             )
-        },
-        floatingActionButton = {
-            // FAB sempre visível para adicionar foto
-            FloatingActionButton(
-                onClick = { viewModel.abrirModalAdicionar() },
-                modifier = Modifier.padding(
-                    end = 4.dp,
-                    bottom = 4.dp
-                ),
-                containerColor = fabContainerColor(),
-                contentColor = fabContentColor(),
-                elevation = fabElevation()
-            ) {
-                Icon(
-                    Icons.Default.Add, 
-                    contentDescription = if (fotos.isEmpty()) "Adicionar primeira foto" else "Adicionar foto"
-                )
-            }
         }
     ) { paddingValues ->
         Box(

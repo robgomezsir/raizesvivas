@@ -743,20 +743,16 @@ class HomeViewModel @Inject constructor(
                 }
                 val dataNascimentoUsuario = pessoaVinculadaObj?.dataNascimento
                 
-                // Calcular ranking entre irmãos (Posição na família = ordem de nascimento entre irmãos)
-                val rankingPessoas = if (pessoaVinculadaObj != null && dataNascimentoUsuario != null) {
-                    val irmaos = pessoaRepository.buscarIrmaos(
-                        paiId = pessoaVinculadaObj.pai,
-                        maeId = pessoaVinculadaObj.mae,
-                        excluirId = pessoaVinculadaObj.id
+                // Calcular posição global em relação à família zero
+                // Calcular posição detalhada em relação à família zero
+                val (posicaoGrupo, posicaoRanking) = if (pessoaVinculada != null) {
+                    pessoaRepository.calcularPosicaoDetalhada(
+                        pessoaId = pessoaVinculada,
+                        familiaZeroPaiId = familiaZero?.pai,
+                        familiaZeroMaeId = familiaZero?.mae
                     )
-                    
-                    // Contar irmãos nascidos antes
-                    irmaos.count { irmao ->
-                        irmao.dataNascimento != null && irmao.dataNascimento.before(dataNascimentoUsuario)
-                    }
                 } else {
-                    0
+                    Pair("", 0)
                 }
                 
                 // Contar sobrinhos
@@ -772,7 +768,10 @@ class HomeViewModel @Inject constructor(
                         totalFamilias = totalFamilias,
                         familiasMonoparentais = estatisticasFamilias.monoparentais,
                         familiasHomoafetivas = estatisticasFamilias.homoafetivas,
-                        rankingPessoas = rankingPessoas,
+
+                        rankingPessoas = posicaoRanking,
+                        posicaoGrupo = posicaoGrupo,
+                        posicaoRanking = posicaoRanking,
                         totalSobrinhos = totalSobrinhos
                         // meninas, meninos e outros são atualizados por observeEstatisticasGenero()
                     )
@@ -815,15 +814,18 @@ class HomeViewModel @Inject constructor(
                 }
                 val dataNascimentoUsuario = pessoaVinculadaObj?.dataNascimento
                 
-                // Obter IDs do pai e da mãe para excluir da contagem
-                val idsExcluirRanking = mutableListOf<String>()
-                pessoaVinculadaObj?.pai?.let { idsExcluirRanking.add(it) }
-                pessoaVinculadaObj?.mae?.let { idsExcluirRanking.add(it) }
-                
-                val rankingPessoas = pessoaRepository.contarPessoasAteNascimento(
-                    dataNascimentoUsuario,
-                    excluirIds = idsExcluirRanking
-                )
+                // Calcular posição global em relação à família zero
+                // Calcular posição detalhada em relação à família zero
+                val (posicaoGrupo, posicaoRanking) = if (pessoaVinculada != null) {
+                    val familiaZero = familiaZeroRepository.buscar()
+                    pessoaRepository.calcularPosicaoDetalhada(
+                        pessoaId = pessoaVinculada,
+                        familiaZeroPaiId = familiaZero?.pai,
+                        familiaZeroMaeId = familiaZero?.mae
+                    )
+                } else {
+                    Pair("", 0)
+                }
                 val totalSobrinhos = pessoaVinculada?.let { 
                     pessoaRepository.contarSobrinhos(it) 
                 } ?: 0
@@ -836,7 +838,9 @@ class HomeViewModel @Inject constructor(
                         totalFamilias = totalFamilias,
                         familiasMonoparentais = estatisticasFamilias.monoparentais,
                         familiasHomoafetivas = estatisticasFamilias.homoafetivas,
-                        rankingPessoas = rankingPessoas,
+                        rankingPessoas = posicaoRanking,
+                        posicaoGrupo = posicaoGrupo,
+                        posicaoRanking = posicaoRanking,
                         totalSobrinhos = totalSobrinhos
                         // meninas, meninos e outros são atualizados por observeEstatisticasGenero()
                     )
@@ -974,7 +978,9 @@ data class HomeState(
     val isLoading: Boolean = false,
     val termoBusca: String = "",
     val ordenacao: TipoOrdenacao = TipoOrdenacao.NOME_CRESCENTE,
-    val mostrarModalFamiliaZero: Boolean = false
+    val mostrarModalFamiliaZero: Boolean = false,
+    val posicaoGrupo: String = "",
+    val posicaoRanking: Int = 0
 )
 
 /**
