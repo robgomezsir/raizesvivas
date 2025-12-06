@@ -32,6 +32,8 @@ import com.raizesvivas.app.utils.ThemePreferenceManager
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
 import javax.inject.Inject
+import com.raizesvivas.app.presentation.components.MascotOverlay
+import com.raizesvivas.app.presentation.splash.VideoSplashScreen
 import kotlinx.coroutines.launch
 
 /**
@@ -56,6 +58,7 @@ class MainActivity : FragmentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         setContent {
+            var showSplash by rememberSaveable { mutableStateOf(true) }
             val themeModeState = rememberSaveable(saver = ThemeModeStateSaver) {
                 mutableStateOf(ThemeMode.SISTEMA)
             }
@@ -75,57 +78,69 @@ class MainActivity : FragmentActivity() {
                     themeModeState.value = it
                 }
             }
-            val systemDark = isSystemInDarkTheme()
-            val isDarkTheme = when (themeModeState.value) {
-                ThemeMode.SISTEMA -> systemDark
-                ThemeMode.ESCURO -> true
-                ThemeMode.CLARO -> false
-            }
-
-            CompositionLocalProvider(
-                LocalThemeController provides ThemeController(
-                    modo = themeModeState.value,
-                    selecionarModo = {
-                        themeModeState.value = it
-                        Timber.i("Theme mode alterado para ${it.name}")
-                        coroutineScope.launch {
-                            ThemePreferenceManager.writeThemeMode(applicationContext, it)
-                        }
-                    }
+            
+            if (showSplash) {
+                VideoSplashScreen(
+                    onVideoEnd = { showSplash = false }
                 )
-            ) {
-                RaizesVivasTheme(darkTheme = isDarkTheme) {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    val colorScheme = MaterialTheme.colorScheme
-                    val statusBarColor = colorScheme.surfaceColorAtElevation(2.dp)
-                    val navigationBarColor = colorScheme.surfaceColorAtElevation(0.dp)
+            } else {
+                val systemDark = isSystemInDarkTheme()
+                val isDarkTheme = when (themeModeState.value) {
+                    ThemeMode.SISTEMA -> systemDark
+                    ThemeMode.ESCURO -> true
+                    ThemeMode.CLARO -> false
+                }
 
-                    SideEffect {
-                        val window = window
-                        window.statusBarColor = statusBarColor.toArgb()
-                        window.navigationBarColor = navigationBarColor.toArgb()
-
-                        val insetsController = WindowCompat.getInsetsController(window, window.decorView)
-                        insetsController.isAppearanceLightStatusBars = !isDarkTheme
-                        insetsController.isAppearanceLightNavigationBars = !isDarkTheme
-                    }
-
-                    val navController = rememberNavController()
-                    
-                    // Tratar deep links
-                    HandleDeepLink(navController = navController)
-                    
-                    NavGraph(
-                        navController = navController,
-                        authService = authService
+                CompositionLocalProvider(
+                    LocalThemeController provides ThemeController(
+                        modo = themeModeState.value,
+                        selecionarModo = {
+                            themeModeState.value = it
+                            Timber.i("Theme mode alterado para ${it.name}")
+                            coroutineScope.launch {
+                                ThemePreferenceManager.writeThemeMode(applicationContext, it)
+                            }
+                        }
                     )
+                ) {
+                RaizesVivasTheme(darkTheme = isDarkTheme) {
+                    androidx.compose.foundation.layout.Box(modifier = Modifier.fillMaxSize()) {
+                        Surface(
+                            modifier = Modifier.fillMaxSize(),
+                            color = MaterialTheme.colorScheme.background
+                        ) {
+                            val colorScheme = MaterialTheme.colorScheme
+                            val statusBarColor = colorScheme.surfaceColorAtElevation(2.dp)
+                            val navigationBarColor = colorScheme.surfaceColorAtElevation(0.dp)
+
+                            SideEffect {
+                                val window = window
+                                window.statusBarColor = statusBarColor.toArgb()
+                                window.navigationBarColor = navigationBarColor.toArgb()
+
+                                val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+                                insetsController.isAppearanceLightStatusBars = !isDarkTheme
+                                insetsController.isAppearanceLightNavigationBars = !isDarkTheme
+                            }
+
+                            val navController = rememberNavController()
+                            
+                            // Tratar deep links
+                            HandleDeepLink(navController = navController)
+                            
+                            NavGraph(
+                                navController = navController,
+                                authService = authService
+                            )
+                        }
+                        
+                        // Mascote Global Overlay
+                        MascotOverlay()
+                    }
                 }
             }
-            }
         }
+    }
         
         // Tratar deep link na criação da activity
         handleIntent(intent)

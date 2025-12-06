@@ -140,6 +140,11 @@ dependencies {
     
     // Security Crypto (Criptografia segura para senhas)
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
+
+    // Media3 (ExoPlayer)
+    implementation("androidx.media3:media3-exoplayer:1.2.0")
+    implementation("androidx.media3:media3-ui:1.2.0")
+    implementation("androidx.media3:media3-common:1.2.0")
     
     // Gson (JSON serialization)
     implementation("com.google.code.gson:gson:2.10.1")
