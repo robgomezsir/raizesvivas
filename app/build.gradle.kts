@@ -124,6 +124,7 @@ dependencies {
     
     // Coil (Carregamento de Imagens)
     implementation("io.coil-kt:coil-compose:2.5.0")
+    implementation("io.coil-kt:coil-gif:2.5.0")
     
     // ExifInterface (Correção de orientação de imagens)
     implementation("androidx.exifinterface:exifinterface:1.3.6")
