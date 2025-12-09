@@ -170,6 +170,12 @@ class EdicaoPendenteRepository @Inject constructor(
                 valorNovo = pessoaEditada.nome
             )
         }
+        if (pessoaOriginal.apelido != pessoaEditada.apelido) {
+            camposAlterados["apelido"] = com.raizesvivas.app.domain.model.AlteracaoCampo(
+                valorAnterior = pessoaOriginal.apelido,
+                valorNovo = pessoaEditada.apelido
+            )
+        }
         if (pessoaOriginal.dataNascimento != pessoaEditada.dataNascimento) {
             camposAlterados["dataNascimento"] = com.raizesvivas.app.domain.model.AlteracaoCampo(
                 valorAnterior = pessoaOriginal.dataNascimento,
@@ -206,6 +212,24 @@ class EdicaoPendenteRepository @Inject constructor(
                 valorNovo = pessoaEditada.biografia
             )
         }
+        if (pessoaOriginal.telefone != pessoaEditada.telefone) {
+            camposAlterados["telefone"] = com.raizesvivas.app.domain.model.AlteracaoCampo(
+                valorAnterior = pessoaOriginal.telefone,
+                valorNovo = pessoaEditada.telefone
+            )
+        }
+        if (pessoaOriginal.estadoCivil != pessoaEditada.estadoCivil) {
+            camposAlterados["estadoCivil"] = com.raizesvivas.app.domain.model.AlteracaoCampo(
+                valorAnterior = pessoaOriginal.estadoCivil?.name,
+                valorNovo = pessoaEditada.estadoCivil?.name
+            )
+        }
+        if (pessoaOriginal.genero != pessoaEditada.genero) {
+            camposAlterados["genero"] = com.raizesvivas.app.domain.model.AlteracaoCampo(
+                valorAnterior = pessoaOriginal.genero?.name,
+                valorNovo = pessoaEditada.genero?.name
+            )
+        }
         if (pessoaOriginal.pai != pessoaEditada.pai) {
             camposAlterados["pai"] = com.raizesvivas.app.domain.model.AlteracaoCampo(
                 valorAnterior = pessoaOriginal.pai,
@@ -224,10 +248,40 @@ class EdicaoPendenteRepository @Inject constructor(
                 valorNovo = pessoaEditada.conjugeAtual
             )
         }
+        if (pessoaOriginal.exConjuges != pessoaEditada.exConjuges) {
+            camposAlterados["exConjuges"] = com.raizesvivas.app.domain.model.AlteracaoCampo(
+                valorAnterior = pessoaOriginal.exConjuges,
+                valorNovo = pessoaEditada.exConjuges
+            )
+        }
         if (pessoaOriginal.filhos != pessoaEditada.filhos) {
             camposAlterados["filhos"] = com.raizesvivas.app.domain.model.AlteracaoCampo(
                 valorAnterior = pessoaOriginal.filhos,
                 valorNovo = pessoaEditada.filhos
+            )
+        }
+        if (pessoaOriginal.fotoUrl != pessoaEditada.fotoUrl) {
+            camposAlterados["fotoUrl"] = com.raizesvivas.app.domain.model.AlteracaoCampo(
+                valorAnterior = pessoaOriginal.fotoUrl,
+                valorNovo = pessoaEditada.fotoUrl
+            )
+        }
+        if (pessoaOriginal.tipoFiliacao != pessoaEditada.tipoFiliacao) {
+            camposAlterados["tipoFiliacao"] = com.raizesvivas.app.domain.model.AlteracaoCampo(
+                valorAnterior = pessoaOriginal.tipoFiliacao?.name,
+                valorNovo = pessoaEditada.tipoFiliacao?.name
+            )
+        }
+        if (pessoaOriginal.tipoNascimento != pessoaEditada.tipoNascimento) {
+            camposAlterados["tipoNascimento"] = com.raizesvivas.app.domain.model.AlteracaoCampo(
+                valorAnterior = pessoaOriginal.tipoNascimento?.name,
+                valorNovo = pessoaEditada.tipoNascimento?.name
+            )
+        }
+        if (pessoaOriginal.dataCasamento != pessoaEditada.dataCasamento) {
+            camposAlterados["dataCasamento"] = com.raizesvivas.app.domain.model.AlteracaoCampo(
+                valorAnterior = pessoaOriginal.dataCasamento,
+                valorNovo = pessoaEditada.dataCasamento
             )
         }
         

@@ -412,11 +412,20 @@ class CadastroPessoaViewModel @Inject constructor(
             }
             
             // Atualizar estado com fotoUrl após salvar com sucesso
+            // Adicionar timestamp para forçar reload da imagem (cache busting)
+            val fotoUrlComCacheBuster = pessoa.fotoUrl?.let { url ->
+                if (url.contains("?")) {
+                    "$url&t=${System.currentTimeMillis()}"
+                } else {
+                    "$url?t=${System.currentTimeMillis()}"
+                }
+            }
+            
             _state.update { 
                 it.copy(
                     isLoading = false, 
                     sucesso = true,
-                    fotoUrl = pessoa.fotoUrl, // Atualizar com a URL da foto salva
+                    fotoUrl = fotoUrlComCacheBuster, // Atualizar com a URL da foto + cache buster
                     fotoPath = null // Limpar caminho local após upload bem-sucedido
                 ) 
             }
@@ -674,10 +683,48 @@ class CadastroPessoaViewModel @Inject constructor(
     }
     
     /**
-     * Remove foto selecionada
+     * Remove foto de perfil da pessoa no Firestore
+     * TODOS os usuários autenticados podem remover fotos
      */
     fun removerFoto() {
-        _state.update { it.copy(fotoPath = null, fotoUrl = null) }
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
+            
+            val pessoaId = _state.value.pessoaId
+            if (pessoaId.isNullOrBlank()) {
+                _state.update { 
+                    it.copy(
+                        isLoading = false,
+                        erro = "Pessoa não encontrada"
+                    )
+                }
+                return@launch
+            }
+            
+            Timber.d("🗑️ Removendo foto da pessoa: $pessoaId")
+            
+            pessoaRepository.removerFoto(pessoaId).fold(
+                onSuccess = {
+                    _state.update { state ->
+                        state.copy(
+                            fotoPath = null,
+                            fotoUrl = null,
+                            isLoading = false
+                        )
+                    }
+                    Timber.d("✅ Foto removida com sucesso no ViewModel")
+                },
+                onFailure = { erro ->
+                    _state.update { 
+                        it.copy(
+                            isLoading = false,
+                            erro = erro.message ?: "Erro ao remover foto"
+                        )
+                    }
+                    Timber.e(erro, "❌ Erro ao remover foto no ViewModel")
+                }
+            )
+        }
     }
     
     /**

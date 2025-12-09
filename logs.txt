@@ -1,40 +1,569 @@
-Implementação de Abas de Visualização na FamiliaScreen
-Goal Description
-O usuário solicitou explicitamente a configuração da aba "Família" com duas visualizações distintas: "Arvore Genealogica Hierarquica" e "Arvore Genealogica Lista". Para atender a isso com clareza e boa UX, substituiremos o atual botão de toggle na barra superior por uma barra de abas (TabRow) logo abaixo da TopAppBar.
-
-User Review Required
-NOTE
-
-As abas serão rotuladas como "Lista" e "Hierárquica" (ou "Árvore") para caberem confortavelmente na tela, mas o contexto de "Árvore Genealógica" estará implícito na tela de Família.
-
-Proposed Changes
-FamiliaScreen.kt
-[MODIFY] 
-FamiliaScreen.kt
-Adicionar Imports:
-
-androidx.compose.material3.TabRow
-androidx.compose.material3.Tab
-androidx.compose.material3.TabRowDefaults
-androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
-Modificar 
-FamiliaScreen
-:
-
-Remover o IconButton de toggle da TopAppBar.
-Inserir um TabRow dentro do Scaffold, logo abaixo da TopAppBar (ou dentro de uma Column que engloba o conteúdo).
-Configurar o TabRow para usar o estado modoVisualizacao.
-Definir duas abas:
-Index 0: "Lista" (seleciona ModoVisualizacao.LISTA)
-Index 1: "Hierárquica" (seleciona ModoVisualizacao.ARVORE)
-Ajustar Layout:
-
-Garantir que a lista de cards (LazyColumn) respeite o espaço ocupado pelas abas.
-Verification Plan
-Manual Verification
-Compilação: Executar build para garantir que não há erros de sintaxe.
-Visualização:
-Verificar se a TabRow aparece corretamente abaixo da barra superior.
-Confirmar se clicar na aba "Hierárquica" muda para a visualização de árvore.
-Confirmar se clicar na aba "Lista" muda para a visualização de lista.
-Verificar se a transição é suave e o estado é mantido.
+2025-12-09 18:01:51.977  1415-1415  ImagePicke...iaLauncher com.raizesvivas.app                  D  📷 Imagem selecionada da galeria: content://media/picker_get_content/0/com.android.providers.media.photopicker/media/1000003298
+2025-12-09 18:01:52.001  1415-1415  ImagePicke...iaLauncher com.raizesvivas.app                  D  ✅ Arquivo copiado para cache: /data/user/0/com.raizesvivas.app/cache/temp_imagem_1765314111997.jpg
+2025-12-09 18:01:52.205  1415-1415  RealImageLoader         com.raizesvivas.app                  I  💾 Successful (DISK) - /data/user/0/com.raizesvivas.app/cache/temp_imagem_1765314111997.jpg
+2025-12-09 18:01:54.605  1415-1435  raizesvivas.ap          com.raizesvivas.app                  W  Cleared Reference was only reachable from finalizer (only reported once)
+2025-12-09 18:01:54.617  1415-1435  raizesvivas.ap          com.raizesvivas.app                  I  Background concurrent copying GC freed 11MB AllocSpace bytes, 160(10MB) LOS objects, 49% free, 12MB/25MB, paused 172us,106us total 121.865ms
+2025-12-09 18:01:54.684  1415-1415  CadastroPe...del$salvar com.raizesvivas.app                  D  📤 Fazendo upload da foto do perfil...
+2025-12-09 18:01:54.685  1415-1415  CadastroPessoaViewModel com.raizesvivas.app                  D  🗜️ Comprimindo imagem do perfil...
+2025-12-09 18:01:54.734  1415-1677  ImageCompr...ParaPerfil com.raizesvivas.app                  D  ✅ Imagem de perfil comprimida: 37437 bytes (36KB)
+2025-12-09 18:01:54.735  1415-1415  ImageCompressor         com.raizesvivas.app                  D  ✅ Arquivo temporário criado: /data/user/0/com.raizesvivas.app/cache/imagem_comprimida_867338985311144047.jpg (36KB)
+2025-12-09 18:01:54.736  1415-1415  CadastroPessoaViewModel com.raizesvivas.app                  D  ✅ Imagem comprimida: /data/user/0/com.raizesvivas.app/cache/imagem_comprimida_867338985311144047.jpg
+2025-12-09 18:01:54.736  1415-1415  CadastroPessoaViewModel com.raizesvivas.app                  D  📤 Fazendo upload para Storage...
+2025-12-09 18:01:54.750  1415-1482  StorageUtil             com.raizesvivas.app                  W  Error getting App Check token; using placeholder token instead. Error: com.google.firebase.FirebaseException: No AppCheckProvider installed.
+2025-12-09 18:01:55.871  1415-1482  UploadTask              com.raizesvivas.app                  D  Waiting 0 milliseconds
+2025-12-09 18:01:55.948  1415-1482  StorageUtil             com.raizesvivas.app                  W  Error getting App Check token; using placeholder token instead. Error: com.google.firebase.FirebaseException: No AppCheckProvider installed.
+2025-12-09 18:01:58.503  1415-1482  StorageUtil             com.raizesvivas.app                  W  Error getting App Check token; using placeholder token instead. Error: com.google.firebase.FirebaseException: No AppCheckProvider installed.
+2025-12-09 18:01:59.189  1415-1415  StorageSer...loadImagem com.raizesvivas.app                  D  ✅ Imagem enviada: pessoas/c8da8e70-cd55-4619-a2dc-83f44953c5a4/foto.jpg (37437 bytes, 36KB)
+2025-12-09 18:01:59.189  1415-1415  StorageSer...loadImagem com.raizesvivas.app                  D  ✅ Content-Type: image/jpeg
+2025-12-09 18:01:59.190  1415-1415  StorageSer...loadImagem com.raizesvivas.app                  D  ✅ URL: https://firebasestorage.googleapis.com/v0/b/suasraizesvivas.firebasestorage.app/o/pessoas%2Fc8da8e70-cd55-4619-a2dc-83f44953c5a4%2Ffoto.jpg?alt=media&token=776df224-02c2-4ae2-9fca-0abe269f10c5
+2025-12-09 18:01:59.190  1415-1415  CadastroPessoaViewModel com.raizesvivas.app                  D  ✅ Upload concluído: https://firebasestorage.googleapis.com/v0/b/suasraizesvivas.firebasestorage.app/o/pessoas%2Fc8da8e70-cd55-4619-a2dc-83f44953c5a4%2Ffoto.jpg?alt=media&token=776df224-02c2-4ae2-9fca-0abe269f10c5
+2025-12-09 18:01:59.191  1415-1415  CadastroPe...del$salvar com.raizesvivas.app                  D  ✅ Upload da foto concluído: https://firebasestorage.googleapis.com/v0/b/suasraizesvivas.firebasestorage.app/o/pessoas%2Fc8da8e70-cd55-4619-a2dc-83f44953c5a4%2Ffoto.jpg?alt=media&token=776df224-02c2-4ae2-9fca-0abe269f10c5
+2025-12-09 18:01:59.200  1415-1415  PessoaRepository        com.raizesvivas.app                  D  🔄 atualizar() chamado - Pessoa: Ionilde Ferreira Gomes, ehAdmin: false, fotoUrl: https://firebasestorage.googleapis.com/v0/b/suasraizesvivas.firebasestorage.app/
+2025-12-09 18:01:59.200  1415-1415  PessoaRepository        com.raizesvivas.app                  D  👤 FAMILIAR - Verificando se apenas foto mudou...
+2025-12-09 18:01:59.204  1415-1415  PessoaRepository        com.raizesvivas.app                  D  📋 Pessoa original - fotoUrl: https://firebasestorage.googleapis.com/v0/b/suasraizesvivas.firebasestorage.app/
+2025-12-09 18:01:59.205  1415-1415  PessoaRepository        com.raizesvivas.app                  D  📋 Pessoa editada - fotoUrl: https://firebasestorage.googleapis.com/v0/b/suasraizesvivas.firebasestorage.app/
+2025-12-09 18:01:59.205  1415-1415  PessoaRepository        com.raizesvivas.app                  D  🔍 Comparação - camposEditaveisIguais: true, fotoMudou: true, apenasFotoMudou: true
+2025-12-09 18:01:59.205  1415-1415  PessoaRepository        com.raizesvivas.app                  D  📸 Apenas foto mudou - atualizando diretamente no Firestore (Familiar tem mesmos poderes que ADMIN para fotos)
+2025-12-09 18:01:59.205  1415-1415  PessoaRepository        com.raizesvivas.app                  D  📝 Campos que serão enviados ao Firestore:
+2025-12-09 18:01:59.206  1415-1415  PessoaRepository        com.raizesvivas.app                  D    - fotoUrl: https://firebasestorage.googleapis.com/v0/b/suasra -> https://firebasestorage.googleapis.com/v0/b/suasra
+2025-12-09 18:01:59.206  1415-1415  PessoaRepository        com.raizesvivas.app                  D    - versao: 64 -> 65
+2025-12-09 18:01:59.210  1415-1415  PessoaRepository        com.raizesvivas.app                  D    - modificadoEm: Tue Dec 09 17:11:33 GMT-03:00 2025 -> Tue Dec 09 18:01:59 GMT-03:00 2025
+2025-12-09 18:01:59.210  1415-1415  PessoaRepository        com.raizesvivas.app                  D    - aprovado: true -> true
+2025-12-09 18:01:59.258  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Snapshot recebido: 21 documentos
+2025-12-09 18:01:59.261  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 0 observado: Clarisse Alves Dos Santos (ID: ef13f575-c1e5-4fda-b358-40171653c6af)
+2025-12-09 18:01:59.262  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 1 observado: Cássio Cruz Da Silva (ID: 6fc75083-5117-405f-ad74-cd75a1048960)
+2025-12-09 18:01:59.264  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 2 observado: Elmira Purcina dos Santos (ID: 4d5939b2-03da-41bc-b0c8-06a31d955df7)
+2025-12-09 18:01:59.266  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 3 observado: Ionilde Ferreira Gomes (ID: c8da8e70-cd55-4619-a2dc-83f44953c5a4)
+2025-12-09 18:01:59.267  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 4 observado: Ivanildo Gomes Dos Santos (ID: 58c324c8-11bd-4f4f-8f89-59381422b8a5)
+2025-12-09 18:01:59.269  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 5 observado: Joana Gomes (ID: dec5dbb5-d5d9-4a92-91b3-df468ab70027)
+2025-12-09 18:01:59.270  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 6 observado: Kássia Liz Santos Silva (ID: 3c9c4319-0925-4c2d-803c-69650c636385)
+2025-12-09 18:01:59.272  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 7 observado: Lucineide Alves Dos Santos (ID: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-12-09 18:01:59.274  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 8 observado: Lucília Santos Da Cruz (ID: 789158c5-2f73-4fa2-85f4-f965bf3507a6)
+2025-12-09 18:01:59.276  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 9 observado: Manuel Alves (ID: fd959a67-9993-411b-b58b-21b3526d2128)
+2025-12-09 18:01:59.277  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 10 observado: Manuel Bedal Ferreira (ID: 0e61ddbb-e7bf-42e0-97d0-db5cca3e319d)
+2025-12-09 18:01:59.279  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 11 observado: Marcos Lohan Santos Silva (ID: beedaf4b-c443-4c5f-91b9-ca98a21ae5cd)
+2025-12-09 18:01:59.280  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 12 observado: Micael Luiz De Neves Gomes (ID: 1e28ad76-e990-49a6-bae0-3bfdcca7654d)
+2025-12-09 18:01:59.281  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 13 observado: Michaela Santos Neves (ID: aacd8303-a5b2-49a7-a094-ae8e86bd78a9)
+2025-12-09 18:01:59.283  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 14 observado: Nilma Santos Da Cruz (ID: 2bfdfd8e-46a5-46f6-9cb4-ba574c3fb080)
+2025-12-09 18:01:59.284  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 15 observado: Paulo Rodrigues Da Cruz (ID: 97454758-7d42-4538-92f2-ee422654ef12)
+2025-12-09 18:01:59.286  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 16 observado: Robério Gomes Dos Santos (ID: 5d97da0d-a20f-4202-bee7-1d92a019738f)
+2025-12-09 18:01:59.287  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 17 observado: Rosana Gomes dos Santos (ID: 067e3f2b-a8a8-4ed4-9786-9a3ac2400a58)
+2025-12-09 18:01:59.289  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 18 observado: Usuário Teste (ID: e05741ca-3463-42da-84b2-05a8815cd02c)
+2025-12-09 18:01:59.290  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 19 observado: Vanilda Santos Da Cruz (ID: 38b7cc48-8ecf-422b-a2ae-c5149356c654)
+2025-12-09 18:01:59.291  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 20 observado: Vanildo Alves Dos Santos (ID: e07745a9-4efd-44e8-a6e4-03239734f4a5)
+2025-12-09 18:01:59.292  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 21 pessoas observadas (de 21 documentos)
+2025-12-09 18:01:59.301  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D  📡 Sincronização em tempo real: 21 pessoas recebidas do Firestore
+2025-12-09 18:01:59.301  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    👤 Clarisse Alves Dos Santos: SEM foto
+2025-12-09 18:01:59.302  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    👤 Cássio Cruz Da Silva: SEM foto
+2025-12-09 18:01:59.302  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    👤 Elmira Purcina dos Santos: SEM foto
+2025-12-09 18:01:59.302  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    📸 Ionilde Ferreira Gomes: tem foto (https://firebasestorage.googleapis.com/v0/b/suasra...)
+2025-12-09 18:01:59.302  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    👤 Ivanildo Gomes Dos Santos: SEM foto
+2025-12-09 18:01:59.302  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    👤 Joana Gomes: SEM foto
+2025-12-09 18:01:59.303  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    👤 Kássia Liz Santos Silva: SEM foto
+2025-12-09 18:01:59.303  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    👤 Lucineide Alves Dos Santos: SEM foto
+2025-12-09 18:01:59.303  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    👤 Lucília Santos Da Cruz: SEM foto
+2025-12-09 18:01:59.303  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    👤 Manuel Alves: SEM foto
+2025-12-09 18:01:59.303  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    👤 Manuel Bedal Ferreira: SEM foto
+2025-12-09 18:01:59.303  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    👤 Marcos Lohan Santos Silva: SEM foto
+2025-12-09 18:01:59.304  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    📸 Micael Luiz De Neves Gomes: tem foto (https://firebasestorage.googleapis.com/v0/b/suasra...)
+2025-12-09 18:01:59.304  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    👤 Michaela Santos Neves: SEM foto
+2025-12-09 18:01:59.304  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    👤 Nilma Santos Da Cruz: SEM foto
+2025-12-09 18:01:59.304  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    👤 Paulo Rodrigues Da Cruz: SEM foto
+2025-12-09 18:01:59.304  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    📸 Robério Gomes Dos Santos: tem foto (https://firebasestorage.googleapis.com/v0/b/suasra...)
+2025-12-09 18:01:59.305  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    👤 Rosana Gomes dos Santos: SEM foto
+2025-12-09 18:01:59.305  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    👤 Usuário Teste: SEM foto
+2025-12-09 18:01:59.305  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    👤 Vanilda Santos Da Cruz: SEM foto
+2025-12-09 18:01:59.305  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    👤 Vanildo Alves Dos Santos: SEM foto
+2025-12-09 18:01:59.323  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D  ✅ Cache local atualizado com 21 pessoas do Firestore
+2025-12-09 18:01:59.332  1415-1492  Firestore               com.raizesvivas.app                  W  (24.10.0) [WriteStream]: (3e09bc3) Stream closed with status: Status{code=PERMISSION_DENIED, description=Missing or insufficient permissions., cause=null}.
+2025-12-09 18:01:59.337  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 21 entidades no cache local
+2025-12-09 18:01:59.359  1415-1492  Firestore               com.raizesvivas.app                  W  (24.10.0) [Firestore]: Write failed at people/c8da8e70-cd55-4619-a2dc-83f44953c5a4: Status{code=PERMISSION_DENIED, description=Missing or insufficient permissions., cause=null}
+2025-12-09 18:01:59.477  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 21 entidades no cache local
+2025-12-09 18:01:59.479  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Clarisse Alves Dos Santos (ID: ef13f575-c1e5-4fda-b358-40171653c6af):
+2025-12-09 18:01:59.480  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: FEMININO
+2025-12-09 18:01:59.480  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: false (0 filhos)
+2025-12-09 18:01:59.480  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: false
+2025-12-09 18:01:59.480  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: false
+2025-12-09 18:01:59.480  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-12-09 18:01:59.481  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-12-09 18:01:59.481  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-12-09 18:01:59.481  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: não tem filhos
+2025-12-09 18:01:59.481  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Cássio Cruz Da Silva (ID: 6fc75083-5117-405f-ad74-cd75a1048960) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.482  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Cássio Cruz Da Silva já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.482  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Elmira Purcina dos Santos (ID: 4d5939b2-03da-41bc-b0c8-06a31d955df7) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.482  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Elmira Purcina dos Santos já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.482  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Ionilde Ferreira Gomes (ID: c8da8e70-cd55-4619-a2dc-83f44953c5a4) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.483  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Ionilde Ferreira Gomes já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.483  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Ivanildo Gomes Dos Santos (ID: 58c324c8-11bd-4f4f-8f89-59381422b8a5) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.483  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Ivanildo Gomes Dos Santos já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.483  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Joana Gomes (ID: dec5dbb5-d5d9-4a92-91b3-df468ab70027) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.483  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Joana Gomes já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.484  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Kássia Liz Santos Silva (ID: 3c9c4319-0925-4c2d-803c-69650c636385) - já foi processada e não tem filhos
+2025-12-09 18:01:59.484  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Lucineide Alves Dos Santos (ID: 320877d9-ea14-4165-8545-51aea7770f41) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.484  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ✅ Removendo Lucineide Alves Dos Santos da lista de processadas para re-avaliar como monoparental
+2025-12-09 18:01:59.484  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Lucineide Alves Dos Santos (ID: 320877d9-ea14-4165-8545-51aea7770f41):
+2025-12-09 18:01:59.484  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: FEMININO
+2025-12-09 18:01:59.485  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: true (4 filhos)
+2025-12-09 18:01:59.485  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: true
+2025-12-09 18:01:59.485  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: true
+2025-12-09 18:01:59.485  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-12-09 18:01:59.486  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-12-09 18:01:59.486  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ✅ Condições atendidas: processando família monoparental
+2025-12-09 18:01:59.486  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Filhos encontrados: 4
+2025-12-09 18:01:59.486  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        • Nilma Santos Da Cruz (ID: 2bfdfd8e-46a5-46f6-9cb4-ba574c3fb080, pai: 97454758-7d42-4538-92f2-ee422654ef12, mae: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-12-09 18:01:59.487  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        • Lucília Santos Da Cruz (ID: 789158c5-2f73-4fa2-85f4-f965bf3507a6, pai: 97454758-7d42-4538-92f2-ee422654ef12, mae: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-12-09 18:01:59.487  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        • Clarisse Alves Dos Santos (ID: ef13f575-c1e5-4fda-b358-40171653c6af, pai: 97454758-7d42-4538-92f2-ee422654ef12, mae: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-12-09 18:01:59.487  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        • Vanilda Santos Da Cruz (ID: 38b7cc48-8ecf-422b-a2ae-c5149356c654, pai: 97454758-7d42-4538-92f2-ee422654ef12, mae: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-12-09 18:01:59.487  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ✅ Criando família monoparental automaticamente para Lucineide Alves Dos Santos (FEMININO)
+2025-12-09 18:01:59.487  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ✅ Família monoparental criada com sucesso para Lucineide Alves Dos Santos
+2025-12-09 18:01:59.488  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Lucília Santos Da Cruz (ID: 789158c5-2f73-4fa2-85f4-f965bf3507a6) - já foi processada e não tem filhos
+2025-12-09 18:01:59.488  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Manuel Alves (ID: fd959a67-9993-411b-b58b-21b3526d2128) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.488  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Manuel Alves já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.488  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Manuel Bedal Ferreira (ID: 0e61ddbb-e7bf-42e0-97d0-db5cca3e319d) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.488  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Manuel Bedal Ferreira já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.489  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Marcos Lohan Santos Silva (ID: beedaf4b-c443-4c5f-91b9-ca98a21ae5cd) - já foi processada e não tem filhos
+2025-12-09 18:01:59.489  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Micael Luiz De Neves Gomes (ID: 1e28ad76-e990-49a6-bae0-3bfdcca7654d) - já foi processada e não tem filhos
+2025-12-09 18:01:59.489  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Michaela Santos Neves (ID: aacd8303-a5b2-49a7-a094-ae8e86bd78a9) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.489  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Michaela Santos Neves já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.490  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Nilma Santos Da Cruz (ID: 2bfdfd8e-46a5-46f6-9cb4-ba574c3fb080) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.490  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Nilma Santos Da Cruz já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.490  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Paulo Rodrigues Da Cruz (ID: 97454758-7d42-4538-92f2-ee422654ef12):
+2025-12-09 18:01:59.490  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: MASCULINO
+2025-12-09 18:01:59.490  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: true (4 filhos)
+2025-12-09 18:01:59.491  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: true
+2025-12-09 18:01:59.491  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: true
+2025-12-09 18:01:59.491  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-12-09 18:01:59.491  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-12-09 18:01:59.491  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ✅ Condições atendidas: processando família monoparental
+2025-12-09 18:01:59.492  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Filhos encontrados: 4
+2025-12-09 18:01:59.492  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        • Nilma Santos Da Cruz (ID: 2bfdfd8e-46a5-46f6-9cb4-ba574c3fb080, pai: 97454758-7d42-4538-92f2-ee422654ef12, mae: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-12-09 18:01:59.492  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        • Lucília Santos Da Cruz (ID: 789158c5-2f73-4fa2-85f4-f965bf3507a6, pai: 97454758-7d42-4538-92f2-ee422654ef12, mae: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-12-09 18:01:59.492  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        • Clarisse Alves Dos Santos (ID: ef13f575-c1e5-4fda-b358-40171653c6af, pai: 97454758-7d42-4538-92f2-ee422654ef12, mae: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-12-09 18:01:59.492  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        • Vanilda Santos Da Cruz (ID: 38b7cc48-8ecf-422b-a2ae-c5149356c654, pai: 97454758-7d42-4538-92f2-ee422654ef12, mae: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-12-09 18:01:59.492  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - É PAI: verificando confirmação/rejeição
+2025-12-09 18:01:59.493  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Robério Gomes Dos Santos (ID: 5d97da0d-a20f-4202-bee7-1d92a019738f) - já foi processada e não tem filhos
+2025-12-09 18:01:59.493  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Rosana Gomes dos Santos (ID: 067e3f2b-a8a8-4ed4-9786-9a3ac2400a58) - já foi processada e não tem filhos
+2025-12-09 18:01:59.493  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Usuário Teste (ID: e05741ca-3463-42da-84b2-05a8815cd02c):
+2025-12-09 18:01:59.493  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: OUTRO
+2025-12-09 18:01:59.493  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: false (0 filhos)
+2025-12-09 18:01:59.494  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: false
+2025-12-09 18:01:59.494  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: false
+2025-12-09 18:01:59.494  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-12-09 18:01:59.494  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-12-09 18:01:59.494  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-12-09 18:01:59.495  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: não tem filhos
+2025-12-09 18:01:59.495  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Vanilda Santos Da Cruz (ID: 38b7cc48-8ecf-422b-a2ae-c5149356c654) - já foi processada e não tem filhos
+2025-12-09 18:01:59.495  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Vanildo Alves Dos Santos (ID: e07745a9-4efd-44e8-a6e4-03239734f4a5) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.495  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Vanildo Alves Dos Santos já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.496  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  📊 Resumo: 6 famílias criadas, 0 pendentes
+2025-12-09 18:01:59.506  1415-1415  FamiliaViewModel        com.raizesvivas.app                  D  🚫 Família Família ASAIR (0e61ddbb-e7bf-42e0-97d0-db5cca3e319d_dec5dbb5-d5d9-4a92-91b3-df468ab70027) está na blacklist, não será exibida
+2025-12-09 18:01:59.506  1415-1415  FamiliaViewModel        com.raizesvivas.app                  D  🚫 Família Família SANTOS (4d5939b2-03da-41bc-b0c8-06a31d955df7_fd959a67-9993-411b-b58b-21b3526d2128) está na blacklist, não será exibida
+2025-12-09 18:01:59.511  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 21 entidades no cache local
+2025-12-09 18:01:59.513  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Clarisse Alves Dos Santos (ID: ef13f575-c1e5-4fda-b358-40171653c6af):
+2025-12-09 18:01:59.514  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: FEMININO
+2025-12-09 18:01:59.514  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: false (0 filhos)
+2025-12-09 18:01:59.514  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: false
+2025-12-09 18:01:59.514  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: false
+2025-12-09 18:01:59.515  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-12-09 18:01:59.515  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-12-09 18:01:59.515  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-12-09 18:01:59.515  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: não tem filhos
+2025-12-09 18:01:59.515  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Cássio Cruz Da Silva (ID: 6fc75083-5117-405f-ad74-cd75a1048960) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.516  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Cássio Cruz Da Silva já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.516  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Elmira Purcina dos Santos (ID: 4d5939b2-03da-41bc-b0c8-06a31d955df7) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.516  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Elmira Purcina dos Santos já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.516  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Ionilde Ferreira Gomes (ID: c8da8e70-cd55-4619-a2dc-83f44953c5a4) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.516  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Ionilde Ferreira Gomes já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.517  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Ivanildo Gomes Dos Santos (ID: 58c324c8-11bd-4f4f-8f89-59381422b8a5) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.517  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Ivanildo Gomes Dos Santos já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.517  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Joana Gomes (ID: dec5dbb5-d5d9-4a92-91b3-df468ab70027) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.517  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Joana Gomes já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.517  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Kássia Liz Santos Silva (ID: 3c9c4319-0925-4c2d-803c-69650c636385) - já foi processada e não tem filhos
+2025-12-09 18:01:59.518  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Lucineide Alves Dos Santos (ID: 320877d9-ea14-4165-8545-51aea7770f41) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.518  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ✅ Removendo Lucineide Alves Dos Santos da lista de processadas para re-avaliar como monoparental
+2025-12-09 18:01:59.518  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Lucineide Alves Dos Santos (ID: 320877d9-ea14-4165-8545-51aea7770f41):
+2025-12-09 18:01:59.518  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: FEMININO
+2025-12-09 18:01:59.518  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: true (4 filhos)
+2025-12-09 18:01:59.519  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: true
+2025-12-09 18:01:59.519  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: true
+2025-12-09 18:01:59.519  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-12-09 18:01:59.519  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-12-09 18:01:59.519  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ✅ Condições atendidas: processando família monoparental
+2025-12-09 18:01:59.520  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Filhos encontrados: 4
+2025-12-09 18:01:59.520  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        • Nilma Santos Da Cruz (ID: 2bfdfd8e-46a5-46f6-9cb4-ba574c3fb080, pai: 97454758-7d42-4538-92f2-ee422654ef12, mae: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-12-09 18:01:59.520  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        • Lucília Santos Da Cruz (ID: 789158c5-2f73-4fa2-85f4-f965bf3507a6, pai: 97454758-7d42-4538-92f2-ee422654ef12, mae: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-12-09 18:01:59.520  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        • Clarisse Alves Dos Santos (ID: ef13f575-c1e5-4fda-b358-40171653c6af, pai: 97454758-7d42-4538-92f2-ee422654ef12, mae: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-12-09 18:01:59.520  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        • Vanilda Santos Da Cruz (ID: 38b7cc48-8ecf-422b-a2ae-c5149356c654, pai: 97454758-7d42-4538-92f2-ee422654ef12, mae: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-12-09 18:01:59.521  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ✅ Criando família monoparental automaticamente para Lucineide Alves Dos Santos (FEMININO)
+2025-12-09 18:01:59.521  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ✅ Família monoparental criada com sucesso para Lucineide Alves Dos Santos
+2025-12-09 18:01:59.521  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Lucília Santos Da Cruz (ID: 789158c5-2f73-4fa2-85f4-f965bf3507a6) - já foi processada e não tem filhos
+2025-12-09 18:01:59.521  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Manuel Alves (ID: fd959a67-9993-411b-b58b-21b3526d2128) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.522  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Manuel Alves já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.522  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Manuel Bedal Ferreira (ID: 0e61ddbb-e7bf-42e0-97d0-db5cca3e319d) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.522  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Manuel Bedal Ferreira já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.522  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Marcos Lohan Santos Silva (ID: beedaf4b-c443-4c5f-91b9-ca98a21ae5cd) - já foi processada e não tem filhos
+2025-12-09 18:01:59.522  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Micael Luiz De Neves Gomes (ID: 1e28ad76-e990-49a6-bae0-3bfdcca7654d) - já foi processada e não tem filhos
+2025-12-09 18:01:59.523  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Michaela Santos Neves (ID: aacd8303-a5b2-49a7-a094-ae8e86bd78a9) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.523  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Michaela Santos Neves já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.523  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Nilma Santos Da Cruz (ID: 2bfdfd8e-46a5-46f6-9cb4-ba574c3fb080) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.523  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Nilma Santos Da Cruz já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.524  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Paulo Rodrigues Da Cruz (ID: 97454758-7d42-4538-92f2-ee422654ef12):
+2025-12-09 18:01:59.524  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: MASCULINO
+2025-12-09 18:01:59.524  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: true (4 filhos)
+2025-12-09 18:01:59.524  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: true
+2025-12-09 18:01:59.524  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: true
+2025-12-09 18:01:59.524  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-12-09 18:01:59.525  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-12-09 18:01:59.525  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ✅ Condições atendidas: processando família monoparental
+2025-12-09 18:01:59.525  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Filhos encontrados: 4
+2025-12-09 18:01:59.525  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        • Nilma Santos Da Cruz (ID: 2bfdfd8e-46a5-46f6-9cb4-ba574c3fb080, pai: 97454758-7d42-4538-92f2-ee422654ef12, mae: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-12-09 18:01:59.526  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        • Lucília Santos Da Cruz (ID: 789158c5-2f73-4fa2-85f4-f965bf3507a6, pai: 97454758-7d42-4538-92f2-ee422654ef12, mae: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-12-09 18:01:59.526  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        • Clarisse Alves Dos Santos (ID: ef13f575-c1e5-4fda-b358-40171653c6af, pai: 97454758-7d42-4538-92f2-ee422654ef12, mae: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-12-09 18:01:59.526  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        • Vanilda Santos Da Cruz (ID: 38b7cc48-8ecf-422b-a2ae-c5149356c654, pai: 97454758-7d42-4538-92f2-ee422654ef12, mae: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-12-09 18:01:59.526  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - É PAI: verificando confirmação/rejeição
+2025-12-09 18:01:59.526  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Robério Gomes Dos Santos (ID: 5d97da0d-a20f-4202-bee7-1d92a019738f) - já foi processada e não tem filhos
+2025-12-09 18:01:59.527  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Rosana Gomes dos Santos (ID: 067e3f2b-a8a8-4ed4-9786-9a3ac2400a58) - já foi processada e não tem filhos
+2025-12-09 18:01:59.527  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Usuário Teste (ID: e05741ca-3463-42da-84b2-05a8815cd02c):
+2025-12-09 18:01:59.527  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: OUTRO
+2025-12-09 18:01:59.527  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: false (0 filhos)
+2025-12-09 18:01:59.527  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: false
+2025-12-09 18:01:59.528  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: false
+2025-12-09 18:01:59.528  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-12-09 18:01:59.528  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-12-09 18:01:59.528  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-12-09 18:01:59.528  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: não tem filhos
+2025-12-09 18:01:59.529  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Vanilda Santos Da Cruz (ID: 38b7cc48-8ecf-422b-a2ae-c5149356c654) - já foi processada e não tem filhos
+2025-12-09 18:01:59.529  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Vanildo Alves Dos Santos (ID: e07745a9-4efd-44e8-a6e4-03239734f4a5) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.529  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Vanildo Alves Dos Santos já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.529  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  📊 Resumo: 6 famílias criadas, 0 pendentes
+2025-12-09 18:01:59.539  1415-1415  FamiliaViewModel        com.raizesvivas.app                  D  🚫 Família Família ASAIR (0e61ddbb-e7bf-42e0-97d0-db5cca3e319d_dec5dbb5-d5d9-4a92-91b3-df468ab70027) está na blacklist, não será exibida
+2025-12-09 18:01:59.539  1415-1415  FamiliaViewModel        com.raizesvivas.app                  D  🚫 Família Família SANTOS (4d5939b2-03da-41bc-b0c8-06a31d955df7_fd959a67-9993-411b-b58b-21b3526d2128) está na blacklist, não será exibida
+2025-12-09 18:01:59.541  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 21 entidades no cache local
+2025-12-09 18:01:59.543  1415-1415  FirestoreService        com.raizesvivas.app                  E  ❌ Erro ao salvar pessoa (Explain with AI)
+                                                                                                    com.google.firebase.firestore.FirebaseFirestoreException: PERMISSION_DENIED: Missing or insufficient permissions.
+                                                                                                    	at com.google.firebase.firestore.util.Util.exceptionFromStatus(Util.java:113)
+                                                                                                    	at com.google.firebase.firestore.core.SyncEngine.notifyUser(SyncEngine.java:591)
+                                                                                                    	at com.google.firebase.firestore.core.SyncEngine.handleRejectedWrite(SyncEngine.java:473)
+                                                                                                    	at com.google.firebase.firestore.core.MemoryComponentProvider$RemoteStoreCallback.handleRejectedWrite(MemoryComponentProvider.java:140)
+                                                                                                    	at com.google.firebase.firestore.remote.RemoteStore.handleWriteError(RemoteStore.java:743)
+                                                                                                    	at com.google.firebase.firestore.remote.RemoteStore.handleWriteStreamClose(RemoteStore.java:699)
+                                                                                                    	at com.google.firebase.firestore.remote.RemoteStore.access$600(RemoteStore.java:60)
+                                                                                                    	at com.google.firebase.firestore.remote.RemoteStore$2.onClose(RemoteStore.java:213)
+                                                                                                    	at com.google.firebase.firestore.remote.AbstractStream.close(AbstractStream.java:356)
+                                                                                                    	at com.google.firebase.firestore.remote.AbstractStream.handleServerClose(AbstractStream.java:410)
+                                                                                                    	at com.google.firebase.firestore.remote.AbstractStream$StreamObserver.lambda$onClose$3$com-google-firebase-firestore-remote-AbstractStream$StreamObserver(AbstractStream.java:151)
+                                                                                                    	at com.google.firebase.firestore.remote.AbstractStream$StreamObserver$$ExternalSyntheticLambda3.run(D8$$SyntheticClass:0)
+                                                                                                    	at com.google.firebase.firestore.remote.AbstractStream$CloseGuardedRunner.run(AbstractStream.java:67)
+                                                                                                    	at com.google.firebase.firestore.remote.AbstractStream$StreamObserver.onClose(AbstractStream.java:137)
+                                                                                                    	at com.google.firebase.firestore.remote.FirestoreChannel$1.onClose(FirestoreChannel.java:151)
+                                                                                                    	at io.grpc.internal.ClientCallImpl.closeObserver(ClientCallImpl.java:576)
+                                                                                                    	at io.grpc.internal.ClientCallImpl.access$300(ClientCallImpl.java:70)
+                                                                                                    	at io.grpc.internal.ClientCallImpl$ClientStreamListenerImpl$1StreamClosed.runInternal(ClientCallImpl.java:757)
+                                                                                                    	at io.grpc.internal.ClientCallImpl$ClientStreamListenerImpl$1StreamClosed.runInContext(ClientCallImpl.java:736)
+                                                                                                    	at io.grpc.internal.ContextRunnable.run(ContextRunnable.java:37)
+                                                                                                    	at io.grpc.internal.SerializingExecutor.run(SerializingExecutor.java:133)
+                                                                                                    	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:524)
+                                                                                                    	at java.util.concurrent.FutureTask.run(FutureTask.java:317)
+                                                                                                    	at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:348)
+                                                                                                    	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1156)
+                                                                                                    	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:651)
+                                                                                                    	at com.google.firebase.firestore.util.AsyncQueue$SynchronizedShutdownAwareExecutor$DelayedStartFactory.run(AsyncQueue.java:235)
+                                                                                                    	at java.lang.Thread.run(Thread.java:1119)
+                                                                                                    Caused by: io.grpc.StatusException: PERMISSION_DENIED: Missing or insufficient permissions.
+                                                                                                    	at io.grpc.Status.asException(Status.java:547)
+                                                                                                    	at com.google.firebase.firestore.util.Util.exceptionFromStatus(Util.java:111)
+                                                                                                    	at com.google.firebase.firestore.core.SyncEngine.notifyUser(SyncEngine.java:591) 
+                                                                                                    	at com.google.firebase.firestore.core.SyncEngine.handleRejectedWrite(SyncEngine.java:473) 
+                                                                                                    	at com.google.firebase.firestore.core.MemoryComponentProvider$RemoteStoreCallback.handleRejectedWrite(MemoryComponentProvider.java:140) 
+                                                                                                    	at com.google.firebase.firestore.remote.RemoteStore.handleWriteError(RemoteStore.java:743) 
+                                                                                                    	at com.google.firebase.firestore.remote.RemoteStore.handleWriteStreamClose(RemoteStore.java:699) 
+                                                                                                    	at com.google.firebase.firestore.remote.RemoteStore.access$600(RemoteStore.java:60) 
+                                                                                                    	at com.google.firebase.firestore.remote.RemoteStore$2.onClose(RemoteStore.java:213) 
+                                                                                                    	at com.google.firebase.firestore.remote.AbstractStream.close(AbstractStream.java:356) 
+                                                                                                    	at com.google.firebase.firestore.remote.AbstractStream.handleServerClose(AbstractStream.java:410) 
+                                                                                                    	at com.google.firebase.firestore.remote.AbstractStream$StreamObserver.lambda$onClose$3$com-google-firebase-firestore-remote-AbstractStream$StreamObserver(AbstractStream.java:151) 
+                                                                                                    	at com.google.firebase.firestore.remote.AbstractStream$StreamObserver$$ExternalSyntheticLambda3.run(D8$$SyntheticClass:0) 
+                                                                                                    	at com.google.firebase.firestore.remote.AbstractStream$CloseGuardedRunner.run(AbstractStream.java:67) 
+                                                                                                    	at com.google.firebase.firestore.remote.AbstractStream$StreamObserver.onClose(AbstractStream.java:137) 
+                                                                                                    	at com.google.firebase.firestore.remote.FirestoreChannel$1.onClose(FirestoreChannel.java:151) 
+                                                                                                    	at io.grpc.internal.ClientCallImpl.closeObserver(ClientCallImpl.java:576) 
+                                                                                                    	at io.grpc.internal.ClientCallImpl.access$300(ClientCallImpl.java:70) 
+                                                                                                    	at io.grpc.internal.ClientCallImpl$ClientStreamListenerImpl$1StreamClosed.runInternal(ClientCallImpl.java:757) 
+                                                                                                    	at io.grpc.internal.ClientCallImpl$ClientStreamListenerImpl$1StreamClosed.runInContext(ClientCallImpl.java:736) 
+                                                                                                    	at io.grpc.internal.ContextRunnable.run(ContextRunnable.java:37) 
+                                                                                                    	at io.grpc.internal.SerializingExecutor.run(SerializingExecutor.java:133) 
+                                                                                                    	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:524) 
+                                                                                                    	at java.util.concurrent.FutureTask.run(FutureTask.java:317) 
+                                                                                                    	at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:348) 
+                                                                                                    	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1156) 
+                                                                                                    	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:651) 
+                                                                                                    	at com.google.firebase.firestore.util.AsyncQueue$SynchronizedShutdownAwareExecutor$DelayedStartFactory.run(AsyncQueue.java:235) 
+                                                                                                    	at java.lang.Thread.run(Thread.java:1119) 
+2025-12-09 18:01:59.544  1415-1415  CadastroPessoaViewModel com.raizesvivas.app                  E  ❌ Erro ao salvar pessoa (Explain with AI)
+                                                                                                    com.google.firebase.firestore.FirebaseFirestoreException: PERMISSION_DENIED: Missing or insufficient permissions.
+                                                                                                    	at com.google.firebase.firestore.util.Util.exceptionFromStatus(Util.java:113)
+                                                                                                    	at com.google.firebase.firestore.core.SyncEngine.notifyUser(SyncEngine.java:591)
+                                                                                                    	at com.google.firebase.firestore.core.SyncEngine.handleRejectedWrite(SyncEngine.java:473)
+                                                                                                    	at com.google.firebase.firestore.core.MemoryComponentProvider$RemoteStoreCallback.handleRejectedWrite(MemoryComponentProvider.java:140)
+                                                                                                    	at com.google.firebase.firestore.remote.RemoteStore.handleWriteError(RemoteStore.java:743)
+                                                                                                    	at com.google.firebase.firestore.remote.RemoteStore.handleWriteStreamClose(RemoteStore.java:699)
+                                                                                                    	at com.google.firebase.firestore.remote.RemoteStore.access$600(RemoteStore.java:60)
+                                                                                                    	at com.google.firebase.firestore.remote.RemoteStore$2.onClose(RemoteStore.java:213)
+                                                                                                    	at com.google.firebase.firestore.remote.AbstractStream.close(AbstractStream.java:356)
+                                                                                                    	at com.google.firebase.firestore.remote.AbstractStream.handleServerClose(AbstractStream.java:410)
+                                                                                                    	at com.google.firebase.firestore.remote.AbstractStream$StreamObserver.lambda$onClose$3$com-google-firebase-firestore-remote-AbstractStream$StreamObserver(AbstractStream.java:151)
+                                                                                                    	at com.google.firebase.firestore.remote.AbstractStream$StreamObserver$$ExternalSyntheticLambda3.run(D8$$SyntheticClass:0)
+                                                                                                    	at com.google.firebase.firestore.remote.AbstractStream$CloseGuardedRunner.run(AbstractStream.java:67)
+                                                                                                    	at com.google.firebase.firestore.remote.AbstractStream$StreamObserver.onClose(AbstractStream.java:137)
+                                                                                                    	at com.google.firebase.firestore.remote.FirestoreChannel$1.onClose(FirestoreChannel.java:151)
+                                                                                                    	at io.grpc.internal.ClientCallImpl.closeObserver(ClientCallImpl.java:576)
+                                                                                                    	at io.grpc.internal.ClientCallImpl.access$300(ClientCallImpl.java:70)
+                                                                                                    	at io.grpc.internal.ClientCallImpl$ClientStreamListenerImpl$1StreamClosed.runInternal(ClientCallImpl.java:757)
+                                                                                                    	at io.grpc.internal.ClientCallImpl$ClientStreamListenerImpl$1StreamClosed.runInContext(ClientCallImpl.java:736)
+                                                                                                    	at io.grpc.internal.ContextRunnable.run(ContextRunnable.java:37)
+                                                                                                    	at io.grpc.internal.SerializingExecutor.run(SerializingExecutor.java:133)
+                                                                                                    	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:524)
+                                                                                                    	at java.util.concurrent.FutureTask.run(FutureTask.java:317)
+                                                                                                    	at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:348)
+                                                                                                    	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1156)
+                                                                                                    	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:651)
+                                                                                                    	at com.google.firebase.firestore.util.AsyncQueue$SynchronizedShutdownAwareExecutor$DelayedStartFactory.run(AsyncQueue.java:235)
+                                                                                                    	at java.lang.Thread.run(Thread.java:1119)
+                                                                                                    Caused by: io.grpc.StatusException: PERMISSION_DENIED: Missing or insufficient permissions.
+                                                                                                    	at io.grpc.Status.asException(Status.java:547)
+                                                                                                    	at com.google.firebase.firestore.util.Util.exceptionFromStatus(Util.java:111)
+                                                                                                    	at com.google.firebase.firestore.core.SyncEngine.notifyUser(SyncEngine.java:591) 
+                                                                                                    	at com.google.firebase.firestore.core.SyncEngine.handleRejectedWrite(SyncEngine.java:473) 
+                                                                                                    	at com.google.firebase.firestore.core.MemoryComponentProvider$RemoteStoreCallback.handleRejectedWrite(MemoryComponentProvider.java:140) 
+                                                                                                    	at com.google.firebase.firestore.remote.RemoteStore.handleWriteError(RemoteStore.java:743) 
+                                                                                                    	at com.google.firebase.firestore.remote.RemoteStore.handleWriteStreamClose(RemoteStore.java:699) 
+                                                                                                    	at com.google.firebase.firestore.remote.RemoteStore.access$600(RemoteStore.java:60) 
+                                                                                                    	at com.google.firebase.firestore.remote.RemoteStore$2.onClose(RemoteStore.java:213) 
+                                                                                                    	at com.google.firebase.firestore.remote.AbstractStream.close(AbstractStream.java:356) 
+                                                                                                    	at com.google.firebase.firestore.remote.AbstractStream.handleServerClose(AbstractStream.java:410) 
+                                                                                                    	at com.google.firebase.firestore.remote.AbstractStream$StreamObserver.lambda$onClose$3$com-google-firebase-firestore-remote-AbstractStream$StreamObserver(AbstractStream.java:151) 
+                                                                                                    	at com.google.firebase.firestore.remote.AbstractStream$StreamObserver$$ExternalSyntheticLambda3.run(D8$$SyntheticClass:0) 
+                                                                                                    	at com.google.firebase.firestore.remote.AbstractStream$CloseGuardedRunner.run(AbstractStream.java:67) 
+                                                                                                    	at com.google.firebase.firestore.remote.AbstractStream$StreamObserver.onClose(AbstractStream.java:137) 
+                                                                                                    	at com.google.firebase.firestore.remote.FirestoreChannel$1.onClose(FirestoreChannel.java:151) 
+                                                                                                    	at io.grpc.internal.ClientCallImpl.closeObserver(ClientCallImpl.java:576) 
+                                                                                                    	at io.grpc.internal.ClientCallImpl.access$300(ClientCallImpl.java:70) 
+                                                                                                    	at io.grpc.internal.ClientCallImpl$ClientStreamListenerImpl$1StreamClosed.runInternal(ClientCallImpl.java:757) 
+                                                                                                    	at io.grpc.internal.ClientCallImpl$ClientStreamListenerImpl$1StreamClosed.runInContext(ClientCallImpl.java:736) 
+                                                                                                    	at io.grpc.internal.ContextRunnable.run(ContextRunnable.java:37) 
+                                                                                                    	at io.grpc.internal.SerializingExecutor.run(SerializingExecutor.java:133) 
+                                                                                                    	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:524) 
+                                                                                                    	at java.util.concurrent.FutureTask.run(FutureTask.java:317) 
+                                                                                                    	at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:348) 
+                                                                                                    	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1156) 
+                                                                                                    	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:651) 
+                                                                                                    	at com.google.firebase.firestore.util.AsyncQueue$SynchronizedShutdownAwareExecutor$DelayedStartFactory.run(AsyncQueue.java:235) 
+                                                                                                    	at java.lang.Thread.run(Thread.java:1119) 
+2025-12-09 18:01:59.545  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Snapshot recebido: 21 documentos
+2025-12-09 18:01:59.547  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 0 observado: Clarisse Alves Dos Santos (ID: ef13f575-c1e5-4fda-b358-40171653c6af)
+2025-12-09 18:01:59.548  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 1 observado: Cássio Cruz Da Silva (ID: 6fc75083-5117-405f-ad74-cd75a1048960)
+2025-12-09 18:01:59.550  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 2 observado: Elmira Purcina dos Santos (ID: 4d5939b2-03da-41bc-b0c8-06a31d955df7)
+2025-12-09 18:01:59.552  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 3 observado: Ionilde Ferreira Gomes (ID: c8da8e70-cd55-4619-a2dc-83f44953c5a4)
+2025-12-09 18:01:59.553  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 4 observado: Ivanildo Gomes Dos Santos (ID: 58c324c8-11bd-4f4f-8f89-59381422b8a5)
+2025-12-09 18:01:59.554  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 5 observado: Joana Gomes (ID: dec5dbb5-d5d9-4a92-91b3-df468ab70027)
+2025-12-09 18:01:59.556  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 6 observado: Kássia Liz Santos Silva (ID: 3c9c4319-0925-4c2d-803c-69650c636385)
+2025-12-09 18:01:59.557  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 7 observado: Lucineide Alves Dos Santos (ID: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-12-09 18:01:59.559  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 8 observado: Lucília Santos Da Cruz (ID: 789158c5-2f73-4fa2-85f4-f965bf3507a6)
+2025-12-09 18:01:59.560  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 9 observado: Manuel Alves (ID: fd959a67-9993-411b-b58b-21b3526d2128)
+2025-12-09 18:01:59.562  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 10 observado: Manuel Bedal Ferreira (ID: 0e61ddbb-e7bf-42e0-97d0-db5cca3e319d)
+2025-12-09 18:01:59.563  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 11 observado: Marcos Lohan Santos Silva (ID: beedaf4b-c443-4c5f-91b9-ca98a21ae5cd)
+2025-12-09 18:01:59.564  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 12 observado: Micael Luiz De Neves Gomes (ID: 1e28ad76-e990-49a6-bae0-3bfdcca7654d)
+2025-12-09 18:01:59.566  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 13 observado: Michaela Santos Neves (ID: aacd8303-a5b2-49a7-a094-ae8e86bd78a9)
+2025-12-09 18:01:59.567  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 14 observado: Nilma Santos Da Cruz (ID: 2bfdfd8e-46a5-46f6-9cb4-ba574c3fb080)
+2025-12-09 18:01:59.568  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 15 observado: Paulo Rodrigues Da Cruz (ID: 97454758-7d42-4538-92f2-ee422654ef12)
+2025-12-09 18:01:59.570  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 16 observado: Robério Gomes Dos Santos (ID: 5d97da0d-a20f-4202-bee7-1d92a019738f)
+2025-12-09 18:01:59.571  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 17 observado: Rosana Gomes dos Santos (ID: 067e3f2b-a8a8-4ed4-9786-9a3ac2400a58)
+2025-12-09 18:01:59.572  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 18 observado: Usuário Teste (ID: e05741ca-3463-42da-84b2-05a8815cd02c)
+2025-12-09 18:01:59.574  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 19 observado: Vanilda Santos Da Cruz (ID: 38b7cc48-8ecf-422b-a2ae-c5149356c654)
+2025-12-09 18:01:59.575  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 Documento 20 observado: Vanildo Alves Dos Santos (ID: e07745a9-4efd-44e8-a6e4-03239734f4a5)
+2025-12-09 18:01:59.576  1415-1415  FirestoreS...dasPessoas com.raizesvivas.app                  D  📡 21 pessoas observadas (de 21 documentos)
+2025-12-09 18:01:59.588  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D  📡 Sincronização em tempo real: 21 pessoas recebidas do Firestore
+2025-12-09 18:01:59.589  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    👤 Clarisse Alves Dos Santos: SEM foto
+2025-12-09 18:01:59.589  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    👤 Cássio Cruz Da Silva: SEM foto
+2025-12-09 18:01:59.589  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    👤 Elmira Purcina dos Santos: SEM foto
+2025-12-09 18:01:59.589  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    📸 Ionilde Ferreira Gomes: tem foto (https://firebasestorage.googleapis.com/v0/b/suasra...)
+2025-12-09 18:01:59.589  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    👤 Ivanildo Gomes Dos Santos: SEM foto
+2025-12-09 18:01:59.589  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    👤 Joana Gomes: SEM foto
+2025-12-09 18:01:59.590  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    👤 Kássia Liz Santos Silva: SEM foto
+2025-12-09 18:01:59.590  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    👤 Lucineide Alves Dos Santos: SEM foto
+2025-12-09 18:01:59.590  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    👤 Lucília Santos Da Cruz: SEM foto
+2025-12-09 18:01:59.590  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    👤 Manuel Alves: SEM foto
+2025-12-09 18:01:59.590  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    👤 Manuel Bedal Ferreira: SEM foto
+2025-12-09 18:01:59.591  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    👤 Marcos Lohan Santos Silva: SEM foto
+2025-12-09 18:01:59.591  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    📸 Micael Luiz De Neves Gomes: tem foto (https://firebasestorage.googleapis.com/v0/b/suasra...)
+2025-12-09 18:01:59.591  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    👤 Michaela Santos Neves: SEM foto
+2025-12-09 18:01:59.591  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    👤 Nilma Santos Da Cruz: SEM foto
+2025-12-09 18:01:59.591  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    👤 Paulo Rodrigues Da Cruz: SEM foto
+2025-12-09 18:01:59.591  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    📸 Robério Gomes Dos Santos: tem foto (https://firebasestorage.googleapis.com/v0/b/suasra...)
+2025-12-09 18:01:59.592  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    👤 Rosana Gomes dos Santos: SEM foto
+2025-12-09 18:01:59.592  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    👤 Usuário Teste: SEM foto
+2025-12-09 18:01:59.592  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    👤 Vanilda Santos Da Cruz: SEM foto
+2025-12-09 18:01:59.592  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D    👤 Vanildo Alves Dos Santos: SEM foto
+2025-12-09 18:01:59.793  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 21 entidades no cache local
+2025-12-09 18:01:59.795  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Clarisse Alves Dos Santos (ID: ef13f575-c1e5-4fda-b358-40171653c6af):
+2025-12-09 18:01:59.795  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: FEMININO
+2025-12-09 18:01:59.796  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: false (0 filhos)
+2025-12-09 18:01:59.796  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: false
+2025-12-09 18:01:59.796  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: false
+2025-12-09 18:01:59.796  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-12-09 18:01:59.796  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-12-09 18:01:59.797  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-12-09 18:01:59.797  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: não tem filhos
+2025-12-09 18:01:59.797  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Cássio Cruz Da Silva (ID: 6fc75083-5117-405f-ad74-cd75a1048960) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.797  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Cássio Cruz Da Silva já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.798  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Elmira Purcina dos Santos (ID: 4d5939b2-03da-41bc-b0c8-06a31d955df7) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.798  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Elmira Purcina dos Santos já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.798  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Ionilde Ferreira Gomes (ID: c8da8e70-cd55-4619-a2dc-83f44953c5a4) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.798  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Ionilde Ferreira Gomes já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.799  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Ivanildo Gomes Dos Santos (ID: 58c324c8-11bd-4f4f-8f89-59381422b8a5) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.799  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Ivanildo Gomes Dos Santos já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.799  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Joana Gomes (ID: dec5dbb5-d5d9-4a92-91b3-df468ab70027) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.799  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Joana Gomes já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.799  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Kássia Liz Santos Silva (ID: 3c9c4319-0925-4c2d-803c-69650c636385) - já foi processada e não tem filhos
+2025-12-09 18:01:59.800  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Lucineide Alves Dos Santos (ID: 320877d9-ea14-4165-8545-51aea7770f41) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.800  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ✅ Removendo Lucineide Alves Dos Santos da lista de processadas para re-avaliar como monoparental
+2025-12-09 18:01:59.800  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Lucineide Alves Dos Santos (ID: 320877d9-ea14-4165-8545-51aea7770f41):
+2025-12-09 18:01:59.800  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: FEMININO
+2025-12-09 18:01:59.800  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: true (4 filhos)
+2025-12-09 18:01:59.801  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: true
+2025-12-09 18:01:59.801  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: true
+2025-12-09 18:01:59.801  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-12-09 18:01:59.801  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-12-09 18:01:59.801  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ✅ Condições atendidas: processando família monoparental
+2025-12-09 18:01:59.802  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Filhos encontrados: 4
+2025-12-09 18:01:59.802  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        • Nilma Santos Da Cruz (ID: 2bfdfd8e-46a5-46f6-9cb4-ba574c3fb080, pai: 97454758-7d42-4538-92f2-ee422654ef12, mae: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-12-09 18:01:59.802  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        • Lucília Santos Da Cruz (ID: 789158c5-2f73-4fa2-85f4-f965bf3507a6, pai: 97454758-7d42-4538-92f2-ee422654ef12, mae: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-12-09 18:01:59.802  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        • Clarisse Alves Dos Santos (ID: ef13f575-c1e5-4fda-b358-40171653c6af, pai: 97454758-7d42-4538-92f2-ee422654ef12, mae: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-12-09 18:01:59.803  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        • Vanilda Santos Da Cruz (ID: 38b7cc48-8ecf-422b-a2ae-c5149356c654, pai: 97454758-7d42-4538-92f2-ee422654ef12, mae: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-12-09 18:01:59.803  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ✅ Criando família monoparental automaticamente para Lucineide Alves Dos Santos (FEMININO)
+2025-12-09 18:01:59.803  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ✅ Família monoparental criada com sucesso para Lucineide Alves Dos Santos
+2025-12-09 18:01:59.803  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Lucília Santos Da Cruz (ID: 789158c5-2f73-4fa2-85f4-f965bf3507a6) - já foi processada e não tem filhos
+2025-12-09 18:01:59.803  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Manuel Alves (ID: fd959a67-9993-411b-b58b-21b3526d2128) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.804  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Manuel Alves já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.804  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Manuel Bedal Ferreira (ID: 0e61ddbb-e7bf-42e0-97d0-db5cca3e319d) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.804  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Manuel Bedal Ferreira já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.804  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Marcos Lohan Santos Silva (ID: beedaf4b-c443-4c5f-91b9-ca98a21ae5cd) - já foi processada e não tem filhos
+2025-12-09 18:01:59.804  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Micael Luiz De Neves Gomes (ID: 1e28ad76-e990-49a6-bae0-3bfdcca7654d) - já foi processada e não tem filhos
+2025-12-09 18:01:59.805  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Michaela Santos Neves (ID: aacd8303-a5b2-49a7-a094-ae8e86bd78a9) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.805  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Michaela Santos Neves já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.805  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Nilma Santos Da Cruz (ID: 2bfdfd8e-46a5-46f6-9cb4-ba574c3fb080) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.805  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Nilma Santos Da Cruz já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.806  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Paulo Rodrigues Da Cruz (ID: 97454758-7d42-4538-92f2-ee422654ef12):
+2025-12-09 18:01:59.806  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: MASCULINO
+2025-12-09 18:01:59.806  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: true (4 filhos)
+2025-12-09 18:01:59.806  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: true
+2025-12-09 18:01:59.806  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: true
+2025-12-09 18:01:59.807  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-12-09 18:01:59.807  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-12-09 18:01:59.807  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ✅ Condições atendidas: processando família monoparental
+2025-12-09 18:01:59.807  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Filhos encontrados: 4
+2025-12-09 18:01:59.807  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        • Nilma Santos Da Cruz (ID: 2bfdfd8e-46a5-46f6-9cb4-ba574c3fb080, pai: 97454758-7d42-4538-92f2-ee422654ef12, mae: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-12-09 18:01:59.808  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        • Lucília Santos Da Cruz (ID: 789158c5-2f73-4fa2-85f4-f965bf3507a6, pai: 97454758-7d42-4538-92f2-ee422654ef12, mae: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-12-09 18:01:59.808  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        • Clarisse Alves Dos Santos (ID: ef13f575-c1e5-4fda-b358-40171653c6af, pai: 97454758-7d42-4538-92f2-ee422654ef12, mae: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-12-09 18:01:59.808  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        • Vanilda Santos Da Cruz (ID: 38b7cc48-8ecf-422b-a2ae-c5149356c654, pai: 97454758-7d42-4538-92f2-ee422654ef12, mae: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-12-09 18:01:59.808  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - É PAI: verificando confirmação/rejeição
+2025-12-09 18:01:59.809  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Robério Gomes Dos Santos (ID: 5d97da0d-a20f-4202-bee7-1d92a019738f) - já foi processada e não tem filhos
+2025-12-09 18:01:59.809  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Rosana Gomes dos Santos (ID: 067e3f2b-a8a8-4ed4-9786-9a3ac2400a58) - já foi processada e não tem filhos
+2025-12-09 18:01:59.809  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Usuário Teste (ID: e05741ca-3463-42da-84b2-05a8815cd02c):
+2025-12-09 18:01:59.809  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: OUTRO
+2025-12-09 18:01:59.809  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: false (0 filhos)
+2025-12-09 18:01:59.810  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: false
+2025-12-09 18:01:59.810  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: false
+2025-12-09 18:01:59.810  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-12-09 18:01:59.810  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-12-09 18:01:59.810  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-12-09 18:01:59.810  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: não tem filhos
+2025-12-09 18:01:59.811  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Vanilda Santos Da Cruz (ID: 38b7cc48-8ecf-422b-a2ae-c5149356c654) - já foi processada e não tem filhos
+2025-12-09 18:01:59.811  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Vanildo Alves Dos Santos (ID: e07745a9-4efd-44e8-a6e4-03239734f4a5) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.811  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Vanildo Alves Dos Santos já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.811  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  📊 Resumo: 6 famílias criadas, 0 pendentes
+2025-12-09 18:01:59.821  1415-1415  FamiliaViewModel        com.raizesvivas.app                  D  🚫 Família Família ASAIR (0e61ddbb-e7bf-42e0-97d0-db5cca3e319d_dec5dbb5-d5d9-4a92-91b3-df468ab70027) está na blacklist, não será exibida
+2025-12-09 18:01:59.821  1415-1415  FamiliaViewModel        com.raizesvivas.app                  D  🚫 Família Família SANTOS (4d5939b2-03da-41bc-b0c8-06a31d955df7_fd959a67-9993-411b-b58b-21b3526d2128) está na blacklist, não será exibida
+2025-12-09 18:01:59.823  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 21 entidades no cache local
+2025-12-09 18:01:59.837  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D  ✅ Cache local atualizado com 21 pessoas do Firestore
+2025-12-09 18:01:59.845  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 21 entidades no cache local
+2025-12-09 18:01:59.848  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Clarisse Alves Dos Santos (ID: ef13f575-c1e5-4fda-b358-40171653c6af):
+2025-12-09 18:01:59.848  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: FEMININO
+2025-12-09 18:01:59.848  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: false (0 filhos)
+2025-12-09 18:01:59.849  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: false
+2025-12-09 18:01:59.849  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: false
+2025-12-09 18:01:59.849  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-12-09 18:01:59.849  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-12-09 18:01:59.849  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-12-09 18:01:59.850  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: não tem filhos
+2025-12-09 18:01:59.850  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Cássio Cruz Da Silva (ID: 6fc75083-5117-405f-ad74-cd75a1048960) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.850  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Cássio Cruz Da Silva já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.850  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Elmira Purcina dos Santos (ID: 4d5939b2-03da-41bc-b0c8-06a31d955df7) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.851  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Elmira Purcina dos Santos já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.851  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Ionilde Ferreira Gomes (ID: c8da8e70-cd55-4619-a2dc-83f44953c5a4) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.851  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Ionilde Ferreira Gomes já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.851  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Ivanildo Gomes Dos Santos (ID: 58c324c8-11bd-4f4f-8f89-59381422b8a5) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.851  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Ivanildo Gomes Dos Santos já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.852  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Joana Gomes (ID: dec5dbb5-d5d9-4a92-91b3-df468ab70027) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.852  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Joana Gomes já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.852  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Kássia Liz Santos Silva (ID: 3c9c4319-0925-4c2d-803c-69650c636385) - já foi processada e não tem filhos
+2025-12-09 18:01:59.852  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Lucineide Alves Dos Santos (ID: 320877d9-ea14-4165-8545-51aea7770f41) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.852  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ✅ Removendo Lucineide Alves Dos Santos da lista de processadas para re-avaliar como monoparental
+2025-12-09 18:01:59.853  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Lucineide Alves Dos Santos (ID: 320877d9-ea14-4165-8545-51aea7770f41):
+2025-12-09 18:01:59.853  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: FEMININO
+2025-12-09 18:01:59.853  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: true (4 filhos)
+2025-12-09 18:01:59.853  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: true
+2025-12-09 18:01:59.853  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: true
+2025-12-09 18:01:59.854  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-12-09 18:01:59.854  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-12-09 18:01:59.854  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ✅ Condições atendidas: processando família monoparental
+2025-12-09 18:01:59.854  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Filhos encontrados: 4
+2025-12-09 18:01:59.854  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        • Nilma Santos Da Cruz (ID: 2bfdfd8e-46a5-46f6-9cb4-ba574c3fb080, pai: 97454758-7d42-4538-92f2-ee422654ef12, mae: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-12-09 18:01:59.855  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        • Lucília Santos Da Cruz (ID: 789158c5-2f73-4fa2-85f4-f965bf3507a6, pai: 97454758-7d42-4538-92f2-ee422654ef12, mae: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-12-09 18:01:59.855  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        • Clarisse Alves Dos Santos (ID: ef13f575-c1e5-4fda-b358-40171653c6af, pai: 97454758-7d42-4538-92f2-ee422654ef12, mae: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-12-09 18:01:59.855  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        • Vanilda Santos Da Cruz (ID: 38b7cc48-8ecf-422b-a2ae-c5149356c654, pai: 97454758-7d42-4538-92f2-ee422654ef12, mae: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-12-09 18:01:59.855  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ✅ Criando família monoparental automaticamente para Lucineide Alves Dos Santos (FEMININO)
+2025-12-09 18:01:59.856  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ✅ Família monoparental criada com sucesso para Lucineide Alves Dos Santos
+2025-12-09 18:01:59.856  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Lucília Santos Da Cruz (ID: 789158c5-2f73-4fa2-85f4-f965bf3507a6) - já foi processada e não tem filhos
+2025-12-09 18:01:59.856  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Manuel Alves (ID: fd959a67-9993-411b-b58b-21b3526d2128) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.856  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Manuel Alves já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.856  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Manuel Bedal Ferreira (ID: 0e61ddbb-e7bf-42e0-97d0-db5cca3e319d) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.857  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Manuel Bedal Ferreira já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.857  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Marcos Lohan Santos Silva (ID: beedaf4b-c443-4c5f-91b9-ca98a21ae5cd) - já foi processada e não tem filhos
+2025-12-09 18:01:59.857  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Micael Luiz De Neves Gomes (ID: 1e28ad76-e990-49a6-bae0-3bfdcca7654d) - já foi processada e não tem filhos
+2025-12-09 18:01:59.857  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Michaela Santos Neves (ID: aacd8303-a5b2-49a7-a094-ae8e86bd78a9) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.857  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Michaela Santos Neves já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.858  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Nilma Santos Da Cruz (ID: 2bfdfd8e-46a5-46f6-9cb4-ba574c3fb080) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.858  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Nilma Santos Da Cruz já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.858  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Paulo Rodrigues Da Cruz (ID: 97454758-7d42-4538-92f2-ee422654ef12):
+2025-12-09 18:01:59.858  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: MASCULINO
+2025-12-09 18:01:59.858  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: true (4 filhos)
+2025-12-09 18:01:59.859  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: true
+2025-12-09 18:01:59.859  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: true
+2025-12-09 18:01:59.859  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-12-09 18:01:59.859  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-12-09 18:01:59.859  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ✅ Condições atendidas: processando família monoparental
+2025-12-09 18:01:59.860  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Filhos encontrados: 4
+2025-12-09 18:01:59.860  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        • Nilma Santos Da Cruz (ID: 2bfdfd8e-46a5-46f6-9cb4-ba574c3fb080, pai: 97454758-7d42-4538-92f2-ee422654ef12, mae: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-12-09 18:01:59.860  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        • Lucília Santos Da Cruz (ID: 789158c5-2f73-4fa2-85f4-f965bf3507a6, pai: 97454758-7d42-4538-92f2-ee422654ef12, mae: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-12-09 18:01:59.860  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        • Clarisse Alves Dos Santos (ID: ef13f575-c1e5-4fda-b358-40171653c6af, pai: 97454758-7d42-4538-92f2-ee422654ef12, mae: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-12-09 18:01:59.860  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        • Vanilda Santos Da Cruz (ID: 38b7cc48-8ecf-422b-a2ae-c5149356c654, pai: 97454758-7d42-4538-92f2-ee422654ef12, mae: 320877d9-ea14-4165-8545-51aea7770f41)
+2025-12-09 18:01:59.861  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - É PAI: verificando confirmação/rejeição
+2025-12-09 18:01:59.861  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Robério Gomes Dos Santos (ID: 5d97da0d-a20f-4202-bee7-1d92a019738f) - já foi processada e não tem filhos
+2025-12-09 18:01:59.861  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Rosana Gomes dos Santos (ID: 067e3f2b-a8a8-4ed4-9786-9a3ac2400a58) - já foi processada e não tem filhos
+2025-12-09 18:01:59.861  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔍 Verificando família monoparental para Usuário Teste (ID: e05741ca-3463-42da-84b2-05a8815cd02c):
+2025-12-09 18:01:59.862  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Gênero: OUTRO
+2025-12-09 18:01:59.862  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos na lista: false (0 filhos)
+2025-12-09 18:01:59.862  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos por relação: false
+2025-12-09 18:01:59.862  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Tem filhos: false
+2025-12-09 18:01:59.862  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não tem cônjuge: true (conjugeAtual: null)
+2025-12-09 18:01:59.863  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     - Não é Família Zero: true
+2025-12-09 18:01:59.863  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ❌ Condições NÃO atendidas para criar família monoparental
+2025-12-09 18:01:59.863  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D        - Motivo: não tem filhos
+2025-12-09 18:01:59.863  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  ⏭️ Pulando pessoa Vanilda Santos Da Cruz (ID: 38b7cc48-8ecf-422b-a2ae-c5149356c654) - já foi processada e não tem filhos
+2025-12-09 18:01:59.864  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  🔄 Re-verificando pessoa Vanildo Alves Dos Santos (ID: e07745a9-4efd-44e8-a6e4-03239734f4a5) - já foi processada mas tem filhos (pode ser monoparental)
+2025-12-09 18:01:59.864  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D     ⏭️ Pessoa Vanildo Alves Dos Santos já está em uma família como cônjuge, não criar monoparental
+2025-12-09 18:01:59.864  1415-1415  ListaHiera...caArvoreKt com.raizesvivas.app                  D  📊 Resumo: 6 famílias criadas, 0 pendentes
+2025-12-09 18:01:59.873  1415-1415  FamiliaViewModel        com.raizesvivas.app                  D  🚫 Família Família ASAIR (0e61ddbb-e7bf-42e0-97d0-db5cca3e319d_dec5dbb5-d5d9-4a92-91b3-df468ab70027) está na blacklist, não será exibida
+2025-12-09 18:01:59.874  1415-1415  FamiliaViewModel        com.raizesvivas.app                  D  🚫 Família Família SANTOS (4d5939b2-03da-41bc-b0c8-06a31d955df7_fd959a67-9993-411b-b58b-21b3526d2128) está na blacklist, não será exibida
+2025-12-09 18:01:59.876  1415-1415  PessoaRepo...nlined$map com.raizesvivas.app                  D  📋 Observando pessoas: 21 entidades no cache local

@@ -35,6 +35,7 @@ fun ImagePicker(
     imageUrl: String? = null // URL da imagem remota (Firebase Storage)
 ) {
     val context = LocalContext.current
+    var showRemoveDialog by remember { mutableStateOf(false) }
     
     // Launcher para galeria
     val galeriaLauncher = rememberLauncherForActivityResult(
@@ -55,72 +56,124 @@ fun ImagePicker(
         }
     }
     
-    Card(
-        modifier = modifier.size(size.dp),
-        shape = CircleShape
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .clickable {
-                    // Por enquanto, apenas galeria
-                    galeriaLauncher.launch("image/*")
-                },
-            contentAlignment = Alignment.Center
-        ) {
-            // Mostrar imagem se houver caminho local ou URL remota
-            val imageData = imagePath?.takeIf { File(it).exists() } ?: imageUrl
-            if (imageData != null) {
-                // Mostrar imagem selecionada (local ou remota)
-                Image(
-                    painter = rememberAsyncImagePainter(
-                        ImageRequest.Builder(LocalContext.current)
-                            .data(imageData)
-                            .build()
-                    ),
-                    contentDescription = "Foto da pessoa",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+    // Diálogo de confirmação de remoção
+    if (showRemoveDialog) {
+        AlertDialog(
+            onDismissRequest = { showRemoveDialog = false },
+            icon = {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
                 )
-                
-                // Overlay com botão de remover
-                Surface(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .size(32.dp),
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.error
+            },
+            title = {
+                Text("Remover foto?")
+            },
+            text = {
+                Text("Tem certeza que deseja remover esta foto de perfil?")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showRemoveDialog = false
+                        onImageSelected("")
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
                 ) {
-                    IconButton(
-                        onClick = { onImageSelected("") },
-                        modifier = Modifier.fillMaxSize()
+                    Text("Remover")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showRemoveDialog = false }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+    
+    Box(
+        modifier = modifier.size(size.dp)
+    ) {
+        Card(
+            modifier = Modifier.fillMaxSize(),
+            shape = CircleShape
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                // Mostrar imagem se houver caminho local ou URL remota
+                val imageData = imagePath?.takeIf { File(it).exists() } ?: imageUrl
+                if (imageData != null) {
+                    // Mostrar imagem selecionada (local ou remota)
+                    Image(
+                        painter = rememberAsyncImagePainter(
+                            ImageRequest.Builder(LocalContext.current)
+                                .data(imageData)
+                                .build()
+                        ),
+                        contentDescription = "Foto da pessoa",
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clickable {
+                                // Clicar na imagem abre a galeria para trocar
+                                galeriaLauncher.launch("image/*")
+                            },
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    // Ícone placeholder - clicável para adicionar foto
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clickable {
+                                galeriaLauncher.launch("image/*")
+                            },
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
                         Icon(
-                            Icons.Default.Close,
-                            contentDescription = "Remover foto",
-                            tint = MaterialTheme.colorScheme.onError,
-                            modifier = Modifier.size(16.dp)
+                            Icons.Default.AddPhotoAlternate,
+                            contentDescription = "Adicionar foto",
+                            modifier = Modifier.size((size * 0.4f).dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Foto",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
-            } else {
-                // Ícone placeholder
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+            }
+        }
+        
+        // Botão de remover - FORA do Card, visível apenas quando há foto
+        val imageData = imagePath?.takeIf { File(it).exists() } ?: imageUrl
+        if (imageData != null) {
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .size(36.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.error,
+                shadowElevation = 4.dp
+            ) {
+                IconButton(
+                    onClick = { showRemoveDialog = true },
+                    modifier = Modifier.fillMaxSize()
                 ) {
                     Icon(
-                        Icons.Default.AddPhotoAlternate,
-                        contentDescription = "Adicionar foto",
-                        modifier = Modifier.size((size * 0.4f).dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Foto",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary
+                        Icons.Default.Close,
+                        contentDescription = "Remover foto",
+                        tint = MaterialTheme.colorScheme.onError,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }

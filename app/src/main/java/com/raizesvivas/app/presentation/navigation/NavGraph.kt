@@ -194,29 +194,68 @@ fun NavGraph(
             // Verificar se deve abrir o drawer ao retornar (ex: vindo de Configurações)
             val openDrawer = backStackEntry.savedStateHandle.get<Boolean>("open_drawer") ?: false
             
-            // Limpar o estado após ler para não abrir novamente em rotações/recomposições indesejadas
+            // Verificar se deve abrir uma foto específica no álbum
+            val openFotoId = backStackEntry.savedStateHandle.get<String>("open_foto_id")
+            
+            // Limpar o estado após ler
             if (openDrawer) {
                 backStackEntry.savedStateHandle.remove<Boolean>("open_drawer")
+            }
+            if (openFotoId != null) {
+                backStackEntry.savedStateHandle.remove<String>("open_foto_id")
             }
 
             MainNavigation(
                 navControllerPrincipal = navController,
                 startDestination = Screen.Home.route,
-                openDrawerOnStart = openDrawer
+                openDrawerOnStart = openDrawer,
+                openFotoAlbumId = openFotoId
             )
         }
         
-        composable(Screen.Perfil.route) {
+        composable(Screen.Perfil.route) { backStackEntry ->
+            val openFotoId = backStackEntry.savedStateHandle.get<String>("open_foto_id")
+            
+            if (openFotoId != null) {
+                backStackEntry.savedStateHandle.remove<String>("open_foto_id")
+            }
+            
             MainNavigation(
                 navControllerPrincipal = navController,
-                startDestination = Screen.Perfil.route
+                startDestination = Screen.Perfil.route,
+                openFotoAlbumId = openFotoId
             )
         }
         
-        composable(Screen.Familia.route) {
+        composable(Screen.Familia.route) { backStackEntry ->
+            val openFotoId = backStackEntry.savedStateHandle.get<String>("open_foto_id")
+            
+            if (openFotoId != null) {
+                backStackEntry.savedStateHandle.remove<String>("open_foto_id")
+            }
+            
             MainNavigation(
                 navControllerPrincipal = navController,
-                startDestination = Screen.Familia.route
+                startDestination = Screen.Familia.route,
+                openFotoAlbumId = openFotoId
+            )
+        }
+
+        composable(
+            route = Screen.AlbumFamilia.route,
+            arguments = listOf(
+                navArgument("fotoId") {
+                    type = NavType.StringType
+                    nullable = true
+                }
+            )
+        ) { backStackEntry ->
+            val fotoId = backStackEntry.arguments?.getString("fotoId")
+            
+            MainNavigation(
+                navControllerPrincipal = navController,
+                startDestination = Screen.AlbumFamilia.route,
+                openFotoAlbumId = fotoId
             )
         }
         
@@ -288,6 +327,16 @@ fun NavGraph(
                 },
                 onNavigateToEditar = { id ->
                     navController.navigate(Screen.EditarPessoa.createRoute(id))
+                },
+                onNavigateToFotoAlbum = { fotoId ->
+                    navController.navigate(Screen.AlbumFamilia.createRoute(fotoId)) {
+                        launchSingleTop = true
+                    }
+                },
+                onNavigateToRede = {
+                    navController.navigate(Screen.AlbumFamilia.route) {
+                        launchSingleTop = true
+                    }
                 }
             )
         }

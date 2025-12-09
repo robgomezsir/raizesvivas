@@ -41,6 +41,14 @@ import androidx.compose.material3.*
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.rememberDrawerState
+import com.raizesvivas.app.presentation.screens.home.HomeDrawerContent
+import com.raizesvivas.app.presentation.theme.LocalThemeController
+import com.raizesvivas.app.presentation.viewmodel.NotificacaoViewModel
+import com.raizesvivas.app.presentation.theme.ThemeMode
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.DisposableEffect
@@ -99,22 +107,50 @@ import kotlin.math.abs
 @Composable
 fun AlbumFamiliaScreen(
     viewModel: AlbumFamiliaViewModel = hiltViewModel(),
+    fotoIdParaAbrir: String? = null,
     onNavigateBack: () -> Unit = {},
-    onNavigateToDetalhesPessoa: ((String) -> Unit)? = null
+    onNavigateToDetalhesPessoa: ((String) -> Unit)? = null,
+    onNavigateToPerfil: () -> Unit = {},
+    onNavigateToGerenciarConvites: () -> Unit = {},
+    onNavigateToGerenciarEdicoes: () -> Unit = {},
+    onNavigateToResolverDuplicatas: () -> Unit = {},
+    onNavigateToGerenciarUsuarios: () -> Unit = {},
+    onNavigateToConfiguracoes: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
     val fotos by viewModel.fotos.collectAsState()
     val pessoas by viewModel.pessoas.collectAsState()
+    val usuarioAtual by viewModel.usuarioAtual.collectAsState()
     
     // Estados para modais
     var descricaoFoto by remember { mutableStateOf("") }
     var fotoExpandida by remember { mutableStateOf<FotoAlbum?>(null) }
+    
+    // Auto-expandir foto se vier via deep link
+    LaunchedEffect(fotoIdParaAbrir, fotos) {
+        if (fotoIdParaAbrir != null && fotos.isNotEmpty() && fotoExpandida == null) {
+            val foto = fotos.find { it.id == fotoIdParaAbrir }
+            if (foto != null) {
+                fotoExpandida = foto
+            }
+        }
+    }
     
     // Estado para pesquisa
     var queryPesquisa by remember { mutableStateOf("") }
     var mostrarPesquisa by remember { mutableStateOf(false) }
     
     val scope = rememberCoroutineScope()
+    
+    // Sidebar States
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val themeController = LocalThemeController.current
+    val notificacaoViewModel: NotificacaoViewModel = hiltViewModel()
+    val contadorNaoLidas by notificacaoViewModel.contadorNaoLidas.collectAsState()
+    
+    // Permissões corretas baseadas no usuário atual
+    val isAdmin = usuarioAtual?.ehAdmin == true
+    val isAdminSenior = usuarioAtual?.ehAdminSenior == true
     
     // Agrupar fotos por pessoa (com pesquisa)
     val fotosPorPessoa = remember(fotos, pessoas, queryPesquisa) {
@@ -198,6 +234,65 @@ fun AlbumFamiliaScreen(
         }
     }
     
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            HomeDrawerContent(
+                isAdmin = isAdmin,
+                isAdminSenior = isAdminSenior,
+                notificacoesNaoLidas = contadorNaoLidas,
+                pedidosPendentes = 0,
+                onClose = { scope.launch { drawerState.close() } },
+                onOpenNotificacoes = { scope.launch { drawerState.close() } },
+                onNavigateToPerfil = {
+                    scope.launch {
+                        drawerState.close()
+                        onNavigateToPerfil()
+                    }
+                },
+                onGerenciarConvites = {
+                    scope.launch {
+                        drawerState.close()
+                        onNavigateToGerenciarConvites()
+                    }
+                },
+                onGerenciarEdicoes = {
+                    scope.launch {
+                        drawerState.close()
+                        onNavigateToGerenciarEdicoes()
+                    }
+                },
+                onResolverDuplicatas = {
+                    scope.launch {
+                        drawerState.close()
+                        onNavigateToResolverDuplicatas()
+                    }
+                },
+                onGerenciarUsuarios = {
+                    scope.launch {
+                        drawerState.close()
+                        onNavigateToGerenciarUsuarios()
+                    }
+                },
+                onConfiguracoes = {
+                    scope.launch {
+                        drawerState.close()
+                        onNavigateToConfiguracoes()
+                    }
+                },
+                onSair = {
+                    scope.launch {
+                        drawerState.close()
+                        // Logout handled by navigation
+                    }
+                },
+                themeMode = themeController.modo,
+                onThemeModeChange = { mode -> 
+                    themeController.selecionarModo(mode) 
+                }
+            )
+        }
+    ) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -232,20 +327,24 @@ fun AlbumFamiliaScreen(
                     }
                 },
                 actions = {
-                    // Ícone de adicionar foto
-                    IconButton(onClick = { viewModel.abrirModalAdicionar() }) {
-                        Icon(
-                            Icons.Default.Add,
-                            contentDescription = if (fotos.isEmpty()) "Adicionar primeira foto" else "Adicionar foto"
-                        )
-                    }
-                    // Ícone de pesquisa
                     if (!mostrarPesquisa) {
+                        // Ícone de adicionar foto
+                        IconButton(onClick = { viewModel.abrirModalAdicionar() }) {
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = if (fotos.isEmpty()) "Adicionar primeira foto" else "Adicionar foto"
+                            )
+                        }
+                        // Ícone de pesquisa
                         IconButton(onClick = { mostrarPesquisa = true }) {
                             Icon(
                                 Icons.Default.Search, 
                                 contentDescription = "Pesquisar familiar"
                             )
+                        }
+                        // Menu lateral
+                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "Abrir menu lateral")
                         }
                     }
                 }
@@ -388,6 +487,7 @@ fun AlbumFamiliaScreen(
                 )
             }
         }
+    }
     }
 }
 
@@ -1197,25 +1297,32 @@ fun ModalFotoExpandida(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Botão de deletar (esquerda)
-                IconButton(
-                    onClick = {
-                        onDeletar?.invoke()
-                        onDismiss()
-                    },
-                    modifier = Modifier
-                        .background(
-                            MaterialTheme.colorScheme.error.copy(alpha = 0.9f),
-                            shape = RoundedCornerShape(8.dp)
+                // Botão de deletar (esquerda) - Apenas se tiver permissão
+                val podeDeletar = usuarioAtual != null && (usuarioAtual?.id == foto.criadoPor || isAdmin)
+                
+                if (podeDeletar) {
+                    IconButton(
+                        onClick = {
+                            onDeletar?.invoke()
+                            onDismiss()
+                        },
+                        modifier = Modifier
+                            .background(
+                                MaterialTheme.colorScheme.error.copy(alpha = 0.9f),
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                            .size(48.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Deletar foto",
+                            tint = MaterialTheme.colorScheme.onError,
+                            modifier = Modifier.size(24.dp)
                         )
-                        .size(48.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Deletar foto",
-                        tint = MaterialTheme.colorScheme.onError,
-                        modifier = Modifier.size(24.dp)
-                    )
+                    }
+                } else {
+                    // Spacer para manter o botão de fechar alinhado à direita
+                    Spacer(modifier = Modifier.size(48.dp))
                 }
                 
                 // Botão de fechar (direita)

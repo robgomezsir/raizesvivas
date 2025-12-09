@@ -53,6 +53,9 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var workManagerInitializer: WorkManagerInitializer
     
+    @Inject
+    lateinit var syncManager: com.raizesvivas.app.data.sync.SyncManager
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -64,7 +67,7 @@ class MainActivity : FragmentActivity() {
             }
             val coroutineScope = rememberCoroutineScope()
             
-            // Inicializar jobs periódicos após Hilt estar pronto
+            // Inicializar jobs periódicos e sincronização em tempo real após Hilt estar pronto
             LaunchedEffect(Unit) {
                 try {
                     workManagerInitializer.agendarSincronizacaoRelacoes()
@@ -72,6 +75,15 @@ class MainActivity : FragmentActivity() {
                     Timber.d("✅ Jobs periódicos inicializados")
                 } catch (e: Exception) {
                     Timber.e(e, "❌ Erro ao inicializar jobs periódicos")
+                }
+                
+                // Iniciar sincronização em tempo real do Firestore
+                try {
+                    syncManager.iniciarSincronizacaoEmTempoReal().collect {
+                        // Listener ativo - mudanças do Firestore serão sincronizadas automaticamente
+                    }
+                } catch (e: Exception) {
+                    Timber.e(e, "❌ Erro ao iniciar sincronização em tempo real")
                 }
                 
                 ThemePreferenceManager.readThemeMode(applicationContext)?.let {

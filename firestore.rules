@@ -184,10 +184,18 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated() &&
                      request.resource.data.keys().hasAll(['nome', 'criadoPor', 'criadoEm']);
+      
+      // UPDATE: Dividido em duas regras para permitir upload de fotos por todos
+      // Regra 1: TODOS os usuários autenticados podem atualizar APENAS fotoUrl, versao, modificadoEm e aprovado
+      allow update: if isAuthenticated() &&
+                     request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fotoUrl', 'versao', 'modificadoEm', 'aprovado']);
+      
+      // Regra 2: Regra original para outros campos (apenas admin, criador ou pessoa vinculada)
       allow update: if isAuthenticated() &&
                      (isAdmin() ||
                       request.resource.data.criadoPor == request.auth.uid ||
                       get(/databases/$(database)/documents/users/$(request.auth.uid)).data.pessoaVinculada == pessoaId);
+      
       allow delete: if isAdmin();
     }
 

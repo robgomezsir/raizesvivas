@@ -42,6 +42,15 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlinx.coroutines.delay
 import timber.log.Timber
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material.icons.filled.MoreVert
+import com.raizesvivas.app.presentation.screens.home.HomeDrawerContent
+import com.raizesvivas.app.presentation.theme.LocalThemeController
+import com.raizesvivas.app.presentation.theme.ThemeMode
+import com.raizesvivas.app.presentation.viewmodel.NotificacaoViewModel
+import kotlinx.coroutines.launch
 
 /**
  * Tela de Perfil do usuário
@@ -52,7 +61,13 @@ fun PerfilScreen(
     viewModel: PerfilViewModel = hiltViewModel(),
     gamificacaoViewModel: GamificacaoViewModel = hiltViewModel(),
     onNavigateToCadastroPessoaComId: (String?) -> Unit = {},
-    onNavigateToEditar: (String) -> Unit = {}
+    onNavigateToEditar: (String) -> Unit = {},
+    onNavigateToGerenciarConvites: () -> Unit = {},
+    onNavigateToGerenciarEdicoes: () -> Unit = {},
+    onNavigateToResolverDuplicatas: () -> Unit = {},
+    onNavigateToGerenciarUsuarios: () -> Unit = {},
+    onNavigateToConfiguracoes: () -> Unit = {},
+    onNavigateToFotoAlbum: (String) -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
     val pessoasDisponiveis by viewModel.pessoasDisponiveis.collectAsState()
@@ -114,11 +129,85 @@ fun PerfilScreen(
         }
     }
     
+    // Notification ViewModel for drawer
+    val notificacaoViewModel: NotificacaoViewModel = hiltViewModel()
+    val contadorNaoLidas by notificacaoViewModel.contadorNaoLidas.collectAsState()
+    
+    // Drawer state
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+    val themeController = LocalThemeController.current
+    val isAdmin = state.ehAdmin
+    val isAdminSenior = false // PerfilScreen doesn't have admin senior info
+    
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            HomeDrawerContent(
+                isAdmin = isAdmin,
+                isAdminSenior = isAdminSenior,
+                notificacoesNaoLidas = contadorNaoLidas,
+                pedidosPendentes = 0,
+                onClose = { scope.launch { drawerState.close() } },
+                onOpenNotificacoes = { scope.launch { drawerState.close() } },
+                onNavigateToPerfil = { scope.launch { drawerState.close() } },
+                onGerenciarConvites = {
+                    scope.launch {
+                        drawerState.close()
+                        onNavigateToGerenciarConvites()
+                    }
+                },
+                onGerenciarEdicoes = {
+                    scope.launch {
+                        drawerState.close()
+                        onNavigateToGerenciarEdicoes()
+                    }
+                },
+                onResolverDuplicatas = {
+                    scope.launch {
+                        drawerState.close()
+                        onNavigateToResolverDuplicatas()
+                    }
+                },
+                onGerenciarUsuarios = {
+                    scope.launch {
+                        drawerState.close()
+                        onNavigateToGerenciarUsuarios()
+                    }
+                },
+                onConfiguracoes = {
+                    scope.launch {
+                        drawerState.close()
+                        onNavigateToConfiguracoes()
+                    }
+                },
+                onSair = {
+                    scope.launch {
+                        drawerState.close()
+                        // Logout handled by navigation
+                    }
+                },
+                themeMode = themeController.modo,
+                onThemeModeChange = { mode: ThemeMode ->
+                    themeController.selecionarModo(mode)
+                }
+            )
+        }
+    ) {
+    
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Meu Perfil") }
+                title = { Text("Meu Perfil") },
+                windowInsets = WindowInsets(0.dp),
+                actions = {
+                    IconButton(onClick = {
+                        scope.launch { drawerState.open() }
+                    }) {
+                        Icon(Icons.Default.MoreVert, contentDescription = "Abrir menu lateral")
+                    }
+                }
             )
         }
     ) { paddingValues ->
@@ -775,7 +864,8 @@ fun PerfilScreen(
                                             rowFotos.forEach { foto ->
                                                 FotoAlbumItem(
                                                     foto = foto,
-                                                    modifier = Modifier.weight(1f)
+                                                    modifier = Modifier.weight(1f),
+                                                    onClick = { onNavigateToFotoAlbum(foto.id) }
                                                 )
                                             }
                                             // Espaçador se linha incompleta
@@ -795,6 +885,7 @@ fun PerfilScreen(
 
             Spacer(modifier = Modifier.height(96.dp))
         }
+    }
     }
 }
 
@@ -839,11 +930,13 @@ private fun InfoRow(
 @Composable
 private fun FotoAlbumItem(
     foto: FotoAlbum,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {}
 ) {
     Card(
         modifier = modifier
-            .aspectRatio(1f),
+            .aspectRatio(1f)
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(8.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {

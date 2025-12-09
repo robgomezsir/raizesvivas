@@ -48,6 +48,39 @@ class PessoaRepository @Inject constructor(
     }
     
     /**
+     * Inicia sincronização em tempo real do Firestore para o cache local
+     * Deve ser chamado uma vez quando o app inicia
+     * 
+     * Este listener garante que mudanças feitas por qualquer usuário (como upload de fotos)
+     * sejam automaticamente propagadas para todos os outros usuários
+     */
+    fun iniciarSincronizacaoEmTempoReal(): Flow<Unit> {
+        return firestoreService.observarTodasPessoas()
+            .map { pessoasFirestore ->
+                try {
+                    Timber.d("📡 Sincronização em tempo real: ${pessoasFirestore.size} pessoas recebidas do Firestore")
+                    
+                    // Log detalhado de URLs de fotos para debug
+                    pessoasFirestore.forEach { pessoa ->
+                        if (pessoa.fotoUrl != null) {
+                            Timber.d("  📸 ${pessoa.nome}: tem foto (${pessoa.fotoUrl?.take(50)}...)")
+                        } else {
+                            Timber.d("  👤 ${pessoa.nome}: SEM foto")
+                        }
+                    }
+                    
+                    // Atualizar cache local com dados do Firestore
+                    val entities = pessoasFirestore.map { it.toEntity() }
+                    pessoaDao.inserirTodas(entities)
+                    
+                    Timber.d("✅ Cache local atualizado com ${entities.size} pessoas do Firestore")
+                } catch (e: Exception) {
+                    Timber.e(e, "❌ Erro ao sincronizar pessoas em tempo real")
+                }
+            }
+    }
+    
+    /**
      * Busca pessoa por ID (cache local primeiro)
      */
     suspend fun buscarPorId(pessoaId: String): Pessoa? {
@@ -239,6 +272,50 @@ class PessoaRepository @Inject constructor(
     }
     
     /**
+     * Força reload COMPLETO limpando TODOS os caches (Room + Coil) e recarregando do Firestore
+     * Use quando houver problemas persistentes de cache (ex: fotos deletadas ainda aparecem)
+     */
+    suspend fun forcarReloadCompleto(context: android.content.Context): Result<Unit> {
+        return try {
+            Timber.d("🔥 FORÇANDO RELOAD COMPLETO - Limpando TODOS os caches...")
+            
+            // 1. Limpar cache de imagens do Coil
+            com.raizesvivas.app.utils.ImageCacheManager.clearAllCache(context)
+            
+            // 2. Limpar cache local do Room
+            pessoaDao.deletarTodas()
+            Timber.d("🗑️ Cache Room limpo")
+            
+            // 3. Recarregar tudo do Firestore
+            val resultado = firestoreService.buscarTodasPessoas()
+            
+            resultado.onSuccess { pessoas ->
+                Timber.d("📥 Recebidas ${pessoas.size} pessoas do Firestore")
+                
+                // Log de fotos para debug
+                pessoas.forEach { pessoa ->
+                    if (pessoa.fotoUrl != null) {
+                        Timber.d("  📸 ${pessoa.nome}: ${pessoa.fotoUrl}")
+                    } else {
+                        Timber.d("  👤 ${pessoa.nome}: SEM FOTO")
+                    }
+                }
+                
+                val entities = pessoas.map { it.toEntity() }
+                pessoaDao.inserirTodas(entities)
+                
+                Timber.d("✅ RELOAD COMPLETO CONCLUÍDO - ${entities.size} pessoas recarregadas")
+            }
+            
+            resultado.map { }
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao forçar reload completo")
+            Result.failure(e)
+        }
+    }
+    
+    /**
      * Salva pessoa (local + remoto)
      */
     suspend fun salvar(pessoa: Pessoa, ehAdmin: Boolean, userId: String? = null): Result<Unit> {
@@ -334,6 +411,8 @@ class PessoaRepository @Inject constructor(
      */
     suspend fun atualizar(pessoa: Pessoa, ehAdmin: Boolean): Result<Unit> {
         return try {
+            Timber.d("🔄 atualizar() chamado - Pessoa: ${pessoa.nome}, ehAdmin: $ehAdmin, fotoUrl: ${pessoa.fotoUrl?.take(80)}")
+            
             // Validações básicas
             if (pessoa.id.isBlank()) {
                 return Result.failure(Exception("ID da pessoa não pode estar vazio"))
@@ -344,6 +423,7 @@ class PessoaRepository @Inject constructor(
             
             if (ehAdmin) {
                 // Admin: atualizar diretamente
+                Timber.d("👑 ADMIN - Atualizando diretamente no Firestore")
                 val agora = Date()
                 val pessoaAtualizada = pessoa.copy(
                     versao = pessoa.versao + 1,
@@ -355,31 +435,191 @@ class PessoaRepository @Inject constructor(
                 
                 resultado.onSuccess {
                     pessoaDao.atualizar(pessoaAtualizada.toEntity())
+                    Timber.d("✅ ADMIN - Pessoa atualizada no Firestore")
                 }
                 
                 resultado
             } else {
-                // Não-admin: criar edição pendente
+                Timber.d("👤 FAMILIAR - Verificando se apenas foto mudou...")
+                // Não-admin: verificar se APENAS a foto mudou
                 val pessoaOriginal = buscarPorId(pessoa.id)
                 
                 if (pessoaOriginal == null) {
+                    Timber.e("❌ Pessoa original não encontrada: ${pessoa.id}")
                     return Result.failure(Exception("Pessoa não encontrada"))
                 }
                 
-                // Criar edição pendente
-                val resultado = edicaoPendenteRepository.criarEdicaoPendente(
-                    pessoaOriginal = pessoaOriginal,
-                    pessoaEditada = pessoa
-                )
+                Timber.d("📋 Pessoa original - fotoUrl: ${pessoaOriginal.fotoUrl?.take(80)}")
+                Timber.d("📋 Pessoa editada - fotoUrl: ${pessoa.fotoUrl?.take(80)}")
                 
-                resultado.map { 
-                    Timber.d("✅ Edição pendente criada para pessoa ${pessoa.id}")
-                    Unit
+                // Verificar se apenas a fotoUrl mudou (permitir upload de foto para todos)
+                // Comparar explicitamente os campos editáveis pelo usuário
+                val camposEditaveisIguais = 
+                    pessoa.nome == pessoaOriginal.nome &&
+                    pessoa.apelido == pessoaOriginal.apelido &&
+                    pessoa.dataNascimento == pessoaOriginal.dataNascimento &&
+                    pessoa.dataFalecimento == pessoaOriginal.dataFalecimento &&
+                    pessoa.localNascimento == pessoaOriginal.localNascimento &&
+                    pessoa.localResidencia == pessoaOriginal.localResidencia &&
+                    pessoa.profissao == pessoaOriginal.profissao &&
+                    pessoa.biografia == pessoaOriginal.biografia &&
+                    pessoa.telefone == pessoaOriginal.telefone &&
+                    pessoa.estadoCivil == pessoaOriginal.estadoCivil &&
+                    pessoa.genero == pessoaOriginal.genero &&
+                    pessoa.pai == pessoaOriginal.pai &&
+                    pessoa.mae == pessoaOriginal.mae &&
+                    pessoa.conjugeAtual == pessoaOriginal.conjugeAtual &&
+                    pessoa.exConjuges == pessoaOriginal.exConjuges &&
+                    pessoa.filhos == pessoaOriginal.filhos &&
+                    pessoa.tipoFiliacao == pessoaOriginal.tipoFiliacao &&
+                    pessoa.tipoNascimento == pessoaOriginal.tipoNascimento &&
+                    pessoa.dataCasamento == pessoaOriginal.dataCasamento
+                
+                val fotoMudou = pessoa.fotoUrl != pessoaOriginal.fotoUrl
+                val apenasFotoMudou = camposEditaveisIguais && fotoMudou
+                
+                Timber.d("🔍 Comparação - camposEditaveisIguais: $camposEditaveisIguais, fotoMudou: $fotoMudou, apenasFotoMudou: $apenasFotoMudou")
+                
+                if (apenasFotoMudou) {
+                    // APENAS a foto mudou - permitir atualização direta no Firestore para TODOS os usuários
+                    Timber.d("📸 Apenas foto mudou - atualizando diretamente no Firestore (Familiar tem mesmos poderes que ADMIN para fotos)")
+                    val agora = Date()
+                    // IMPORTANTE: Criar objeto a partir do ORIGINAL para garantir que apenas os campos permitidos mudem
+                    val pessoaAtualizada = pessoaOriginal.copy(
+                        fotoUrl = pessoa.fotoUrl,  // Apenas a nova foto
+                        versao = pessoaOriginal.versao + 1,
+                        modificadoEm = agora,
+                        aprovado = pessoaOriginal.aprovado
+                    )
+                    
+                    // Log detalhado dos campos que serão atualizados
+                    Timber.d("📝 Campos que serão enviados ao Firestore:")
+                    Timber.d("  - fotoUrl: ${pessoaOriginal.fotoUrl?.take(50)} -> ${pessoaAtualizada.fotoUrl?.take(50)}")
+                    Timber.d("  - versao: ${pessoaOriginal.versao} -> ${pessoaAtualizada.versao}")
+                    Timber.d("  - modificadoEm: ${pessoaOriginal.modificadoEm} -> ${pessoaAtualizada.modificadoEm}")
+                    Timber.d("  - aprovado: ${pessoaOriginal.aprovado} -> ${pessoaAtualizada.aprovado}")
+                    
+                    // Verificar se há outros campos diferentes
+                    val camposDiferentes = mutableListOf<String>()
+                    if (pessoaAtualizada.nome != pessoaOriginal.nome) camposDiferentes.add("nome")
+                    if (pessoaAtualizada.apelido != pessoaOriginal.apelido) camposDiferentes.add("apelido")
+                    if (pessoaAtualizada.dataNascimento != pessoaOriginal.dataNascimento) camposDiferentes.add("dataNascimento")
+                    if (pessoaAtualizada.dataFalecimento != pessoaOriginal.dataFalecimento) camposDiferentes.add("dataFalecimento")
+                    if (pessoaAtualizada.localNascimento != pessoaOriginal.localNascimento) camposDiferentes.add("localNascimento")
+                    if (pessoaAtualizada.localResidencia != pessoaOriginal.localResidencia) camposDiferentes.add("localResidencia")
+                    if (pessoaAtualizada.profissao != pessoaOriginal.profissao) camposDiferentes.add("profissao")
+                    if (pessoaAtualizada.biografia != pessoaOriginal.biografia) camposDiferentes.add("biografia")
+                    if (pessoaAtualizada.telefone != pessoaOriginal.telefone) camposDiferentes.add("telefone")
+                    if (pessoaAtualizada.estadoCivil != pessoaOriginal.estadoCivil) camposDiferentes.add("estadoCivil")
+                    if (pessoaAtualizada.genero != pessoaOriginal.genero) camposDiferentes.add("genero")
+                    if (pessoaAtualizada.pai != pessoaOriginal.pai) camposDiferentes.add("pai")
+                    if (pessoaAtualizada.mae != pessoaOriginal.mae) camposDiferentes.add("mae")
+                    if (pessoaAtualizada.conjugeAtual != pessoaOriginal.conjugeAtual) camposDiferentes.add("conjugeAtual")
+                    if (pessoaAtualizada.criadoPor != pessoaOriginal.criadoPor) camposDiferentes.add("criadoPor")
+                    if (pessoaAtualizada.criadoEm != pessoaOriginal.criadoEm) camposDiferentes.add("criadoEm")
+                    
+                    // Log dos campos críticos que podem estar causando o problema
+                    Timber.d("🔍 Campos críticos:")
+                    Timber.d("  - criadoPor: ${pessoaOriginal.criadoPor} -> ${pessoaAtualizada.criadoPor}")
+                    Timber.d("  - criadoEm: ${pessoaOriginal.criadoEm} -> ${pessoaAtualizada.criadoEm}")
+                    
+                    if (camposDiferentes.isNotEmpty()) {
+                        Timber.w("⚠️ ATENÇÃO: Outros campos também estão diferentes: ${camposDiferentes.joinToString(", ")}")
+                    }
+                    
+                    val resultado = firestoreService.salvarPessoa(pessoaAtualizada)
+                    
+                    resultado.onSuccess {
+                        pessoaDao.atualizar(pessoaAtualizada.toEntity())
+                        Timber.d("✅ Foto de perfil atualizada no Firestore para pessoa ${pessoa.id} - visível para todos os usuários")
+                    }
+                    
+                    resultado
+                } else {
+                    // Outros campos mudaram - criar edição pendente
+                    Timber.d("📝 Outros campos além da foto mudaram - criando edição pendente")
+                    val resultado = edicaoPendenteRepository.criarEdicaoPendente(
+                        pessoaOriginal = pessoaOriginal,
+                        pessoaEditada = pessoa
+                    )
+                    
+                    resultado.onSuccess {
+                        Timber.d("✅ Edição pendente criada para pessoa ${pessoa.id}")
+                        
+                        // Atualizar cache local com os dados editados para que a UI mostre as mudanças imediatamente
+                        // Isso permite que o usuário veja sua foto/edição enquanto aguarda aprovação do admin
+                        try {
+                            pessoaDao.atualizar(pessoa.toEntity())
+                            Timber.d("✅ Cache local atualizado com dados editados (aguardando aprovação)")
+                        } catch (e: Exception) {
+                            Timber.e(e, "❌ Erro ao atualizar cache local com dados editados")
+                        }
+                    }
+                    
+                    resultado.map { Unit }
                 }
             }
             
         } catch (e: Exception) {
             Timber.e(e, "❌ Erro ao atualizar pessoa")
+            val appError = ErrorHandler.handle(e)
+            Result.failure(Exception(appError.message, e))
+        }
+    }
+    
+    /**
+     * Remove a foto de perfil de uma pessoa
+     * TODOS os usuários autenticados podem remover fotos
+     */
+    suspend fun removerFoto(pessoaId: String): Result<Unit> {
+        return try {
+            Timber.d("🗑️ removerFoto() chamado - pessoaId: $pessoaId")
+            
+            if (pessoaId.isBlank()) {
+                return Result.failure(Exception("ID da pessoa não pode estar vazio"))
+            }
+            
+            val pessoaOriginal = buscarPorId(pessoaId)
+            if (pessoaOriginal == null) {
+                Timber.e("❌ Pessoa não encontrada: $pessoaId")
+                return Result.failure(Exception("Pessoa não encontrada"))
+            }
+            
+            if (pessoaOriginal.fotoUrl == null) {
+                Timber.d("⚠️ Pessoa já não tem foto")
+                return Result.success(Unit)
+            }
+            
+            Timber.d("📋 Pessoa original - fotoUrl: ${pessoaOriginal.fotoUrl?.take(80)}")
+            
+            val agora = Date()
+            // Criar objeto limpo a partir do original, apenas removendo a foto
+            val pessoaAtualizada = pessoaOriginal.copy(
+                fotoUrl = null,  // Remover foto
+                versao = pessoaOriginal.versao + 1,
+                modificadoEm = agora,
+                aprovado = pessoaOriginal.aprovado
+            )
+            
+            Timber.d("📝 Removendo foto:")
+            Timber.d("  - fotoUrl: ${pessoaOriginal.fotoUrl?.take(50)} -> null")
+            Timber.d("  - versao: ${pessoaOriginal.versao} -> ${pessoaAtualizada.versao}")
+            Timber.d("  - modificadoEm: ${pessoaOriginal.modificadoEm} -> ${pessoaAtualizada.modificadoEm}")
+            
+            val resultado = firestoreService.salvarPessoa(pessoaAtualizada)
+            
+            resultado.onSuccess {
+                pessoaDao.atualizar(pessoaAtualizada.toEntity())
+                Timber.d("✅ Foto removida com sucesso para pessoa ${pessoaId}")
+            }
+            
+            resultado.onFailure { erro ->
+                Timber.e(erro, "❌ Erro ao remover foto")
+            }
+            
+            resultado
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao remover foto")
             val appError = ErrorHandler.handle(e)
             Result.failure(Exception(appError.message, e))
         }

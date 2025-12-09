@@ -2,6 +2,7 @@ package com.raizesvivas.app.presentation.screens.detalhes
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -36,7 +37,9 @@ fun DetalhesPessoaScreen(
     pessoaId: String,
     viewModel: DetalhesPessoaViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit = {},
-    onNavigateToEditar: (String) -> Unit = {}
+    onNavigateToEditar: (String) -> Unit = {},
+    onNavigateToFotoAlbum: (String) -> Unit = {},
+    onNavigateToRede: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
     val mostrarModalConfirmacao by viewModel.mostrarModalConfirmacao.collectAsState()
@@ -146,7 +149,9 @@ fun DetalhesPessoaScreen(
                     ) {
                         // Avatar/Foto
                         Surface(
-                            modifier = Modifier.size(120.dp),
+                            modifier = Modifier
+                                .size(120.dp)
+                                .clickable(onClick = onNavigateToRede),
                             shape = CircleShape,
                             color = MaterialTheme.colorScheme.primary
                         ) {
@@ -446,7 +451,8 @@ fun DetalhesPessoaScreen(
                                         rowFotos.forEach { foto ->
                                             FotoAlbumItem(
                                                 foto = foto,
-                                                modifier = Modifier.weight(1f)
+                                                modifier = Modifier.weight(1f),
+                                                onClick = { onNavigateToFotoAlbum(foto.id) }
                                             )
                                         }
                                         // Espaçador se linha incompleta
@@ -598,11 +604,13 @@ private fun InfoRow(
 @Composable
 private fun FotoAlbumItem(
     foto: FotoAlbum,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {}
 ) {
     Card(
         modifier = modifier
-            .aspectRatio(1f),
+            .aspectRatio(1f)
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(8.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {

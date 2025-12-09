@@ -83,6 +83,18 @@ class SyncManager @Inject constructor(
         lastSyncTime = null
         Timber.d("🗑️ Timestamp de sincronização limpo")
     }
+    
+    /**
+     * Inicia sincronização em tempo real do Firestore
+     * Deve ser chamado uma vez quando o app inicia
+     * 
+     * Este listener garante que mudanças feitas por qualquer usuário (como upload de fotos)
+     * sejam automaticamente propagadas para todos os outros usuários em tempo real
+     */
+    fun iniciarSincronizacaoEmTempoReal(): Flow<Unit> {
+        Timber.d("🔔 Iniciando sincronização em tempo real do Firestore")
+        return pessoaRepository.iniciarSincronizacaoEmTempoReal()
+    }
 }
 
 /**

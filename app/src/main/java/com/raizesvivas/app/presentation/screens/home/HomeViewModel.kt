@@ -896,15 +896,15 @@ class HomeViewModel @Inject constructor(
     
     /**
      * Recarrega dados do Firestore (pull-to-refresh)
-     * Substitui completamente o cache local pelos dados do Firestore
+     * Limpa TODOS os caches (Room + Coil) e substitui completamente pelos dados do Firestore
      */
     fun recarregar() {
         viewModelScope.launch {
             try {
                 _state.update { it.copy(isLoading = true, erro = null) }
                 
-                // Recarregar pessoas do Firestore (substituindo cache)
-                val resultado = pessoaRepository.recarregarDoFirestore()
+                // Forçar reload COMPLETO limpando TODOS os caches (Room + Coil)
+                val resultado = pessoaRepository.forcarReloadCompleto(context)
                 
                 resultado.onSuccess {
                     // Atualizar todas as estatísticas
@@ -944,7 +944,7 @@ class HomeViewModel @Inject constructor(
                             familiaZeroMaeNome = maeNome
                         )
                     }
-                    Timber.d("✅ Dados recarregados do Firestore")
+                    Timber.d("✅ Dados recarregados do Firestore (cache completo limpo)")
                 }
                 
                 resultado.onFailure { error ->

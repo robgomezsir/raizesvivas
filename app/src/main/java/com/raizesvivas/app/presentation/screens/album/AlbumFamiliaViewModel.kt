@@ -484,6 +484,27 @@ class AlbumFamiliaViewModel @Inject constructor(
             try {
                 _state.update { it.copy(carregando = true, erro = null) }
                 
+                // Verificar permissões
+                val usuario = _usuarioAtual.value
+                val podeDeletar = usuario != null && (
+                    usuario.id == foto.criadoPor || // Dono da foto
+                    usuario.ehAdmin || // Admin
+                    usuario.ehAdminSenior // Admin Sênior
+                )
+                
+                if (!podeDeletar) {
+                    Timber.w("🛑 Tentativa de deletar foto sem permissão. Usuario: ${usuario?.id}, Dono: ${foto.criadoPor}")
+                    _state.update { 
+                        it.copy(
+                            carregando = false,
+                            erro = "Você não tem permissão para excluir esta foto.",
+                            mostrarModalDeletar = false,
+                            fotoSelecionadaParaDeletar = null
+                        )
+                    }
+                    return@launch
+                }
+                
                 // Deletar do Firestore
                 val deleteResult = fotoAlbumRepository.deletarFoto(foto.id)
                 deleteResult.fold(

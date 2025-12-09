@@ -39,6 +39,9 @@ import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material3.*
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
@@ -48,6 +51,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -65,6 +69,12 @@ import java.text.SimpleDateFormat
 import java.util.*
 import com.raizesvivas.app.presentation.components.ExpandableFab
 import com.raizesvivas.app.presentation.components.FabAction
+import com.raizesvivas.app.presentation.screens.home.HomeDrawerContent
+import com.raizesvivas.app.presentation.theme.LocalThemeController
+import com.raizesvivas.app.presentation.theme.ThemeMode
+import com.raizesvivas.app.presentation.viewmodel.NotificacaoViewModel
+import androidx.compose.material.icons.filled.MoreVert
+import kotlinx.coroutines.launch
 
 /**
  * Tela do Mural de Recados Comunitário
@@ -76,12 +86,27 @@ import com.raizesvivas.app.presentation.components.FabAction
 fun MuralScreen(
     viewModel: MuralViewModel = hiltViewModel(),
     onNavigateToDetalhesPessoa: (String) -> Unit = {},
-    onNavigateToChat: () -> Unit = {}
+    onNavigateToChat: () -> Unit = {},
+    onNavigateToPerfil: () -> Unit = {},
+    onNavigateToGerenciarConvites: () -> Unit = {},
+    onNavigateToGerenciarEdicoes: () -> Unit = {},
+    onNavigateToResolverDuplicatas: () -> Unit = {},
+    onNavigateToGerenciarUsuarios: () -> Unit = {},
+    onNavigateToConfiguracoes: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
     val recados by viewModel.recados.collectAsState()
     val pessoas by viewModel.pessoas.collectAsState()
     val isAdmin by viewModel.isAdmin.collectAsState()
+    
+    // Notification ViewModel for drawer
+    val notificacaoViewModel: NotificacaoViewModel = hiltViewModel()
+    val contadorNaoLidas by notificacaoViewModel.contadorNaoLidas.collectAsState()
+    
+    // Drawer state
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+    val themeController = LocalThemeController.current
     
     // Ordenar recados: fixados primeiro, depois por data (mais recentes primeiro)
     val recadosOrdenados = remember(recados) {
@@ -133,6 +158,65 @@ fun MuralScreen(
         }
     }
     
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            HomeDrawerContent(
+                isAdmin = isAdmin,
+                isAdminSenior = false,
+                notificacoesNaoLidas = contadorNaoLidas,
+                pedidosPendentes = 0,
+                onClose = { scope.launch { drawerState.close() } },
+                onOpenNotificacoes = { scope.launch { drawerState.close() } },
+                onNavigateToPerfil = {
+                    scope.launch {
+                        drawerState.close()
+                        onNavigateToPerfil()
+                    }
+                },
+                onGerenciarConvites = {
+                    scope.launch {
+                        drawerState.close()
+                        onNavigateToGerenciarConvites()
+                    }
+                },
+                onGerenciarEdicoes = {
+                    scope.launch {
+                        drawerState.close()
+                        onNavigateToGerenciarEdicoes()
+                    }
+                },
+                onResolverDuplicatas = {
+                    scope.launch {
+                        drawerState.close()
+                        onNavigateToResolverDuplicatas()
+                    }
+                },
+                onGerenciarUsuarios = {
+                    scope.launch {
+                        drawerState.close()
+                        onNavigateToGerenciarUsuarios()
+                    }
+                },
+                onConfiguracoes = {
+                    scope.launch {
+                        drawerState.close()
+                        onNavigateToConfiguracoes()
+                    }
+                },
+                onSair = {
+                    scope.launch {
+                        drawerState.close()
+                        // Logout handled by navigation
+                    }
+                },
+                themeMode = themeController.modo,
+                onThemeModeChange = { mode: ThemeMode ->
+                    themeController.selecionarModo(mode)
+                }
+            )
+        }
+    ) {
     Scaffold(
         containerColor = Color.Transparent,
         snackbarHost = {
@@ -156,6 +240,11 @@ fun MuralScreen(
                             imageVector = Icons.Default.Refresh,
                             contentDescription = "Recarregar"
                         )
+                    }
+                    IconButton(onClick = {
+                        scope.launch { drawerState.open() }
+                    }) {
+                        Icon(Icons.Default.MoreVert, contentDescription = "Abrir menu lateral")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -399,6 +488,7 @@ fun MuralScreen(
         } else {
             viewModel.fecharModalExcluirRecado()
         }
+    }
     }
 }
 

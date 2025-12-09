@@ -21,7 +21,9 @@ sealed class Screen(val route: String) {
     object ArvoreHierarquica : Screen("arvore_hierarquica")
     object Conquistas : Screen("conquistas")
     object Mural : Screen("mural")
-    object AlbumFamilia : Screen("album_familia")
+    object AlbumFamilia : Screen("album_familia?fotoId={fotoId}") {
+        fun createRoute(fotoId: String? = null) = if (fotoId != null) "album_familia?fotoId=$fotoId" else "album_familia"
+    }
     object CadastroPessoa : Screen("cadastro_pessoa")
     object EditarPessoa : Screen("cadastro_pessoa/{pessoaId}") {
         fun createRoute(pessoaId: String) = "cadastro_pessoa/$pessoaId"

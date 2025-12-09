@@ -72,7 +72,7 @@ class RaizesVivasApplication : Application(), ImageLoaderFactory {
                     .build()
             }
             .crossfade(true) // Transições suaves
-            .respectCacheHeaders(false) // Ignorar headers de cache HTTP
+            .respectCacheHeaders(true) // IMPORTANTE: Respeitar headers de cache para invalidação correta
             .apply {
                 if (BuildConfig.DEBUG) {
                     logger(DebugLogger())

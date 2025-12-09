@@ -11,6 +11,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
@@ -55,8 +56,12 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -83,6 +88,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -132,6 +138,13 @@ import androidx.compose.runtime.mutableStateOf
 import com.raizesvivas.app.domain.model.Amigo
 import com.raizesvivas.app.domain.model.Genero
 import com.raizesvivas.app.domain.model.Pessoa
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.platform.LocalContext
+import android.graphics.BitmapFactory
+import android.graphics.Bitmap
 import com.raizesvivas.app.presentation.components.RaizesVivasTextField
 import com.raizesvivas.app.presentation.components.AnimatedSearchBar
 import com.raizesvivas.app.presentation.components.TreeNodeData
@@ -144,6 +157,13 @@ import com.raizesvivas.app.presentation.components.FabAction
 import com.raizesvivas.app.R
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material.icons.filled.MoreVert
+import com.raizesvivas.app.presentation.screens.home.HomeDrawerContent
+import com.raizesvivas.app.presentation.viewmodel.NotificacaoViewModel
+import androidx.compose.runtime.rememberCoroutineScope
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -151,7 +171,13 @@ fun FamiliaScreen(
     viewModel: FamiliaViewModel = hiltViewModel(),
     onNavigateToDetalhesPessoa: (String) -> Unit,
     onNavigateToCadastroPessoa: () -> Unit = {},
-    onNavigateToAlbum: () -> Unit = {}
+    onNavigateToAlbum: () -> Unit = {},
+    onNavigateToPerfil: () -> Unit = {},
+    onNavigateToGerenciarConvites: () -> Unit = {},
+    onNavigateToGerenciarEdicoes: () -> Unit = {},
+    onNavigateToResolverDuplicatas: () -> Unit = {},
+    onNavigateToGerenciarUsuarios: () -> Unit = {},
+    onNavigateToConfiguracoes: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
     val pullRefreshState = rememberPullToRefreshState()
@@ -167,6 +193,17 @@ fun FamiliaScreen(
             pullRefreshState.endRefresh()
         }
     }
+    
+    // Notification ViewModel for drawer
+    val notificacaoViewModel: NotificacaoViewModel = hiltViewModel()
+    val contadorNaoLidas by notificacaoViewModel.contadorNaoLidas.collectAsState()
+    
+    // Drawer state
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+    val themeController = LocalThemeController.current
+    val isAdmin = state.usuarioEhAdmin
+    val isAdminSenior = state.usuarioEhAdminSr
 
     val familiaParaEdicao = remember { mutableStateOf<FamiliaUiModel?>(null) }
     val familiaParaGerenciar = remember { mutableStateOf<FamiliaUiModel?>(null) }
@@ -183,6 +220,10 @@ fun FamiliaScreen(
     val amigoParaExcluir = remember { mutableStateOf<Amigo?>(null) }
     val amigoParaEditar = remember { mutableStateOf<Amigo?>(null) }
     val nomeAmigoEditado = remember { mutableStateOf("") }
+    val mostrarDialogAdicionarAmigo = rememberSaveable { mutableStateOf(false) }
+    val nomeNovoAmigo = rememberSaveable { mutableStateOf("") }
+    val telefoneNovoAmigo = rememberSaveable { mutableStateOf("") }
+    val familiaresVinculadosNovoAmigo = remember { mutableStateListOf<String>() }
     val telefoneAmigoEditado = remember { mutableStateOf("") }
     val nomeEditado = remember { mutableStateOf("") }
     var mostrarBusca by rememberSaveable { mutableStateOf(false) }
@@ -214,6 +255,66 @@ fun FamiliaScreen(
     var familiaSendoArrastada by remember { mutableStateOf<String?>(null) }
     var offsetYArrastado by remember { mutableStateOf(0f) }
     var indiceInicialArrasto by remember { mutableStateOf(-1) }
+    
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            HomeDrawerContent(
+                isAdmin = isAdmin,
+                isAdminSenior = isAdminSenior,
+                notificacoesNaoLidas = contadorNaoLidas,
+                pedidosPendentes = 0,
+                onClose = { scope.launch { drawerState.close() } },
+                onOpenNotificacoes = { scope.launch { drawerState.close() } },
+                onNavigateToPerfil = {
+                    scope.launch {
+                        drawerState.close()
+                        onNavigateToPerfil()
+                    }
+                },
+                onGerenciarConvites = {
+                    scope.launch {
+                        drawerState.close()
+                        onNavigateToGerenciarConvites()
+                    }
+                },
+                onGerenciarEdicoes = {
+                    scope.launch {
+                        drawerState.close()
+                        onNavigateToGerenciarEdicoes()
+                    }
+                },
+                onResolverDuplicatas = {
+                    scope.launch {
+                        drawerState.close()
+                        onNavigateToResolverDuplicatas()
+                    }
+                },
+                onGerenciarUsuarios = {
+                    scope.launch {
+                        drawerState.close()
+                        onNavigateToGerenciarUsuarios()
+                    }
+                },
+                onConfiguracoes = {
+                    scope.launch {
+                        drawerState.close()
+                        onNavigateToConfiguracoes()
+                    }
+                },
+                onSair = {
+                    scope.launch {
+                        drawerState.close()
+                        // Logout handled by navigation
+                    }
+                },
+                themeMode = themeController.modo,
+                onThemeModeChange = { mode: ThemeMode ->
+                    themeController.selecionarModo(mode)
+                }
+            )
+        }
+    ) {
 
     Scaffold(
         topBar = {
@@ -251,14 +352,14 @@ fun FamiliaScreen(
                         IconButton(onClick = { viewModel.onRefresh() }) {
                             Icon(Icons.Default.Refresh, contentDescription = "Recarregar")
                         }
-                    } else {
-                        IconButton(onClick = { 
-                            mostrarBusca = false
-                            termoBusca = ""
+                        IconButton(onClick = {
+                            scope.launch { drawerState.open() }
                         }) {
-                            Icon(Icons.Filled.Close, contentDescription = "Fechar busca")
+                            Icon(Icons.Default.MoreVert, contentDescription = "Abrir menu lateral")
                         }
                     }
+                    // Quando mostrarBusca = true, não mostramos botão X aqui
+                    // porque RaizesVivasTextField já tem seu próprio botão de limpar
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
@@ -276,6 +377,13 @@ fun FamiliaScreen(
                         onClick = onNavigateToCadastroPessoa,
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary
+                    ),
+                    FabAction(
+                        label = "Adicionar Amigo da Familia",
+                        icon = Icons.Outlined.GroupAdd,
+                        onClick = { mostrarDialogAdicionarAmigo.value = true },
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer
                     )
                 )
             )
@@ -332,7 +440,7 @@ fun FamiliaScreen(
                             abaSelecionada = 0
                             contadorAcessoHierarquica++ // Incrementar contador ao acessar aba
                         },
-                        text = { Text("Hierárquica") },
+                        text = { Text("Hierarquia") },
                         icon = {
                                         Icon(
                                             imageVector = Icons.Filled.AccountTree,
@@ -355,42 +463,44 @@ fun FamiliaScreen(
                 }
                 
                 // Conteúdo baseado na aba selecionada
-                when (abaSelecionada) {
-                    0 -> {
-                        // Aba Hierárquica - Mostrar árvore diretamente
-                        ConteudoAbaHierarquica(
-                            state = state,
-                            onNavigateToDetalhesPessoa = onNavigateToDetalhesPessoa,
-                            keyAcesso = contadorAcessoHierarquica
-                        )
-                    }
-                    1 -> {
-                        // Aba Lista - Mostrar lista de famílias
-                        ConteudoAbaLista(
-                            state = state,
-                            todasPessoasDasFamilias = todasPessoasDasFamilias,
-                            familiaSendoArrastada = familiaSendoArrastada,
-                            offsetYArrastado = offsetYArrastado,
-                            indiceInicialArrasto = indiceInicialArrasto,
-                            onFamiliaSendoArrastadaChange = { familiaSendoArrastada = it },
-                            onOffsetYArrastadoChange = { offsetYArrastado = it },
-                            onIndiceInicialArrastoChange = { indiceInicialArrasto = it },
-                            viewModel = viewModel,
-                            familiaParaEdicao = familiaParaEdicao,
-                            nomeEditado = nomeEditado,
-                            familiaParaGerenciar = familiaParaGerenciar,
-                            familiasRejeitadasExpandidas = familiasRejeitadasExpandidas,
-                            onFamiliasRejeitadasExpandidasChange = { familiasRejeitadasExpandidas = it },
-                            outrosFamiliaresExpandidos = outrosFamiliaresExpandidos,
-                            amigosExpandidos = amigosExpandidos,
-                            amigoParaVincular = amigoParaVincular,
-                            amigoParaExcluir = amigoParaExcluir,
-                            amigoParaEditar = amigoParaEditar,
-                            nomeAmigoEditado = nomeAmigoEditado,
-                            telefoneAmigoEditado = telefoneAmigoEditado,
-                            termoBusca = termoBusca,
-                            onNavigateToDetalhesPessoa = onNavigateToDetalhesPessoa
-                        )
+                Box(modifier = Modifier.weight(1f)) {
+                    when (abaSelecionada) {
+                        0 -> {
+                            // Aba Hierárquica - Mostrar árvore diretamente
+                            ConteudoAbaHierarquica(
+                                state = state,
+                                onNavigateToDetalhesPessoa = onNavigateToDetalhesPessoa,
+                                keyAcesso = contadorAcessoHierarquica
+                            )
+                        }
+                        1 -> {
+                            // Aba Lista - Mostrar lista de famílias
+                            ConteudoAbaLista(
+                                state = state,
+                                todasPessoasDasFamilias = todasPessoasDasFamilias,
+                                familiaSendoArrastada = familiaSendoArrastada,
+                                offsetYArrastado = offsetYArrastado,
+                                indiceInicialArrasto = indiceInicialArrasto,
+                                onFamiliaSendoArrastadaChange = { familiaSendoArrastada = it },
+                                onOffsetYArrastadoChange = { offsetYArrastado = it },
+                                onIndiceInicialArrastoChange = { indiceInicialArrasto = it },
+                                viewModel = viewModel,
+                                familiaParaEdicao = familiaParaEdicao,
+                                nomeEditado = nomeEditado,
+                                familiaParaGerenciar = familiaParaGerenciar,
+                                familiasRejeitadasExpandidas = familiasRejeitadasExpandidas,
+                                onFamiliasRejeitadasExpandidasChange = { familiasRejeitadasExpandidas = it },
+                                outrosFamiliaresExpandidos = outrosFamiliaresExpandidos,
+                                amigosExpandidos = amigosExpandidos,
+                                amigoParaVincular = amigoParaVincular,
+                                amigoParaExcluir = amigoParaExcluir,
+                                amigoParaEditar = amigoParaEditar,
+                                nomeAmigoEditado = nomeAmigoEditado,
+                                telefoneAmigoEditado = telefoneAmigoEditado,
+                                termoBusca = termoBusca,
+                                onNavigateToDetalhesPessoa = onNavigateToDetalhesPessoa
+                            )
+                        }
                     }
                 }
             }
@@ -1040,6 +1150,217 @@ fun FamiliaScreen(
                 }
             }
         )
+    }
+    
+    // Modal para adicionar novo amigo
+    if (mostrarDialogAdicionarAmigo.value) {
+        AlertDialog(
+            onDismissRequest = { 
+                mostrarDialogAdicionarAmigo.value = false
+                nomeNovoAmigo.value = ""
+                telefoneNovoAmigo.value = ""
+                familiaresVinculadosNovoAmigo.clear()
+            },
+            title = {
+                Text(
+                    text = "Adicionar Amigo da Família",
+                    style = MaterialTheme.typography.titleLarge
+                )
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    RaizesVivasTextField(
+                        value = nomeNovoAmigo.value,
+                        onValueChange = { nomeNovoAmigo.value = it },
+                        label = "Nome",
+                        enabled = !state.isLoading
+                    )
+                    
+                    RaizesVivasTextField(
+                        value = telefoneNovoAmigo.value,
+                        onValueChange = { telefoneNovoAmigo.value = it },
+                        label = "Telefone (opcional)",
+                        enabled = !state.isLoading
+                    )
+                    
+                    // Seção "Vinculado a"
+                    Text(
+                        text = "Vinculado a:",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                    
+                    // Lista de familiares para seleção
+                    val todasPessoas = remember(state.familias) {
+                        state.familias.flatMap { familia ->
+                            val pessoas = mutableSetOf<Pessoa>()
+                            familia.conjuguePrincipal?.let { pessoas.add(it) }
+                            familia.conjugueSecundario?.let { pessoas.add(it) }
+                            familia.membrosFlatten.forEach { item ->
+                                pessoas.add(item.pessoa)
+                                item.conjuge?.let { pessoas.add(it) }
+                            }
+                            familia.membrosExtras.forEach { pessoas.add(it) }
+                            pessoas.toList()
+                        }.distinctBy { it.id }.sortedBy { it.nome }
+                    }
+                    
+                    // Dropdown para seleção de familiares
+                    var expandedDropdown by remember { mutableStateOf(false) }
+                    
+                    ExposedDropdownMenuBox(
+                        expanded = expandedDropdown,
+                        onExpandedChange = { expandedDropdown = !expandedDropdown },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        RaizesVivasTextField(
+                            value = if (familiaresVinculadosNovoAmigo.isEmpty()) {
+                                ""
+                            } else {
+                                "${familiaresVinculadosNovoAmigo.size} familiar(es) selecionado(s)"
+                            },
+                            onValueChange = {},
+                            readOnly = true,
+                            label = "Vinculado a",
+                            placeholder = { Text("Selecione familiares") },
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedDropdown)
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor(),
+                            enabled = !state.isLoading && todasPessoas.isNotEmpty()
+                        )
+                        
+                        ExposedDropdownMenu(
+                            expanded = expandedDropdown,
+                            onDismissRequest = { expandedDropdown = false },
+                            modifier = Modifier.heightIn(max = 300.dp)
+                        ) {
+                            if (todasPessoas.isEmpty()) {
+                                DropdownMenuItem(
+                                    text = { Text("Nenhum familiar disponível") },
+                                    onClick = { },
+                                    enabled = false
+                                )
+                            } else {
+                                todasPessoas.forEach { pessoa ->
+                                    DropdownMenuItem(
+                                        text = { 
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                Checkbox(
+                                                    checked = familiaresVinculadosNovoAmigo.contains(pessoa.id),
+                                                    onCheckedChange = null
+                                                )
+                                                Text(pessoa.nome)
+                                            }
+                                        },
+                                        onClick = {
+                                            if (familiaresVinculadosNovoAmigo.contains(pessoa.id)) {
+                                                familiaresVinculadosNovoAmigo.remove(pessoa.id)
+                                            } else {
+                                                familiaresVinculadosNovoAmigo.add(pessoa.id)
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Mostrar chips dos familiares selecionados
+                    if (familiaresVinculadosNovoAmigo.isNotEmpty()) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "Selecionados:",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                familiaresVinculadosNovoAmigo.take(3).forEach { id ->
+                                    val pessoa = todasPessoas.find { it.id == id }
+                                    pessoa?.let {
+                                        AssistChip(
+                                            onClick = {
+                                                familiaresVinculadosNovoAmigo.remove(id)
+                                            },
+                                            label = { Text(it.nome, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                                            trailingIcon = {
+                                                Icon(
+                                                    imageVector = Icons.Default.Close,
+                                                    contentDescription = "Remover",
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                        )
+                                    }
+                                }
+                                if (familiaresVinculadosNovoAmigo.size > 3) {
+                                    Text(
+                                        text = "+${familiaresVinculadosNovoAmigo.size - 3}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.adicionarAmigo(
+                            nome = nomeNovoAmigo.value,
+                            telefone = telefoneNovoAmigo.value.takeIf { it.isNotBlank() },
+                            familiaresVinculados = familiaresVinculadosNovoAmigo.toList()
+                        )
+                        mostrarDialogAdicionarAmigo.value = false
+                        nomeNovoAmigo.value = ""
+                        telefoneNovoAmigo.value = ""
+                        familiaresVinculadosNovoAmigo.clear()
+                    },
+                    enabled = nomeNovoAmigo.value.trim().isNotEmpty() && !state.isLoading
+                ) {
+                    if (state.isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else {
+                        Text("Salvar")
+                    }
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { 
+                        mostrarDialogAdicionarAmigo.value = false
+                        nomeNovoAmigo.value = ""
+                        telefoneNovoAmigo.value = ""
+                        familiaresVinculadosNovoAmigo.clear()
+                    },
+                    enabled = !state.isLoading
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
     }
 }
 
@@ -1847,17 +2168,43 @@ private fun ConteudoAbaHierarquica(
     }
     
     // Box principal que cobre toda a tela
-    Box(modifier = Modifier.fillMaxSize()) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val screenWidth = constraints.maxWidth
+        val screenHeight = constraints.maxHeight
+        
         // Camada 1: Imagem de fundo (cobre toda a tela, incluindo padding do Scaffold)
         if (imagensBackground.isNotEmpty() && imagemAtualIndex >= 0 && imagemAtualIndex < imagensBackground.size) {
-            Image(
-                painter = painterResource(id = imagensBackground[imagemAtualIndex]),
-                contentDescription = null,
+            val context = LocalContext.current
+            val imageBitmap = remember(imagemAtualIndex, screenWidth, screenHeight) {
+                // Carregar bitmap original
+                val originalBitmap = BitmapFactory.decodeResource(context.resources, imagensBackground[imagemAtualIndex])
+                
+                // Redimensionar o bitmap para preencher a tela
+                val scaledBitmap = Bitmap.createScaledBitmap(
+                    originalBitmap,
+                    screenWidth,
+                    screenHeight,
+                    true // filter = true para melhor qualidade
+                )
+                
+                // Reciclar o bitmap original para liberar memória
+                if (originalBitmap != scaledBitmap) {
+                    originalBitmap.recycle()
+                }
+                
+                scaledBitmap.asImageBitmap()
+            }
+            
+            Canvas(
                 modifier = Modifier
                     .fillMaxSize()
-                    .alpha(0.6f),
-                contentScale = ContentScale.FillBounds
-            )
+                    .alpha(0.6f)
+            ) {
+                drawImage(
+                    image = imageBitmap,
+                    dstOffset = IntOffset.Zero
+                )
+            }
         } else {
             // Fallback: background sólido se não houver imagem
             Box(
@@ -2037,21 +2384,7 @@ private fun ConteudoAbaHierarquica(
                                             expandedNodeIds.remove(node.id)
                                             expandedSpouseIds.remove(node.id)
                                         } else {
-                                            val caminhoAncestral = encontrarCaminhoAncestral(node.id, arvoreRaiz)
-                                            val nosNiveisAnteriores = coletarNosNiveisAnteriores(node.id, arvoreRaiz)
-                                            
-                                            nosNiveisAnteriores.forEach { noId ->
-                                                if (!caminhoAncestral.contains(noId)) {
-                                                    expandedNodeIds.remove(noId)
-                                                    expandedSpouseIds.remove(noId)
-                                                }
-                                            }
-                                            
-                                            val irmaos = encontrarIrmaos(node.id, arvoreRaiz)
-                                            irmaos.forEach { irmaoId ->
-                                                expandedNodeIds.remove(irmaoId)
-                                                expandedSpouseIds.remove(irmaoId)
-                                            }
+                                            // Expand this node without collapsing others
                                             
                                             if (node.hasChildren) {
                                                 expandedNodeIds.add(node.id)

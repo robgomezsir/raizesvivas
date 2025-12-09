@@ -855,6 +855,61 @@ class FamiliaViewModel @Inject constructor(
             }
         }
     }
+    
+    /**
+     * Adiciona um novo amigo da família
+     * 
+     * IMPORTANTE: Todos os usuários podem adicionar amigos.
+     * Não há restrições de administrador.
+     */
+    fun adicionarAmigo(nome: String, telefone: String?, familiaresVinculados: List<String> = emptyList()) {
+        val nomeLimpo = nome.trim()
+        if (nomeLimpo.isEmpty()) {
+            _state.update { it.copy(erro = "Nome do amigo não pode ficar vazio") }
+            return
+        }
+        
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, erro = null) }
+            
+            try {
+                val usuarioId = authService.currentUser?.uid ?: ""
+                
+                val novoAmigo = Amigo(
+                    id = java.util.UUID.randomUUID().toString(),
+                    nome = nomeLimpo,
+                    telefone = telefone?.trim()?.ifBlank { null },
+                    familiaresVinculados = familiaresVinculados,
+                    criadoPor = usuarioId,
+                    criadoEm = Date(),
+                    modificadoEm = Date()
+                )
+                
+                val resultado = amigoRepository.salvar(novoAmigo)
+                
+                resultado.onSuccess {
+                    Timber.d("✅ Novo amigo adicionado: ${novoAmigo.nome}")
+                    _state.update { it.copy(isLoading = false, erro = null) }
+                }.onFailure { erro ->
+                    Timber.e(erro, "❌ Erro ao adicionar amigo")
+                    _state.update { 
+                        it.copy(
+                            isLoading = false, 
+                            erro = "Erro ao adicionar amigo: ${erro.message}"
+                        ) 
+                    }
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao adicionar amigo")
+                _state.update { 
+                    it.copy(
+                        isLoading = false, 
+                        erro = "Erro ao adicionar amigo: ${e.message}"
+                    ) 
+                }
+            }
+        }
+    }
 
     fun atualizarNomeFamilia(familia: FamiliaUiModel, novoNome: String) {
         val nomeLimpo = novoNome.trim()

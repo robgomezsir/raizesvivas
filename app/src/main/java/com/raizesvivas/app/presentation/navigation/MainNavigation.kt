@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -95,9 +96,25 @@ fun AdaptiveNavigationLabel(
 fun MainNavigation(
     navControllerPrincipal: NavHostController,
     startDestination: String = Screen.Home.route,
-    openDrawerOnStart: Boolean = false
+    openDrawerOnStart: Boolean = false,
+    openFotoAlbumId: String? = null
 ) {
     val navController = rememberNavController()
+
+    // Handle deep linking to photo album
+    LaunchedEffect(openFotoAlbumId) {
+        if (openFotoAlbumId != null) {
+            navController.navigate(Screen.AlbumFamilia.createRoute(openFotoAlbumId)) {
+                // Determine behavior: pop up to Home? or just navigate?
+                // Usually we want to switch tab.
+                popUpTo(navController.graph.startDestinationId) {
+                    saveState = true
+                }
+                launchSingleTop = true
+                restoreState = true
+            }
+        }
+    }
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     
@@ -317,6 +334,38 @@ fun MainNavigation(
                             launchSingleTop = true
                             restoreState = true
                         }
+                    },
+                    onNavigateToPerfil = {
+                        navController.navigate(Screen.Perfil.route) {
+                            popUpTo(Screen.Home.route) { inclusive = false }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    onNavigateToGerenciarConvites = {
+                        navControllerPrincipal.navigate(Screen.GerenciarConvites.route) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onNavigateToGerenciarEdicoes = {
+                        navControllerPrincipal.navigate(Screen.GerenciarEdicoes.route) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onNavigateToResolverDuplicatas = {
+                        navControllerPrincipal.navigate(Screen.ResolverDuplicatas.route) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onNavigateToGerenciarUsuarios = {
+                        navControllerPrincipal.navigate(Screen.GerenciarUsuarios.route) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onNavigateToConfiguracoes = {
+                        navControllerPrincipal.navigate(Screen.Configuracoes.route) {
+                            launchSingleTop = true
+                        }
                     }
                 )
             }
@@ -336,6 +385,38 @@ fun MainNavigation(
                     },
                     onNavigateToChat = {
                         navController.navigate(Screen.ChatContacts.route)
+                    },
+                    onNavigateToPerfil = {
+                        navController.navigate(Screen.Perfil.route) {
+                            popUpTo(Screen.Home.route) { inclusive = false }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    onNavigateToGerenciarConvites = {
+                        navControllerPrincipal.navigate(Screen.GerenciarConvites.route) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onNavigateToGerenciarEdicoes = {
+                        navControllerPrincipal.navigate(Screen.GerenciarEdicoes.route) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onNavigateToResolverDuplicatas = {
+                        navControllerPrincipal.navigate(Screen.ResolverDuplicatas.route) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onNavigateToGerenciarUsuarios = {
+                        navControllerPrincipal.navigate(Screen.GerenciarUsuarios.route) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onNavigateToConfiguracoes = {
+                        navControllerPrincipal.navigate(Screen.Configuracoes.route) {
+                            launchSingleTop = true
+                        }
                     }
                 )
             }
@@ -385,16 +466,57 @@ fun MainNavigation(
                     },
                     onNavigateToEditar = { pessoaId ->
                         navControllerPrincipal.navigate(Screen.EditarPessoa.createRoute(pessoaId))
+                    },
+                    onNavigateToGerenciarConvites = {
+                        navControllerPrincipal.navigate(Screen.GerenciarConvites.route) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onNavigateToGerenciarEdicoes = {
+                        navControllerPrincipal.navigate(Screen.GerenciarEdicoes.route) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onNavigateToResolverDuplicatas = {
+                        navControllerPrincipal.navigate(Screen.ResolverDuplicatas.route) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onNavigateToGerenciarUsuarios = {
+                        navControllerPrincipal.navigate(Screen.GerenciarUsuarios.route) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onNavigateToConfiguracoes = {
+                        navControllerPrincipal.navigate(Screen.Configuracoes.route) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onNavigateToFotoAlbum = { fotoId ->
+                        navController.navigate(Screen.AlbumFamilia.createRoute(fotoId)) {
+                            launchSingleTop = true
+                        }
                     }
                 )
             }
             
-            composable(Screen.AlbumFamilia.route) {
+            composable(
+                route = Screen.AlbumFamilia.route,
+                arguments = listOf(
+                    navArgument("fotoId") {
+                        type = NavType.StringType
+                        nullable = true
+                    }
+                )
+            ) { backStackEntry ->
+                val fotoId = backStackEntry.arguments?.getString("fotoId")
+                
                 // ViewModel para verificar se é o próprio perfil
                 val perfilViewModel: PerfilViewModel = hiltViewModel()
                 val perfilState by perfilViewModel.state.collectAsState()
                 
                 AlbumFamiliaScreen(
+                    fotoIdParaAbrir = fotoId,
                     onNavigateBack = {
                         // Volta para a tela anterior (pode ser Home se acessado pela barra inferior,
                         // ou Família se acessado de dentro de Família)
@@ -415,6 +537,39 @@ fun MainNavigation(
                             navControllerPrincipal.navigate(Screen.Perfil.route)
                         } else {
                             navControllerPrincipal.navigate(Screen.DetalhesPessoa.createRoute(pessoaId))
+                        }
+                    },
+                    onNavigateToPerfil = {
+                        // Navegar para a aba Perfil
+                        navController.navigate(Screen.Perfil.route) {
+                            popUpTo(Screen.Home.route) { inclusive = false }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    onNavigateToGerenciarConvites = {
+                        navControllerPrincipal.navigate(Screen.GerenciarConvites.route) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onNavigateToGerenciarEdicoes = {
+                        navControllerPrincipal.navigate(Screen.GerenciarEdicoes.route) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onNavigateToResolverDuplicatas = {
+                        navControllerPrincipal.navigate(Screen.ResolverDuplicatas.route) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onNavigateToGerenciarUsuarios = {
+                        navControllerPrincipal.navigate(Screen.GerenciarUsuarios.route) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onNavigateToConfiguracoes = {
+                        navControllerPrincipal.navigate(Screen.Configuracoes.route) {
+                            launchSingleTop = true
                         }
                     }
                 )
