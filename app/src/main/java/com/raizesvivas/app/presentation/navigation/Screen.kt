@@ -59,5 +59,8 @@ sealed class Screen(val route: String) {
     
     // Amigo da Família
     object AdicionarAmigo : Screen("adicionar_amigo")
+    
+    // Privacidade
+    object PoliticaPrivacidade : Screen("politica_privacidade")
 }
 

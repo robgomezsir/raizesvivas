@@ -67,7 +67,8 @@ fun PerfilScreen(
     onNavigateToResolverDuplicatas: () -> Unit = {},
     onNavigateToGerenciarUsuarios: () -> Unit = {},
     onNavigateToConfiguracoes: () -> Unit = {},
-    onNavigateToFotoAlbum: (String) -> Unit = {}
+    onNavigateToFotoAlbum: (String) -> Unit = {},
+    onNavigateToPoliticaPrivacidade: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
     val pessoasDisponiveis by viewModel.pessoasDisponiveis.collectAsState()
@@ -179,6 +180,12 @@ fun PerfilScreen(
                     scope.launch {
                         drawerState.close()
                         onNavigateToConfiguracoes()
+                    }
+                },
+                onNavigateToPoliticaPrivacidade = {
+                    scope.launch {
+                        drawerState.close()
+                        onNavigateToPoliticaPrivacidade()
                     }
                 },
                 onSair = {

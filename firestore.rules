@@ -162,13 +162,15 @@ service cloud.firestore {
                      request.auth.uid == userId;
       
       // Atualizações: 
-      // - Dono pode atualizar apenas o campo posicaoRanking
+      // - Dono pode atualizar posicaoRanking, fcmToken e fcmTokenUpdatedAt
       // - ADMIN pode atualizar qualquer campo
       allow update: if isAuthenticated() && (
-                      // Dono pode atualizar apenas posicaoRanking
+                      // Dono pode atualizar apenas posicaoRanking, fcmToken e fcmTokenUpdatedAt
                       (isOwner(userId) && 
-                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['posicaoRanking']) &&
-                       (!request.resource.data.keys().hasAny(['posicaoRanking']) || request.resource.data.posicaoRanking == null || request.resource.data.posicaoRanking is int)) ||
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['posicaoRanking', 'fcmToken', 'fcmTokenUpdatedAt']) &&
+                       (!request.resource.data.keys().hasAny(['posicaoRanking']) || request.resource.data.posicaoRanking == null || request.resource.data.posicaoRanking is int) &&
+                       (!request.resource.data.keys().hasAny(['fcmToken']) || request.resource.data.fcmToken == null || request.resource.data.fcmToken is string) &&
+                       (!request.resource.data.keys().hasAny(['fcmTokenUpdatedAt']) || request.resource.data.fcmTokenUpdatedAt == null || request.resource.data.fcmTokenUpdatedAt is timestamp)) ||
                       // Admin pode atualizar qualquer campo
                       isAdmin()
                     );

@@ -304,6 +304,11 @@ fun MainNavigation(
                     },
                     onNavigateToChat = { destinatarioId, destinatarioNome ->
                         navController.navigate(Screen.ChatConversation.createRoute(destinatarioId, destinatarioNome))
+                    },
+                    onNavigateToPoliticaPrivacidade = {
+                        navControllerPrincipal.navigate(Screen.PoliticaPrivacidade.route) {
+                            launchSingleTop = true
+                        }
                     }
                 )
             }
@@ -366,6 +371,11 @@ fun MainNavigation(
                         navControllerPrincipal.navigate(Screen.Configuracoes.route) {
                             launchSingleTop = true
                         }
+                    },
+                    onNavigateToPoliticaPrivacidade = {
+                        navControllerPrincipal.navigate(Screen.PoliticaPrivacidade.route) {
+                            launchSingleTop = true
+                        }
                     }
                 )
             }
@@ -415,6 +425,11 @@ fun MainNavigation(
                     },
                     onNavigateToConfiguracoes = {
                         navControllerPrincipal.navigate(Screen.Configuracoes.route) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onNavigateToPoliticaPrivacidade = {
+                        navControllerPrincipal.navigate(Screen.PoliticaPrivacidade.route) {
                             launchSingleTop = true
                         }
                     }
@@ -494,6 +509,11 @@ fun MainNavigation(
                     },
                     onNavigateToFotoAlbum = { fotoId ->
                         navController.navigate(Screen.AlbumFamilia.createRoute(fotoId)) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onNavigateToPoliticaPrivacidade = {
+                        navControllerPrincipal.navigate(Screen.PoliticaPrivacidade.route) {
                             launchSingleTop = true
                         }
                     }

@@ -31,6 +31,8 @@ class BiometricPreferences @Inject constructor(
     companion object {
         private val LAST_EMAIL_KEY = stringPreferencesKey("last_email")
         private val BIOMETRIC_ENABLED_KEY = stringPreferencesKey("biometric_enabled")
+        private val KEEP_CONNECTED_KEY = stringPreferencesKey("keep_connected")
+        private val LAST_AUTH_TIMESTAMP_KEY = androidx.datastore.preferences.core.longPreferencesKey("last_auth_timestamp")
     }
     
     /**
@@ -89,6 +91,38 @@ class BiometricPreferences @Inject constructor(
      */
     suspend fun isBiometricEnabledSync(): Boolean {
         return context.dataStore.data.first()[BIOMETRIC_ENABLED_KEY] == "true"
+    }
+
+    /**
+     * Salva a preferência de "Manter conectado"
+     */
+    suspend fun saveKeepConnected(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[KEEP_CONNECTED_KEY] = if (enabled) "true" else "false"
+        }
+    }
+
+    /**
+     * Verifica se "Manter conectado" está habilitado
+     */
+    suspend fun isKeepConnectedSync(): Boolean {
+        return context.dataStore.data.first()[KEEP_CONNECTED_KEY] == "true"
+    }
+
+    /**
+     * Salva o timestamp da última autenticação bem-sucedida
+     */
+    suspend fun saveLastAuthTimestamp(timestamp: Long) {
+        context.dataStore.edit { preferences ->
+            preferences[LAST_AUTH_TIMESTAMP_KEY] = timestamp
+        }
+    }
+
+    /**
+     * Obtém o timestamp da última autenticação
+     */
+    suspend fun getLastAuthTimestampSync(): Long {
+        return context.dataStore.data.first()[LAST_AUTH_TIMESTAMP_KEY] ?: 0L
     }
     
     /**

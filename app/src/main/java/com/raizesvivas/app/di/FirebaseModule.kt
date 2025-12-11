@@ -64,5 +64,14 @@ object FirebaseModule {
     fun provideStorageService(storage: FirebaseStorage): StorageService {
         return StorageService(storage)
     }
+    
+    /**
+     * Provê instância do Firebase Cloud Messaging
+     */
+    @Provides
+    @Singleton
+    fun provideFirebaseMessaging(): com.google.firebase.messaging.FirebaseMessaging {
+        return com.google.firebase.messaging.FirebaseMessaging.getInstance()
+    }
 }
 

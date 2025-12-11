@@ -28,7 +28,8 @@ class LoginViewModel @Inject constructor(
     private val biometricPreferences: BiometricPreferences,
     private val biometricCrypto: BiometricCrypto,
     private val gamificacaoRepository: GamificacaoRepository,
-    private val usuarioRepository: UsuarioRepository
+    private val usuarioRepository: UsuarioRepository,
+    private val notificacaoRepository: com.raizesvivas.app.data.repository.NotificacaoRepository
 ) : ViewModel() {
     
     private val _state = MutableStateFlow(LoginState())
@@ -40,15 +41,35 @@ class LoginViewModel @Inject constructor(
             val lastEmail = biometricPreferences.getLastEmailSync()
             val biometricAvailable = biometricService.isBiometricAvailable()
             val biometricEnabled = biometricPreferences.isBiometricEnabledSync()
+            val keepConnected = biometricPreferences.isKeepConnectedSync()
+            val lastAuthTimestamp = biometricPreferences.getLastAuthTimestampSync()
             
-            Timber.d("🔐 Biometria - lastEmail: $lastEmail, available: $biometricAvailable, enabled: $biometricEnabled")
+            Timber.d("🔐 Biometria - lastEmail: $lastEmail, available: $biometricAvailable, enabled: $biometricEnabled, keepConnected: $keepConnected")
             
-            _state.update {
-                it.copy(
-                    lastEmail = lastEmail,
-                    biometricAvailable = biometricAvailable,
-                    biometricEnabled = biometricEnabled && biometricAvailable
-                )
+            // Verificar expiração de sessão (24h)
+            val currentTime = System.currentTimeMillis()
+            val isSessionValid = keepConnected && (currentTime - lastAuthTimestamp < 24 * 60 * 60 * 1000)
+            
+            if (isSessionValid && authService.currentUser != null) {
+                Timber.d("✅ Sessão válida e 'Manter conectado' ativo - Login automático imediato")
+                _state.update {
+                    it.copy(
+                        lastEmail = lastEmail,
+                        biometricAvailable = biometricAvailable,
+                        biometricEnabled = biometricEnabled && biometricAvailable,
+                        keepConnected = true,
+                        loginSuccess = true // Pula login e biometria
+                    )
+                }
+            } else {
+                _state.update {
+                    it.copy(
+                        lastEmail = lastEmail,
+                        biometricAvailable = biometricAvailable,
+                        biometricEnabled = biometricEnabled && biometricAvailable,
+                        keepConnected = keepConnected
+                    )
+                }
             }
         }
     }
@@ -65,6 +86,13 @@ class LoginViewModel @Inject constructor(
      */
     fun onSenhaChanged(senha: String) {
         _state.update { it.copy(senha = senha, senhaError = null) }
+    }
+    
+    /**
+     * Atualiza a preferência "Manter conectado"
+     */
+    fun onKeepConnectedChanged(enabled: Boolean) {
+        _state.update { it.copy(keepConnected = enabled) }
     }
     
     /**
@@ -104,6 +132,26 @@ class LoginViewModel @Inject constructor(
                     gamificacaoRepository.registrarAcao(user.uid, TipoAcao.PRIMEIRO_LOGIN)
                 }
                 
+                // Obter e salvar token FCM
+                viewModelScope.launch {
+                    try {
+                        val token = notificacaoRepository.getFCMToken()
+                        if (token != null) {
+                            notificacaoRepository.updateFCMToken(token)
+                            Timber.d("✅ Token FCM obtido e salvo: $token")
+                            
+                            // Log extra para garantir visibilidade
+                            android.util.Log.d("FCM_LOGIN", "════════════════════════════════════════")
+                            android.util.Log.d("FCM_LOGIN", "Token FCM: $token")
+                            android.util.Log.d("FCM_LOGIN", "════════════════════════════════════════")
+                        } else {
+                            Timber.w("⚠️ Token FCM não pôde ser obtido")
+                        }
+                    } catch (e: Exception) {
+                        Timber.e(e, "❌ Erro ao obter/salvar token FCM")
+                    }
+                }
+                
                 // IMPORTANTE: Usar o email do Firebase primeiro, pois é a fonte de verdade
                 // Se não houver email no Firebase, usar o email digitado
                 val emailFromFirebase = user.email?.trim()?.lowercase()
@@ -118,6 +166,11 @@ class LoginViewModel @Inject constructor(
                 val biometricAvailableNow = biometricService.isBiometricAvailable()
                 Timber.d("🔐 Biometria disponível agora: $biometricAvailableNow")
                 
+                // Salvar timestamp da autenticação e preferência de manter conectado
+                val currentTime = System.currentTimeMillis()
+                biometricPreferences.saveLastAuthTimestamp(currentTime)
+                biometricPreferences.saveKeepConnected(_state.value.keepConnected)
+
                 // Sempre salvar email primeiro para garantir consistência
                 // O email será normalizado dentro do saveLastEmail
                 biometricPreferences.saveLastEmail(email)
@@ -356,6 +409,17 @@ class LoginViewModel @Inject constructor(
             
             result.onSuccess {
                 Timber.d("✅ Biometria autenticada com sucesso")
+
+                // Salvar timestamp da autenticação (renova a sessão de 24h)
+                val currentTime = System.currentTimeMillis()
+                biometricPreferences.saveLastAuthTimestamp(currentTime)
+                // Manter conectado deve ser true se usuario usou biometria com sucesso, 
+                // assumindo que ele quer continuar logado, ou ler do estado atual?
+                // Vamos ler do estado atual, mas se ele nao logou ainda, talvez devamos prescrever o que estava salvo?
+                // Se ele usou biometria, ele entrou. Vamos renovar o timestamp apenas. 
+                // A preferência keepConnected ja deve ter sido lida no init.
+                // Mas se ele alterar o checkbox NA TELA e depois usar biometria, devemos salvar o novo valor.
+                biometricPreferences.saveKeepConnected(_state.value.keepConnected)
                 
                 // IMPORTANTE: Usar o email salvo no BiometricPreferences como fonte de verdade
                 // Ele já está normalizado e é o mesmo usado para salvar a senha
@@ -477,6 +541,7 @@ data class LoginState(
     val error: String? = null,
     val lastEmail: String? = null,
     val biometricAvailable: Boolean = false,
-    val biometricEnabled: Boolean = false
+    val biometricEnabled: Boolean = false,
+    val keepConnected: Boolean = false
 )
 

@@ -89,6 +89,13 @@ class MainActivity : FragmentActivity() {
                 ThemePreferenceManager.readThemeMode(applicationContext)?.let {
                     themeModeState.value = it
                 }
+                
+                // Obter e logar token FCM para testes
+                try {
+                    com.raizesvivas.app.notification.logFCMToken()
+                } catch (e: Exception) {
+                    Timber.e(e, "❌ Erro ao obter token FCM")
+                }
             }
             
             if (showSplash) {

@@ -1,12 +1,15 @@
 import { initializeApp } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { getFirestore, Timestamp } from "firebase-admin/firestore";
+import { getMessaging } from "firebase-admin/messaging";
 import { beforeUserCreated as beforeUserCreatedFn } from "firebase-functions/v2/identity";
-import { onDocumentCreated } from "firebase-functions/v2/firestore";
+import { onDocumentCreated, onDocumentWritten, onDocumentUpdated } from "firebase-functions/v2/firestore";
+import { onSchedule } from "firebase-functions/v2/scheduler";
 import { HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions";
 import nodemailer from "nodemailer";
 const app = initializeApp();
 const db = getFirestore(app);
+const messaging = getMessaging(app);
 /**
  * Auth Blocking Function - before user is created (v2)
  * Só permite cadastro se existir invite aprovado para o e-mail.
@@ -163,4 +166,406 @@ export const onInviteCreated = onDocumentCreated("invites/{inviteId}", async (ev
         text: body,
     });
     logger.info(`Convite enviado por email para ${email}`);
+    // Enviar notificação push se o usuário já tiver conta
+    try {
+        const userSnapshot = await db
+            .collection("usuarios")
+            .where("email", "==", email)
+            .limit(1)
+            .get();
+        if (!userSnapshot.empty) {
+            const userId = userSnapshot.docs[0].id;
+            await sendPushNotification(userId, "Você foi convidado!", "Seu pedido de convite foi aprovado! Acesse o app para aceitar.", "convite", snap.id);
+        }
+    }
+    catch (error) {
+        logger.warn("Erro ao enviar push de convite:", error);
+    }
+});
+// ============================================================
+// FUNÇÕES AUXILIARES PARA NOTIFICAÇÕES PUSH
+// ============================================================
+/**
+ * Envia notificação push para um usuário específico
+ */
+async function sendPushNotification(userId, title, body, type, relatedId, imageUrl) {
+    try {
+        // Buscar token FCM do usuário
+        const userDoc = await db
+            .collection("usuarios")
+            .doc(userId)
+            .get();
+        const fcmToken = userDoc.data()?.fcmToken;
+        if (!fcmToken) {
+            logger.warn(`⚠️ Usuário ${userId} não possui token FCM registrado - notificação não enviada`);
+            // Registrar em analytics para monitoramento
+            await db.collection("analytics_notificacoes").add({
+                userId: userId,
+                type: type,
+                title: title,
+                sentAt: Timestamp.now(),
+                success: false,
+                error: "NO_FCM_TOKEN",
+            });
+            return;
+        }
+        // Montar payload da notificação
+        const message = {
+            token: fcmToken,
+            notification: {
+                title: title,
+                body: body,
+            },
+            data: {
+                type: type,
+                targetUserId: userId,
+                relatedId: relatedId || "",
+                timestamp: Date.now().toString(),
+            },
+            android: {
+                priority: "high",
+                notification: {
+                    channelId: getChannelId(type),
+                    sound: "default",
+                    priority: "high",
+                    defaultVibrateTimings: true,
+                },
+            },
+            apns: {
+                payload: {
+                    aps: {
+                        sound: "default",
+                        badge: 1,
+                    },
+                },
+            },
+        };
+        // Adicionar imagem se fornecida
+        if (imageUrl) {
+            message.notification.imageUrl = imageUrl;
+        }
+        // Enviar notificação
+        const response = await messaging.send(message);
+        logger.info(`✅ Notificação enviada para ${userId}: ${response}`);
+        // Registrar analytics
+        await db
+            .collection("analytics_notificacoes")
+            .add({
+            userId: userId,
+            type: type,
+            sentAt: Timestamp.now(),
+            success: true,
+        });
+    }
+    catch (error) {
+        logger.error(`❌ Erro ao enviar notificação para ${userId}:`, error);
+        // Se o token for inválido, removê-lo do Firestore
+        if (error.code === "messaging/invalid-registration-token" ||
+            error.code === "messaging/registration-token-not-registered") {
+            await db
+                .collection("usuarios")
+                .doc(userId)
+                .update({ fcmToken: null });
+            logger.log(`Token FCM inválido removido para usuário ${userId}`);
+        }
+    }
+}
+/**
+ * Retorna o ID do canal de notificação baseado no tipo
+ */
+function getChannelId(type) {
+    const channels = {
+        mensagem: "raizes_vivas_messages",
+        edicao_aprovada: "raizes_vivas_edits",
+        edicao_rejeitada: "raizes_vivas_edits",
+        conquista: "raizes_vivas_achievements",
+        aniversario: "raizes_vivas_birthdays",
+        convite: "raizes_vivas_invites",
+        recado: "raizes_vivas_messages",
+        novo_membro: "raizes_vivas_default",
+        comentario_foto: "raizes_vivas_messages",
+        reacao_recado: "raizes_vivas_default",
+    };
+    return channels[type] || "raizes_vivas_default";
+}
+/**
+ * Busca nome de um usuário
+ */
+async function getUserName(userId) {
+    try {
+        const userDoc = await db.collection("usuarios").doc(userId).get();
+        return userDoc.data()?.nome || "Alguém";
+    }
+    catch (error) {
+        logger.error("Erro ao buscar nome do usuário:", error);
+        return "Alguém";
+    }
+}
+/**
+ * Busca nome de uma pessoa
+ */
+async function getPersonName(personId) {
+    try {
+        const personDoc = await db.collection("pessoas").doc(personId).get();
+        return personDoc.data()?.nome || "Uma pessoa";
+    }
+    catch (error) {
+        logger.error("Erro ao buscar nome da pessoa:", error);
+        return "Uma pessoa";
+    }
+}
+// ============================================================
+// TRIGGERS DE NOTIFICAÇÃO
+// ============================================================
+/**
+ * TRIGGER: Nova mensagem de chat
+ */
+export const onMessageCreated = onDocumentCreated("mensagens_chat/{messageId}", async (event) => {
+    const snap = event.data;
+    if (!snap)
+        return;
+    const data = snap.data();
+    const remetenteId = data?.remetenteId;
+    const destinatarioId = data?.destinatarioId;
+    const mensagem = data?.mensagem || "";
+    if (!remetenteId || !destinatarioId) {
+        logger.warn("Mensagem sem remetente ou destinatário");
+        return;
+    }
+    // Buscar nome do remetente
+    const remetenteName = await getUserName(remetenteId);
+    // Enviar notificação para o destinatário
+    await sendPushNotification(destinatarioId, `Nova mensagem de ${remetenteName}`, mensagem.substring(0, 100), // Limitar tamanho
+    "mensagem", snap.id);
+});
+/**
+ * TRIGGER: Status de edição mudou
+ */
+export const onEdicaoStatusChanged = onDocumentCreated("edicoes_pendentes/{edicaoId}", async (event) => {
+    const snap = event.data;
+    if (!snap)
+        return;
+    const data = snap.data();
+    const status = data?.status;
+    const autorId = data?.autorId;
+    const tipo = data?.tipo;
+    if (!autorId || !status)
+        return;
+    // Apenas enviar notificação se foi aprovada ou rejeitada
+    if (status === "aprovada" || status === "rejeitada") {
+        const title = status === "aprovada" ? "Edição aprovada!" : "Edição rejeitada";
+        const body = status === "aprovada"
+            ? `Sua edição de ${tipo} foi aprovada.`
+            : `Sua edição de ${tipo} foi rejeitada.`;
+        await sendPushNotification(autorId, title, body, `edicao_${status}`, snap.id);
+    }
+});
+/**
+ * TRIGGER: Novo recado criado
+ */
+export const onRecadoCreated = onDocumentCreated("recados/{recadoId}", async (event) => {
+    const snap = event.data;
+    if (!snap)
+        return;
+    const data = snap.data();
+    const autorId = data?.autorId;
+    const mensagem = data?.mensagem || "";
+    if (!autorId)
+        return;
+    // Buscar nome do autor
+    const autorName = await getUserName(autorId);
+    // Buscar todos os usuários para enviar notificação
+    const usersSnapshot = await db.collection("usuarios").get();
+    // Filtrar usuários com token FCM e que não sejam o autor
+    const usuariosComToken = usersSnapshot.docs.filter((doc) => {
+        const data = doc.data();
+        return doc.id !== autorId && data.fcmToken != null;
+    });
+    logger.info(`📊 Enviando recado para ${usuariosComToken.length}/${usersSnapshot.size - 1} usuários com token FCM`);
+    // Enviar notificação para todos exceto o autor
+    const promises = usuariosComToken.map((doc) => sendPushNotification(doc.id, `Novo recado de ${autorName}`, mensagem.substring(0, 100), "recado", snap.id));
+    await Promise.all(promises);
+});
+// ============================================================
+// NOVOS TRIGGERS DE NOTIFICAÇÃO
+// ============================================================
+/**
+ * TRIGGER: Aniversários (Scheduled - Diário às 9h)
+ * Notifica todos os usuários sobre aniversariantes do dia
+ */
+export const onAniversarioAgendado = onSchedule({
+    schedule: "0 9 * * *",
+    timeZone: "America/Sao_Paulo",
+}, async (event) => {
+    const hoje = new Date();
+    const dia = hoje.getDate();
+    const mes = hoje.getMonth() + 1; // JavaScript months are 0-indexed
+    logger.info(`🎂 Verificando aniversários para ${dia}/${mes}`);
+    try {
+        // Buscar todas as pessoas
+        const pessoasSnapshot = await db.collection("pessoas").get();
+        const aniversariantes = [];
+        // Filtrar pessoas com aniversário hoje
+        pessoasSnapshot.docs.forEach((doc) => {
+            const pessoa = doc.data();
+            if (pessoa.dataNascimento) {
+                const dataNasc = pessoa.dataNascimento.toDate();
+                if (dataNasc.getDate() === dia && dataNasc.getMonth() + 1 === mes) {
+                    aniversariantes.push({ id: doc.id, ...pessoa });
+                }
+            }
+        });
+        if (aniversariantes.length === 0) {
+            logger.info("Nenhum aniversariante hoje");
+            return;
+        }
+        logger.info(`🎉 ${aniversariantes.length} aniversariante(s) encontrado(s)`);
+        // Buscar todos os usuários
+        const usuariosSnapshot = await db.collection("usuarios").get();
+        // Filtrar apenas usuários com token FCM
+        const usuariosComToken = usuariosSnapshot.docs.filter(doc => {
+            const data = doc.data();
+            return data.fcmToken != null;
+        });
+        logger.info(`📊 ${usuariosComToken.length}/${usuariosSnapshot.size} usuários com token FCM`);
+        // Enviar notificação para cada aniversariante
+        for (const pessoa of aniversariantes) {
+            const promises = usuariosComToken.map((userDoc) => sendPushNotification(userDoc.id, `🎂 Aniversário de ${pessoa.nome}!`, `Hoje é aniversário de ${pessoa.nome}. Envie seus parabéns!`, "aniversario", pessoa.id));
+            await Promise.all(promises);
+        }
+        logger.info("✅ Notificações de aniversário enviadas");
+    }
+    catch (error) {
+        logger.error("❌ Erro ao processar aniversários:", error);
+    }
+});
+/**
+ * TRIGGER: Conquista Desbloqueada
+ * Notifica usuário quando conquista é concluída
+ */
+export const onConquistaDesbloqueada = onDocumentWritten("usuarios/{userId}/conquistasProgresso/{conquistaId}", async (event) => {
+    const before = event.data?.before?.data();
+    const after = event.data?.after?.data();
+    // Detectar se conquista foi desbloqueada
+    if (!before?.concluida && after?.concluida) {
+        const userId = event.params.userId;
+        const conquistaId = event.params.conquistaId;
+        logger.info(`🏆 Conquista desbloqueada: ${conquistaId} para ${userId}`);
+        try {
+            // Buscar dados da conquista
+            const conquistaDoc = await db
+                .collection("conquistasDisponiveis")
+                .doc(conquistaId)
+                .get();
+            const conquista = conquistaDoc.data();
+            if (!conquista) {
+                logger.warn(`Conquista ${conquistaId} não encontrada`);
+                return;
+            }
+            await sendPushNotification(userId, "🏆 Conquista Desbloqueada!", `Parabéns! Você desbloqueou: ${conquista.titulo || "Nova conquista"}`, "conquista", conquistaId);
+        }
+        catch (error) {
+            logger.error("❌ Erro ao notificar conquista:", error);
+        }
+    }
+});
+/**
+ * TRIGGER: Novo Membro Cadastrado
+ * Notifica admins quando novo usuário se cadastra
+ */
+export const onNovoMembroCadastrado = onDocumentCreated("usuarios/{userId}", async (event) => {
+    const novoUsuario = event.data?.data();
+    const userId = event.params.userId;
+    if (!novoUsuario)
+        return;
+    logger.info(`👋 Novo membro cadastrado: ${novoUsuario.nome} (${userId})`);
+    try {
+        // Buscar todos os admins
+        const adminsSnapshot = await db
+            .collection("users")
+            .where("ehAdministrador", "==", true)
+            .get();
+        if (adminsSnapshot.empty) {
+            logger.warn("Nenhum admin encontrado para notificar");
+            return;
+        }
+        // Filtrar apenas admins com token FCM
+        const adminsComToken = adminsSnapshot.docs.filter(doc => {
+            const data = doc.data();
+            return data.fcmToken != null;
+        });
+        logger.info(`📊 ${adminsComToken.length}/${adminsSnapshot.size} admins com token FCM`);
+        // Notificar cada admin
+        const promises = adminsComToken.map((adminDoc) => sendPushNotification(adminDoc.id, "👋 Novo Membro!", `${novoUsuario.nome} acabou de se cadastrar no app`, "novo_membro", userId));
+        await Promise.all(promises);
+    }
+    catch (error) {
+        logger.error("❌ Erro ao notificar novo membro:", error);
+    }
+});
+/**
+ * TRIGGER: Comentário em Foto
+ * Notifica dono da foto quando recebe comentário
+ */
+export const onComentarioFotoCreated = onDocumentCreated("fotos_album/{fotoId}/comentarios/{comentarioId}", async (event) => {
+    const comentario = event.data?.data();
+    const fotoId = event.params.fotoId;
+    if (!comentario || comentario.deletado)
+        return;
+    logger.info(`💬 Novo comentário na foto ${fotoId}`);
+    try {
+        // Buscar dados da foto
+        const fotoDoc = await db.collection("fotos_album").doc(fotoId).get();
+        const foto = fotoDoc.data();
+        if (!foto) {
+            logger.warn(`Foto ${fotoId} não encontrada`);
+            return;
+        }
+        // Não notificar se o comentário é do próprio dono
+        if (comentario.usuarioId === foto.criadoPor) {
+            logger.info("Comentário do próprio dono, não notificar");
+            return;
+        }
+        // Notificar dono da foto
+        await sendPushNotification(foto.criadoPor, "💬 Novo Comentário", `${comentario.usuarioNome} comentou na foto de ${foto.pessoaNome}`, "comentario_foto", fotoId);
+    }
+    catch (error) {
+        logger.error("❌ Erro ao notificar comentário:", error);
+    }
+});
+/**
+ * TRIGGER: Reação em Recado
+ * Notifica autor quando recado recebe nova reação
+ */
+export const onReacaoRecadoCreated = onDocumentUpdated("recados/{recadoId}", async (event) => {
+    const before = event.data?.before?.data();
+    const after = event.data?.after?.data();
+    if (!before || !after)
+        return;
+    // Detectar se houve nova reação (apoiosFamiliares é array)
+    const apoiosAntes = (before.apoiosFamiliares || []).length;
+    const apoiosDepois = (after.apoiosFamiliares || []).length;
+    if (apoiosDepois > apoiosAntes) {
+        logger.info(`❤️ Nova reação no recado ${event.params.recadoId}`);
+        try {
+            // Encontrar quem deu a reação
+            const apoiosAntesSet = new Set(before.apoiosFamiliares || []);
+            const novosApoios = (after.apoiosFamiliares || []).filter((userId) => !apoiosAntesSet.has(userId));
+            if (novosApoios.length === 0)
+                return;
+            const userId = novosApoios[0];
+            // Não notificar se a reação é do próprio autor
+            if (userId === after.autorId) {
+                logger.info("Reação do próprio autor, não notificar");
+                return;
+            }
+            // Buscar nome do usuário que reagiu
+            const userName = await getUserName(userId);
+            // Notificar autor do recado
+            await sendPushNotification(after.autorId, "❤️ Nova Reação", `${userName} reagiu ao seu recado`, "reacao_recado", event.params.recadoId);
+        }
+        catch (error) {
+            logger.error("❌ Erro ao notificar reação:", error);
+        }
+    }
 });

@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.PrivacyTip
 import androidx.compose.material3.*
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -87,6 +88,7 @@ fun HomeScreen(
     onNavigateToResolverDuplicatas: () -> Unit = {},
     onNavigateToGerenciarUsuarios: () -> Unit = {},
     onNavigateToConfiguracoes: () -> Unit = {},
+    onNavigateToPoliticaPrivacidade: () -> Unit = {},
 
     onNavigateToChat: (String, String) -> Unit = { _, _ -> }, // destinatarioId, destinatarioNome
     openDrawerOnStart: Boolean = false
@@ -446,6 +448,12 @@ fun HomeScreen(
                     scope.launch {
                         drawerState.close()
                         onNavigateToConfiguracoes()
+                    }
+                },
+                onNavigateToPoliticaPrivacidade = {
+                    scope.launch {
+                        drawerState.close()
+                        onNavigateToPoliticaPrivacidade()
                     }
                 },
                 onSair = {
@@ -1614,6 +1622,7 @@ fun HomeDrawerContent(
     onResolverDuplicatas: () -> Unit,
     onGerenciarUsuarios: () -> Unit,
     onConfiguracoes: () -> Unit,
+    onNavigateToPoliticaPrivacidade: () -> Unit,
     onSair: () -> Unit,
     themeMode: ThemeMode,
     onThemeModeChange: (ThemeMode) -> Unit
@@ -1656,6 +1665,14 @@ fun HomeDrawerContent(
                 selected = false,
                 onClick = onNavigateToPerfil,
                 icon = { Icon(Icons.Default.Person, contentDescription = null) },
+                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+            )
+
+            NavigationDrawerItem(
+                label = { Text("Contrato de Privacidade") },
+                selected = false,
+                onClick = onNavigateToPoliticaPrivacidade,
+                icon = { Icon(Icons.Default.PrivacyTip, contentDescription = null) },
                 modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
             )
 

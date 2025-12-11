@@ -74,10 +74,32 @@ fun LoginScreen(
     val activity = remember { context as? MainActivity }
 
     var biometricPromptShown by remember { mutableStateOf(false) }
+    
+    // Launcher para solicitar permissão de notificações (Android 13+)
+    val notificationPermissionLauncher = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+        androidx.activity.compose.rememberLauncherForActivityResult(
+            contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+        ) { isGranted ->
+            if (isGranted) {
+                Timber.d("✅ Permissão de notificações concedida")
+            } else {
+                Timber.w("⚠️ Permissão de notificações negada")
+            }
+        }
+    } else {
+        null
+    }
 
+    // Solicitar permissão de notificações após login bem-sucedido
     LaunchedEffect(state.loginSuccess) {
         if (state.loginSuccess) {
             biometricPromptShown = false
+            
+            // Solicitar permissão de notificações (Android 13+)
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                notificationPermissionLauncher?.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+            }
+            
             onLoginSuccess()
         }
     }
@@ -167,7 +189,7 @@ fun LoginScreen(
                         .background(Color.Transparent)
                         .padding(horizontal = 28.dp, vertical = 32.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     val isDarkTheme = isSystemInDarkTheme()
                     val logoRes = if (isDarkTheme) {
@@ -179,7 +201,7 @@ fun LoginScreen(
                     Image(
                         painter = painterResource(id = logoRes),
                         contentDescription = "Brasão da Família Gomes",
-                        modifier = Modifier.size(128.dp)
+                        modifier = Modifier.size(100.dp)
                     )
 
                     Column(
@@ -282,29 +304,74 @@ fun LoginScreen(
                         textColor = Color.Black
                     )
 
+
+                    // Manter Conectado e Esqueci Senha
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            .padding(vertical = 0.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f, fill = false)
+                        ) {
+                            Checkbox(
+                                checked = state.keepConnected,
+                                onCheckedChange = { viewModel.onKeepConnectedChanged(it) },
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = colorScheme.tertiary,
+                                    uncheckedColor = colorScheme.outline
+                                ),
+                                modifier = Modifier.size(32.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Manter conectado",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.Black.copy(alpha = 0.8f)
+                            )
+                        }
+                        
+                        TextButton(
+                            onClick = onNavigateToRecuperarSenha,
+                            contentPadding = PaddingValues(horizontal = 4.dp),
+                            modifier = Modifier.height(32.dp)
+                        ) {
+                            Text(
+                                text = "Esqueci a senha",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = colorScheme.tertiary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+
+                    // Ações Secundárias (Convites)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         TextButton(
                             onClick = onNavigateToPedirConvite,
-                            colors = ButtonDefaults.textButtonColors(contentColor = colorScheme.tertiary)
+                            colors = ButtonDefaults.textButtonColors(contentColor = colorScheme.tertiary),
+                            contentPadding = PaddingValues(horizontal = 8.dp)
                         ) {
-                            Text("Pedir convite")
+                            Text("Pedir convite", style = MaterialTheme.typography.bodyMedium)
                         }
+                        Text(
+                            text = "•",
+                            color = Color.Black.copy(alpha = 0.4f),
+                            modifier = Modifier.padding(horizontal = 4.dp)
+                        )
                         TextButton(
                             onClick = onNavigateToAceitarConvite,
-                            colors = ButtonDefaults.textButtonColors(contentColor = colorScheme.tertiary)
+                            colors = ButtonDefaults.textButtonColors(contentColor = colorScheme.tertiary),
+                            contentPadding = PaddingValues(horizontal = 8.dp)
                         ) {
-                            Text("Aceitar convite")
-                        }
-                        TextButton(
-                            onClick = onNavigateToRecuperarSenha,
-                            colors = ButtonDefaults.textButtonColors(contentColor = colorScheme.tertiary)
-                        ) {
-                            Text("Esqueci minha senha")
+                            Text("Aceitar convite", style = MaterialTheme.typography.bodyMedium)
                         }
                     }
                     
@@ -316,18 +383,19 @@ fun LoginScreen(
                     ) {
                         Text(
                             text = "Foi convidado? ",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.Black.copy(alpha = 0.8f)
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Black.copy(alpha = 0.7f)
                         )
                         TextButton(
                             onClick = onNavigateToCadastro,
-                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
-                            colors = ButtonDefaults.textButtonColors(contentColor = colorScheme.tertiary)
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
+                            colors = ButtonDefaults.textButtonColors(contentColor = colorScheme.tertiary),
+                            modifier = Modifier.height(32.dp)
                         ) {
                             Text(
                                 text = "Criar conta",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold
                             )
                         }
                     }

@@ -486,6 +486,24 @@ fun NavGraph(
         }
         
         // ============================================
+        // POLÍTICA DE PRIVACIDADE
+        // ============================================
+        
+        composable(
+            route = Screen.PoliticaPrivacidade.route,
+            enterTransition = { Transitions.modalEnterTransition() },
+            exitTransition = { Transitions.modalExitTransition() },
+            popEnterTransition = { Transitions.popEnterTransition() },
+            popExitTransition = { Transitions.popExitTransition() }
+        ) {
+            com.raizesvivas.app.presentation.screens.privacy.PoliticaPrivacidadeScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        // ============================================
         // ÁRVORE GENEALÓGICA HIERÁRQUICA
         // ============================================
         

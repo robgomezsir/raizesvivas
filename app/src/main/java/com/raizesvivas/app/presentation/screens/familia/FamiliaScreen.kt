@@ -177,7 +177,8 @@ fun FamiliaScreen(
     onNavigateToGerenciarEdicoes: () -> Unit = {},
     onNavigateToResolverDuplicatas: () -> Unit = {},
     onNavigateToGerenciarUsuarios: () -> Unit = {},
-    onNavigateToConfiguracoes: () -> Unit = {}
+    onNavigateToConfiguracoes: () -> Unit = {},
+    onNavigateToPoliticaPrivacidade: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
     val pullRefreshState = rememberPullToRefreshState()
@@ -300,6 +301,12 @@ fun FamiliaScreen(
                     scope.launch {
                         drawerState.close()
                         onNavigateToConfiguracoes()
+                    }
+                },
+                onNavigateToPoliticaPrivacidade = {
+                    scope.launch {
+                        drawerState.close()
+                        onNavigateToPoliticaPrivacidade()
                     }
                 },
                 onSair = {

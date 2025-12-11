@@ -1,5 +1,6 @@
 package com.raizesvivas.app.data.repository
 
+import com.google.firebase.firestore.FirebaseFirestore
 import com.raizesvivas.app.data.local.dao.NotificacaoDao
 import com.raizesvivas.app.data.local.entities.NotificacaoEntity
 import com.raizesvivas.app.data.remote.firebase.AuthService
@@ -8,6 +9,7 @@ import com.raizesvivas.app.domain.model.Notificacao
 import com.raizesvivas.app.domain.model.TipoNotificacao
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.tasks.await
 import timber.log.Timber
 import java.util.Date
 import java.util.UUID
@@ -22,7 +24,9 @@ class NotificacaoRepository @Inject constructor(
     private val notificacaoDao: NotificacaoDao,
     private val usuarioRepository: UsuarioRepository,
     private val firestoreService: FirestoreService,
-    private val authService: AuthService
+    private val authService: AuthService,
+    private val fcm: com.google.firebase.messaging.FirebaseMessaging,
+    private val firestore: FirebaseFirestore
 ) {
 
     /**
@@ -45,6 +49,75 @@ class NotificacaoRepository @Inject constructor(
             // Silencioso: analytics não deve quebrar fluxo
         }
     }
+    
+    // ============================================================
+    // MÉTODOS FCM (Firebase Cloud Messaging)
+    // ============================================================
+    
+    /**
+     * Obtém o token FCM atual do dispositivo
+     */
+    suspend fun getFCMToken(): String? {
+        return try {
+            val token = fcm.token.await()
+            Timber.d("🔑 Token FCM obtido: $token")
+            token
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao obter token FCM")
+            null
+        }
+    }
+
+    /**
+     * Atualiza o token FCM do usuário no Firestore
+     * Cria o documento se não existir
+     */
+    suspend fun updateFCMToken(token: String) {
+        val userId = authService.currentUser?.uid ?: run {
+            Timber.w("⚠️ Usuário não autenticado, não é possível atualizar token")
+            return
+        }
+        
+        try {
+            // Usar set com merge para criar documento se não existir
+            firestore.collection("usuarios")
+                .document(userId)
+                .set(
+                    mapOf(
+                        "fcmToken" to token,
+                        "fcmTokenUpdatedAt" to com.google.firebase.Timestamp.now()
+                    ),
+                    com.google.firebase.firestore.SetOptions.merge()
+                )
+                .await()
+            
+            Timber.d("✅ Token FCM atualizado no Firestore para usuário: $userId")
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao atualizar token FCM no Firestore")
+        }
+    }
+
+    /**
+     * Remove o token FCM do usuário (útil no logout)
+     */
+    suspend fun removeFCMToken() {
+        val userId = authService.currentUser?.uid ?: return
+        
+        try {
+            firestore.collection("usuarios")
+                .document(userId)
+                .update("fcmToken", null)
+                .await()
+            
+            // Deletar token do FCM
+            fcm.deleteToken().await()
+            
+            Timber.d("✅ Token FCM removido")
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao remover token FCM")
+        }
+    }
+
     
     /**
      * Observa todas as notificações

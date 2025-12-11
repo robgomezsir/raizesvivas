@@ -115,7 +115,8 @@ fun AlbumFamiliaScreen(
     onNavigateToGerenciarEdicoes: () -> Unit = {},
     onNavigateToResolverDuplicatas: () -> Unit = {},
     onNavigateToGerenciarUsuarios: () -> Unit = {},
-    onNavigateToConfiguracoes: () -> Unit = {}
+    onNavigateToConfiguracoes: () -> Unit = {},
+    onNavigateToPoliticaPrivacidade: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
     val fotos by viewModel.fotos.collectAsState()
@@ -278,6 +279,12 @@ fun AlbumFamiliaScreen(
                     scope.launch {
                         drawerState.close()
                         onNavigateToConfiguracoes()
+                    }
+                },
+                onNavigateToPoliticaPrivacidade = {
+                    scope.launch {
+                        drawerState.close()
+                        onNavigateToPoliticaPrivacidade()
                     }
                 },
                 onSair = {
