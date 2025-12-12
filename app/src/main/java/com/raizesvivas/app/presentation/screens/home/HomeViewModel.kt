@@ -15,6 +15,8 @@ import com.raizesvivas.app.domain.model.Genero
 import com.raizesvivas.app.domain.model.FamiliaZero
 import com.raizesvivas.app.domain.model.EventoFamilia
 import com.raizesvivas.app.domain.model.NoticiaFamilia
+import com.raizesvivas.app.domain.model.TipoNoticiaFamilia
+import com.raizesvivas.app.domain.model.TipoEventoFamilia
 import com.raizesvivas.app.presentation.screens.familia.FamiliaUiModel
 import com.raizesvivas.app.domain.usecase.GerarDadosTesteUseCase
 import com.raizesvivas.app.utils.ParentescoCalculator
@@ -24,6 +26,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import android.content.Context
 import java.util.Date
 import java.util.Locale
+import java.util.Calendar
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -445,6 +448,7 @@ class HomeViewModel @Inject constructor(
         promoverPrimeiroAdminSenior()
         carregarMinhaFamilia()
         atualizarPedidosPendentes()
+        iniciarLimpezaAutomaticaNoticias()
     }
     
     /**
@@ -520,6 +524,61 @@ class HomeViewModel @Inject constructor(
             } catch (e: Exception) {
                 Timber.e(e, "❌ Erro ao remover Minha Família")
             }
+        }
+    }
+    
+    /**
+     * Inicia limpeza automática de notícias antigas (mais de 24h)
+     * Executa diariamente para manter o Firestore limpo
+     */
+    private fun iniciarLimpezaAutomaticaNoticias() {
+        viewModelScope.launch {
+            try {
+                // Executar limpeza imediatamente ao iniciar
+                limparNoticiasAntigas()
+                
+                // Agendar limpeza diária
+                while (true) {
+                    kotlinx.coroutines.delay(24 * 60 * 60 * 1000L) // 24 horas
+                    limparNoticiasAntigas()
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro no job de limpeza de notícias")
+            }
+        }
+    }
+    
+    /**
+     * Limpa notícias com mais de 24 horas do Firestore
+     */
+    private suspend fun limparNoticiasAntigas() {
+        try {
+            val agora = Date()
+            val vintequatroHorasAtras = Date(agora.time - 24 * 60 * 60 * 1000L)
+            
+            // Buscar todas as notícias
+            val todasNoticias = noticiaFamiliaRepository.observarTodasNoticias().first()
+            
+            // Filtrar notícias antigas
+            val noticiasAntigas = todasNoticias.filter { noticia ->
+                noticia.criadoEm.before(vintequatroHorasAtras)
+            }
+            
+            if (noticiasAntigas.isNotEmpty()) {
+                Timber.d("🗑️ Limpando ${noticiasAntigas.size} notícias antigas (mais de 24h)")
+                
+                // Deletar cada notícia antiga
+                noticiasAntigas.forEach { noticia ->
+                    noticiaFamiliaRepository.deletar(noticia.id)
+                    Timber.d("   🗑️ Notícia deletada: ${noticia.titulo}")
+                }
+                
+                Timber.d("✅ Limpeza de notícias concluída: ${noticiasAntigas.size} notícias removidas")
+            } else {
+                Timber.d("✅ Nenhuma notícia antiga para limpar")
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao limpar notícias antigas")
         }
     }
     
@@ -768,7 +827,7 @@ class HomeViewModel @Inject constructor(
                         EventoFamilia(
                             id = "aniversario_${pessoa.id}_${proximoAniversario.timeInMillis}",
                             tipo = TipoEventoFamilia.ANIVERSARIO,
-                            titulo = "Aniversário de ${pessoa.nome.split(" ").firstOrNull() ?: pessoa.nome}",
+                            titulo = "Aniversário: ${pessoa.nome.split(" ").firstOrNull() ?: pessoa.nome}",
                             descricao = "${pessoa.nome} fará $idade anos",
                             data = proximoAniversario.time,
                             pessoaRelacionadaId = pessoa.id,
