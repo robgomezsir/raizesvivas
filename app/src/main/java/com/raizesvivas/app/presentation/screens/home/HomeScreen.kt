@@ -620,8 +620,7 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = "Família em números",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.padding(horizontal = 4.dp)
                 )
@@ -687,7 +686,7 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     StatCard(
-                        title = if (state.posicaoGrupo.isNotBlank()) state.posicaoGrupo else "Posição",
+                        title = if (state.posicaoGrupo.isNotBlank()) "Posição: ${state.posicaoGrupo}" else "Posição",
                         value = if (state.posicaoRanking > 0) "#${state.posicaoRanking}" else "-",
                         painter = painterResource(id = com.raizesvivas.app.R.drawable.posicao),
                         modifier = Modifier.weight(1f)
@@ -1286,7 +1285,7 @@ fun MinhaFamiliaCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = if (familiaNome != null) "Minha família selecionada" else "Toque para selecionar",
+                    text = if (familiaNome != null) "Minha família" else "Toque para selecionar",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1371,6 +1370,20 @@ fun UsuarioCard(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
+                    
+                    // Mostrar posição (parentesco) se houver
+                    val posicao = remember(parentescos) {
+                        parentescos.firstOrNull()?.second?.parentesco
+                    }
+                    
+                    if (posicao != null) {
+                        Text(
+                            text = "Posição: $posicao",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    
                     Text(
                         text = "Você • $totalParentes parentes",
                         style = MaterialTheme.typography.bodyMedium,
@@ -1906,7 +1919,7 @@ fun PerfilUsuarioCard(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = if (minhaFamiliaNome != null) "Minha família selecionada" else "Toque para selecionar",
+                        text = if (minhaFamiliaNome != null) "Minha família" else "Toque para selecionar",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
                     )
@@ -1915,7 +1928,7 @@ fun PerfilUsuarioCard(
                 Icon(
                     imageVector = Icons.Default.ChevronRight,
                     contentDescription = "Abrir",
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier.size(20.dp)
                 )
             }

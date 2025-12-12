@@ -285,6 +285,11 @@ function getChannelId(type) {
         novo_membro: "raizes_vivas_default",
         comentario_foto: "raizes_vivas_messages",
         reacao_recado: "raizes_vivas_default",
+        nova_foto: "raizes_vivas_photos",
+        casamento: "raizes_vivas_events",
+        nascimento: "raizes_vivas_events",
+        reacao: "raizes_vivas_reactions",
+        atualizacao_app: "raizes_vivas_updates"
     };
     return channels[type] || "raizes_vivas_default";
 }
@@ -567,5 +572,140 @@ export const onReacaoRecadoCreated = onDocumentUpdated("recados/{recadoId}", asy
         catch (error) {
             logger.error("❌ Erro ao notificar reação:", error);
         }
+    }
+});
+/**
+ * TRIGGER: Nova Notícia Familiar
+ * Notifica todos os usuários quando uma nova notícia é criada
+ */
+export const onNoticiaFamiliaCreated = onDocumentCreated("noticias_familia/{noticiaId}", async (event) => {
+    const noticia = event.data?.data();
+    const noticiaId = event.params.noticiaId;
+    if (!noticia)
+        return;
+    logger.info(`📰 Nova notícia criada: ${noticia.tipo} - ${noticia.titulo}`);
+    try {
+        // Buscar todos os usuários
+        const usuariosSnapshot = await db.collection("usuarios").get();
+        // Filtrar apenas usuários com token FCM e que não sejam o autor
+        const usuariosComToken = usuariosSnapshot.docs.filter((doc) => {
+            const data = doc.data();
+            return doc.id !== noticia.autorId && data.fcmToken != null;
+        });
+        logger.info(`📊 Enviando notícia para ${usuariosComToken.length}/${usuariosSnapshot.size - 1} usuários com token FCM`);
+        // Determinar título e corpo da notificação baseado no tipo
+        let title = "";
+        let body = "";
+        let channelType = "default";
+        switch (noticia.tipo) {
+            case "NOVA_PESSOA":
+                title = "👤 Novo Membro na Família!";
+                body = noticia.titulo || `${noticia.pessoaRelacionadaNome} foi adicionado(a) à família`;
+                channelType = "novo_membro";
+                break;
+            case "NOVA_FOTO":
+                title = "📸 Nova Foto!";
+                body = noticia.titulo || `${noticia.autorNome} adicionou uma foto`;
+                channelType = "nova_foto";
+                break;
+            case "NOVO_COMENTARIO":
+                title = "💬 Novo Comentário!";
+                body = noticia.titulo || `${noticia.autorNome} comentou em uma foto`;
+                channelType = "comentario_foto";
+                break;
+            case "APOIO_FAMILIAR":
+                title = "❤️ Nova Reação!";
+                body = noticia.titulo || `${noticia.autorNome} reagiu a uma foto`;
+                channelType = "reacao";
+                break;
+            case "CASAMENTO":
+                title = "💒 Casamento!";
+                body = noticia.titulo || `${noticia.pessoaRelacionadaNome} se casou`;
+                channelType = "casamento";
+                break;
+            case "NASCIMENTO":
+                title = "👶 Nascimento!";
+                body = noticia.titulo || `${noticia.pessoaRelacionadaNome} nasceu!`;
+                channelType = "nascimento";
+                break;
+            default:
+                title = "📰 Nova Atividade";
+                body = noticia.titulo || "Há novidades na família";
+                break;
+        }
+        // Enviar notificação para todos os usuários
+        const promises = usuariosComToken.map((doc) => sendPushNotification(doc.id, title, body, channelType, noticiaId));
+        await Promise.all(promises);
+        logger.info(`✅ Notificações de ${noticia.tipo} enviadas`);
+    }
+    catch (error) {
+        logger.error("❌ Erro ao notificar nova notícia:", error);
+    }
+});
+/**
+ * TRIGGER: Eventos Futuros (Scheduled - Diário às 8h)
+ * Notifica usuários sobre eventos que acontecerão amanhã (casamentos, nascimentos)
+ */
+export const onEventosFuturosAgendado = onSchedule({
+    schedule: "0 8 * * *",
+    timeZone: "America/Sao_Paulo",
+}, async (event) => {
+    const hoje = new Date();
+    const amanha = new Date(hoje);
+    amanha.setDate(amanha.getDate() + 1);
+    const diaAmanha = amanha.getDate();
+    const mesAmanha = amanha.getMonth() + 1;
+    logger.info(`📅 Verificando eventos para amanhã: ${diaAmanha}/${mesAmanha}`);
+    try {
+        // Buscar todas as pessoas
+        const pessoasSnapshot = await db.collection("pessoas").get();
+        const eventosCasamento = [];
+        const eventosNascimento = [];
+        // Filtrar eventos que acontecem amanhã
+        pessoasSnapshot.docs.forEach((doc) => {
+            const pessoa = doc.data();
+            // Verificar casamentos
+            if (pessoa.dataCasamento) {
+                const dataCasamento = pessoa.dataCasamento.toDate();
+                if (dataCasamento.getDate() === diaAmanha && dataCasamento.getMonth() + 1 === mesAmanha) {
+                    eventosCasamento.push({ id: doc.id, ...pessoa });
+                }
+            }
+            // Verificar nascimentos futuros
+            if (pessoa.dataNascimento) {
+                const dataNasc = pessoa.dataNascimento.toDate();
+                // Se a data é no futuro e é amanhã
+                if (dataNasc > hoje && dataNasc.getDate() === diaAmanha && dataNasc.getMonth() + 1 === mesAmanha) {
+                    eventosNascimento.push({ id: doc.id, ...pessoa });
+                }
+            }
+        });
+        if (eventosCasamento.length === 0 && eventosNascimento.length === 0) {
+            logger.info("Nenhum evento amanhã");
+            return;
+        }
+        logger.info(`💒 ${eventosCasamento.length} casamento(s) amanhã`);
+        logger.info(`👶 ${eventosNascimento.length} nascimento(s) amanhã`);
+        // Buscar todos os usuários com token FCM
+        const usuariosSnapshot = await db.collection("usuarios").get();
+        const usuariosComToken = usuariosSnapshot.docs.filter((doc) => {
+            const data = doc.data();
+            return data.fcmToken != null;
+        });
+        logger.info(`📊 ${usuariosComToken.length}/${usuariosSnapshot.size} usuários com token FCM`);
+        // Notificar casamentos
+        for (const pessoa of eventosCasamento) {
+            const promises = usuariosComToken.map((userDoc) => sendPushNotification(userDoc.id, "💒 Casamento Amanhã!", `Amanhã é o casamento de ${pessoa.nome}!`, "casamento", pessoa.id));
+            await Promise.all(promises);
+        }
+        // Notificar nascimentos
+        for (const pessoa of eventosNascimento) {
+            const promises = usuariosComToken.map((userDoc) => sendPushNotification(userDoc.id, "👶 Nascimento Amanhã!", `${pessoa.nome} deve nascer amanhã!`, "nascimento", pessoa.id));
+            await Promise.all(promises);
+        }
+        logger.info("✅ Notificações de eventos futuros enviadas");
+    }
+    catch (error) {
+        logger.error("❌ Erro ao processar eventos futuros:", error);
     }
 });

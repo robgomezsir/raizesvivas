@@ -325,14 +325,6 @@ fun AlbumFamiliaScreen(
                     }
                 },
                 windowInsets = WindowInsets(0.dp),
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Voltar"
-                        )
-                    }
-                },
                 actions = {
                     if (!mostrarPesquisa) {
                         // Ícone de adicionar foto
@@ -1717,7 +1709,9 @@ fun ComentarioItem(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = comentario.usuarioNome,
+                    text = comentario.usuarioApelido?.takeIf { it.isNotBlank() }
+                        ?: comentario.usuarioNome.split(" ").firstOrNull()
+                        ?: comentario.usuarioNome,
                     style = MaterialTheme.typography.labelMedium,
                     color = defaultTextColor,
                     fontWeight = FontWeight.SemiBold
@@ -1951,7 +1945,9 @@ fun PostItemInstagram(
                 size = 40
             )
             Text(
-                text = foto.pessoaNome,
+                text = pessoa?.apelido?.takeIf { it.isNotBlank() } 
+                    ?: foto.pessoaNome.split(" ").firstOrNull() 
+                    ?: foto.pessoaNome,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
@@ -2112,7 +2108,10 @@ fun PostItemInstagram(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                     ) {
-                        append("${foto.pessoaNome} ")
+                        val nomeExibicao = pessoa?.apelido?.takeIf { it.isNotBlank() }
+                            ?: foto.pessoaNome.split(" ").firstOrNull()
+                            ?: foto.pessoaNome
+                        append("$nomeExibicao ")
                     }
                     withStyle(
                         style = SpanStyle(

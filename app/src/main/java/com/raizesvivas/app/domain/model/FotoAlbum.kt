@@ -36,6 +36,7 @@ data class ComentarioFoto(
     val fotoId: String = "", // ID da foto
     val usuarioId: String = "", // UserID de quem comentou
     val usuarioNome: String = "", // Nome do usuário (para exibição rápida)
+    val usuarioApelido: String? = null, // Apelido do usuário (para exibição preferencial)
     val usuarioFotoUrl: String? = null, // Foto do perfil do usuário
     val texto: String = "",
     val criadoEm: Date = Date(),
