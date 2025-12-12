@@ -784,12 +784,12 @@ class HomeViewModel @Inject constructor(
     }
     
     /**
-     * Gera eventos de aniversário virtuais para os próximos 30 dias
+     * Gera eventos de aniversário virtuais para as próximas 24 horas
      */
     private fun gerarEventosAniversario(pessoas: List<Pessoa>): List<EventoFamilia> {
         val hoje = Calendar.getInstance()
-        val trintaDiasDepois = Calendar.getInstance().apply {
-            add(Calendar.DAY_OF_YEAR, 30)
+        val amanha = Calendar.getInstance().apply {
+            add(Calendar.DAY_OF_YEAR, 1)
         }
         
         val aniversarios = mutableListOf<EventoFamilia>()
@@ -803,23 +803,17 @@ class HomeViewModel @Inject constructor(
                     
                     // Se já passou este ano, usar ano que vem
                     if (before(hoje)) {
-                        // Verificar se está nos próximos 30 dias
-                        if (before(trintaDiasDepois) || equals(trintaDiasDepois)) {
-                            // Aniversário está nos próximos 30 dias deste ano
-                        } else {
-                            return@forEach // Já passou e não está nos próximos 30 dias
-                        }
-                    } else {
-                        // Aniversário ainda não chegou este ano
-                        if (after(trintaDiasDepois)) {
-                            return@forEach // Está muito longe (mais de 30 dias)
-                        }
+                        add(Calendar.YEAR, 1)
                     }
                 }
                 
-                // Verificar se está realmente nos próximos 30 dias
-                if (proximoAniversario.after(hoje) && 
-                    (proximoAniversario.before(trintaDiasDepois) || proximoAniversario.equals(trintaDiasDepois))) {
+                // Verificar se o aniversário é amanhã (nas próximas 24h)
+                val diaAniversario = proximoAniversario.get(Calendar.DAY_OF_YEAR)
+                val anoAniversario = proximoAniversario.get(Calendar.YEAR)
+                val diaAmanha = amanha.get(Calendar.DAY_OF_YEAR)
+                val anoAmanha = amanha.get(Calendar.YEAR)
+                
+                if (diaAniversario == diaAmanha && anoAniversario == anoAmanha) {
                     
                     val idade = hoje.get(Calendar.YEAR) - Calendar.getInstance().apply { time = dataNasc }.get(Calendar.YEAR)
                     
@@ -840,17 +834,17 @@ class HomeViewModel @Inject constructor(
             }
         }
         
-        Timber.d("🎂 Gerados ${aniversarios.size} eventos de aniversário para os próximos 30 dias")
+        Timber.d("🎂 Gerados ${aniversarios.size} eventos de aniversário para as próximas 24 horas")
         return aniversarios
     }
     
     /**
-     * Gera eventos de casamento virtuais para os próximos 30 dias
+     * Gera eventos de casamento virtuais para as próximas 24 horas
      */
     private fun gerarEventosCasamento(pessoas: List<Pessoa>): List<EventoFamilia> {
         val hoje = Calendar.getInstance()
-        val trintaDiasDepois = Calendar.getInstance().apply {
-            add(Calendar.DAY_OF_YEAR, 30)
+        val amanha = Calendar.getInstance().apply {
+            add(Calendar.DAY_OF_YEAR, 1)
         }
         
         val casamentos = mutableListOf<EventoFamilia>()
@@ -864,20 +858,17 @@ class HomeViewModel @Inject constructor(
                     
                     // Se já passou este ano, usar ano que vem
                     if (before(hoje)) {
-                        if (before(trintaDiasDepois) || equals(trintaDiasDepois)) {
-                            // Está nos próximos 30 dias
-                        } else {
-                            return@forEach
-                        }
-                    } else {
-                        if (after(trintaDiasDepois)) {
-                            return@forEach
-                        }
+                        add(Calendar.YEAR, 1)
                     }
                 }
                 
-                if (proximoAniversarioCasamento.after(hoje) && 
-                    (proximoAniversarioCasamento.before(trintaDiasDepois) || proximoAniversarioCasamento.equals(trintaDiasDepois))) {
+                // Verificar se o aniversário de casamento é amanhã (nas próximas 24h)
+                val diaCasamento = proximoAniversarioCasamento.get(Calendar.DAY_OF_YEAR)
+                val anoCasamento = proximoAniversarioCasamento.get(Calendar.YEAR)
+                val diaAmanha = amanha.get(Calendar.DAY_OF_YEAR)
+                val anoAmanha = amanha.get(Calendar.YEAR)
+                
+                if (diaCasamento == diaAmanha && anoCasamento == anoAmanha) {
                     
                     val anosDeCasamento = hoje.get(Calendar.YEAR) - Calendar.getInstance().apply { time = dataCasamento }.get(Calendar.YEAR)
                     val conjugeId = pessoa.conjugeAtual
@@ -910,18 +901,18 @@ class HomeViewModel @Inject constructor(
             }
         }
         
-        Timber.d("💒 Gerados ${casamentos.size} eventos de casamento para os próximos 30 dias")
+        Timber.d("💒 Gerados ${casamentos.size} eventos de casamento para as próximas 24 horas")
         return casamentos
     }
     
     /**
-     * Gera eventos de nascimento virtuais para os próximos 30 dias
+     * Gera eventos de nascimento virtuais para as próximas 24 horas
      * (para bebês que ainda vão nascer - data de nascimento prevista)
      */
     private fun gerarEventosNascimento(pessoas: List<Pessoa>): List<EventoFamilia> {
         val hoje = Date()
-        val trintaDiasDepois = Calendar.getInstance().apply {
-            add(Calendar.DAY_OF_YEAR, 30)
+        val amanha = Calendar.getInstance().apply {
+            add(Calendar.DAY_OF_YEAR, 1)
         }.time
         
         val nascimentos = mutableListOf<EventoFamilia>()
@@ -929,7 +920,7 @@ class HomeViewModel @Inject constructor(
         pessoas.forEach { pessoa ->
             pessoa.dataNascimento?.let { dataNasc ->
                 // Se a data de nascimento está no futuro (bebê ainda vai nascer)
-                if (dataNasc.after(hoje) && dataNasc.before(trintaDiasDepois)) {
+                if (dataNasc.after(hoje) && dataNasc.before(amanha)) {
                     nascimentos.add(
                         EventoFamilia(
                             id = "nascimento_${pessoa.id}",
@@ -947,7 +938,7 @@ class HomeViewModel @Inject constructor(
             }
         }
         
-        Timber.d("👶 Gerados ${nascimentos.size} eventos de nascimento para os próximos 30 dias")
+        Timber.d("👶 Gerados ${nascimentos.size} eventos de nascimento para as próximas 24 horas")
         return nascimentos
     }
     
