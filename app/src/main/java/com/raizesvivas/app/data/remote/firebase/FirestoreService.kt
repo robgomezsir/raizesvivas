@@ -46,6 +46,8 @@ class FirestoreService @Inject constructor(
     private val fotosAlbumCollection = firestore.collection("fotos_album")
     private val amigosCollection = firestore.collection("amigos")
     private val familiasExcluidasCollection = firestore.collection("familias_excluidas")
+    private val eventosCollection = firestore.collection("eventos")
+    private val noticiasCollection = firestore.collection("noticias_familia")
     
     // NOVA ESTRUTURA: Coleções de conquistas
     private val usuariosCollection = firestore.collection("usuarios")
@@ -4230,6 +4232,217 @@ class FirestoreService @Inject constructor(
             Result.failure(e)
         }
     }
+    
+    // ============================================
+    // EVENTOS DA FAMÍLIA
+    // ============================================
+    
+    /**
+     * Salva ou atualiza um evento no Firestore
+     */
+    suspend fun salvarEvento(evento: EventoFamilia): Result<Unit> {
+        return try {
+            val data = hashMapOf<String, Any>(
+                "tipo" to evento.tipo.name,
+                "titulo" to evento.titulo,
+                "data" to com.google.firebase.Timestamp(evento.data),
+                "criadoPor" to evento.criadoPor,
+                "criadoEm" to com.google.firebase.Timestamp(evento.criadoEm),
+                "participantes" to evento.participantes
+            )
+            
+            // Adicionar campos opcionais
+            evento.descricao?.let { data["descricao"] = it }
+            evento.pessoaRelacionadaId?.let { data["pessoaRelacionadaId"] = it }
+            evento.pessoaRelacionadaNome?.let { data["pessoaRelacionadaNome"] = it }
+            evento.local?.let { data["local"] = it }
+            
+            if (evento.id.isBlank()) {
+                // Criar novo evento
+                eventosCollection.add(data).await()
+            } else {
+                // Atualizar evento existente
+                eventosCollection.document(evento.id).set(data).await()
+            }
+            
+            Timber.d("✅ Evento salvo: ${evento.titulo}")
+            Result.success(Unit)
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao salvar evento")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Busca evento por ID
+     */
+    suspend fun buscarEvento(eventoId: String): Result<EventoFamilia?> {
+        return try {
+            val snapshot = eventosCollection.document(eventoId).get().await()
+            
+            if (!snapshot.exists()) {
+                return Result.success(null)
+            }
+            
+            val evento = snapshot.toEvento()
+            Result.success(evento)
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao buscar evento")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Observa todos os eventos em tempo real
+     */
+    fun observarEventos(): Flow<List<EventoFamilia>> = callbackFlow {
+        val registration = eventosCollection
+            .orderBy("data", Query.Direction.ASCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Timber.e(error, "Erro ao observar eventos")
+                    close(error)
+                    return@addSnapshotListener
+                }
+                
+                if (snapshot != null) {
+                    Timber.d("📅 Snapshot de eventos recebido: ${snapshot.documents.size} documentos")
+                    
+                    val eventos = snapshot.documents.mapNotNull { it.toEvento() }
+                    Timber.d("📅 ${eventos.size} eventos convertidos")
+                    
+                    trySend(eventos)
+                } else {
+                    Timber.d("📅 Snapshot nulo recebido para eventos")
+                    trySend(emptyList())
+                }
+            }
+        
+        awaitClose { registration.remove() }
+    }
+    
+    /**
+     * Deleta um evento
+     */
+    suspend fun deletarEvento(eventoId: String): Result<Unit> {
+        return try {
+            eventosCollection.document(eventoId).delete().await()
+            
+            Timber.d("✅ Evento deletado: $eventoId")
+            Result.success(Unit)
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao deletar evento")
+            Result.failure(e)
+        }
+    }
+    
+    // ============================================
+    // NOTÍCIAS DA FAMÍLIA
+    // ============================================
+    
+    /**
+     * Salva uma notícia no Firestore
+     */
+    suspend fun salvarNoticia(noticia: NoticiaFamilia): Result<Unit> {
+        return try {
+            val data = hashMapOf<String, Any>(
+                "tipo" to noticia.tipo.name,
+                "titulo" to noticia.titulo,
+                "autorId" to noticia.autorId,
+                "autorNome" to noticia.autorNome,
+                "criadoEm" to com.google.firebase.Timestamp(noticia.criadoEm),
+                "lida" to noticia.lida
+            )
+            
+            // Adicionar campos opcionais
+            noticia.descricao?.let { data["descricao"] = it }
+            noticia.pessoaRelacionadaId?.let { data["pessoaRelacionadaId"] = it }
+            noticia.pessoaRelacionadaNome?.let { data["pessoaRelacionadaNome"] = it }
+            noticia.recursoId?.let { data["recursoId"] = it }
+            
+            if (noticia.id.isBlank()) {
+                // Criar nova notícia
+                noticiasCollection.add(data).await()
+            } else {
+                // Atualizar notícia existente
+                noticiasCollection.document(noticia.id).set(data).await()
+            }
+            
+            Timber.d("✅ Notícia salva: ${noticia.titulo}")
+            Result.success(Unit)
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao salvar notícia")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Observa todas as notícias em tempo real
+     */
+    fun observarNoticias(): Flow<List<NoticiaFamilia>> = callbackFlow {
+        val registration = noticiasCollection
+            .orderBy("criadoEm", Query.Direction.DESCENDING)
+            .limit(50) // Limitar a 50 notícias mais recentes
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Timber.e(error, "Erro ao observar notícias")
+                    close(error)
+                    return@addSnapshotListener
+                }
+                
+                if (snapshot != null) {
+                    Timber.d("📰 Snapshot de notícias recebido: ${snapshot.documents.size} documentos")
+                    
+                    val noticias = snapshot.documents.mapNotNull { it.toNoticia() }
+                    Timber.d("📰 ${noticias.size} notícias convertidas")
+                    
+                    trySend(noticias)
+                } else {
+                    Timber.d("📰 Snapshot nulo recebido para notícias")
+                    trySend(emptyList())
+                }
+            }
+        
+        awaitClose { registration.remove() }
+    }
+    
+    /**
+     * Marca notícia como lida
+     */
+    suspend fun marcarNoticiaLida(noticiaId: String): Result<Unit> {
+        return try {
+            noticiasCollection.document(noticiaId)
+                .update("lida", true)
+                .await()
+            
+            Timber.d("✅ Notícia marcada como lida: $noticiaId")
+            Result.success(Unit)
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao marcar notícia como lida")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Deleta uma notícia
+     */
+    suspend fun deletarNoticia(noticiaId: String): Result<Unit> {
+        return try {
+            noticiasCollection.document(noticiaId).delete().await()
+            
+            Timber.d("✅ Notícia deletada: $noticiaId")
+            Result.success(Unit)
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao deletar notícia")
+            Result.failure(e)
+        }
+    }
 }
 
 private fun com.google.firebase.firestore.DocumentSnapshot.toAmigo(): Amigo? {
@@ -4247,6 +4460,32 @@ private fun com.google.firebase.firestore.DocumentSnapshot.toAmigo(): Amigo? {
         )
     } catch (e: Exception) {
         Timber.e(e, "Erro ao converter documento para Amigo: ${this.id}")
+        null
+    }
+}
+
+/**
+ * Extensão para converter DocumentSnapshot em EventoFamilia
+ */
+private fun com.google.firebase.firestore.DocumentSnapshot.toEvento(): EventoFamilia? {
+    return try {
+        val data = this.data ?: return null
+        
+        EventoFamilia(
+            id = this.id,
+            tipo = TipoEventoFamilia.valueOf(data["tipo"] as? String ?: "OUTRO"),
+            titulo = data["titulo"] as? String ?: "",
+            descricao = data["descricao"] as? String,
+            data = (data["data"] as? com.google.firebase.Timestamp)?.toDate() ?: JavaDate(),
+            pessoaRelacionadaId = data["pessoaRelacionadaId"] as? String,
+            pessoaRelacionadaNome = data["pessoaRelacionadaNome"] as? String,
+            local = data["local"] as? String,
+            criadoPor = data["criadoPor"] as? String ?: "",
+            criadoEm = (data["criadoEm"] as? com.google.firebase.Timestamp)?.toDate() ?: JavaDate(),
+            participantes = (data["participantes"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList()
+        )
+    } catch (e: Exception) {
+        Timber.e(e, "Erro ao converter documento para EventoFamilia: ${this.id}")
         null
     }
 }

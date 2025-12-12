@@ -6,11 +6,15 @@ import com.raizesvivas.app.data.remote.firebase.AuthService
 import com.raizesvivas.app.data.repository.FamiliaZeroRepository
 import com.raizesvivas.app.data.repository.PessoaRepository
 import com.raizesvivas.app.data.repository.UsuarioRepository
+import com.raizesvivas.app.data.repository.EventoRepository
+import com.raizesvivas.app.data.repository.NoticiaFamiliaRepository
 import com.raizesvivas.app.data.remote.firebase.FirestoreService
 import com.raizesvivas.app.domain.model.Pessoa
 import com.raizesvivas.app.domain.model.Usuario
 import com.raizesvivas.app.domain.model.Genero
 import com.raizesvivas.app.domain.model.FamiliaZero
+import com.raizesvivas.app.domain.model.EventoFamilia
+import com.raizesvivas.app.domain.model.NoticiaFamilia
 import com.raizesvivas.app.presentation.screens.familia.FamiliaUiModel
 import com.raizesvivas.app.domain.usecase.GerarDadosTesteUseCase
 import com.raizesvivas.app.utils.ParentescoCalculator
@@ -48,6 +52,8 @@ class HomeViewModel @Inject constructor(
     private val usuarioRepository: UsuarioRepository,
     private val pessoaRepository: PessoaRepository,
     private val familiaZeroRepository: FamiliaZeroRepository,
+    private val eventoRepository: EventoRepository,
+    private val noticiaFamiliaRepository: NoticiaFamiliaRepository,
     private val gerarDadosTesteUseCase: GerarDadosTesteUseCase,
     private val firestoreService: FirestoreService,
     @ApplicationContext private val context: Context
@@ -365,6 +371,73 @@ class HomeViewModel @Inject constructor(
             initialValue = emptyList()
         )
     
+    // Eventos próximos (próximos 30 dias) - apenas eventos reais do Firestore
+    private val eventosProximosReais: StateFlow<List<EventoFamilia>> = eventoRepository.observarEventosProximos()
+        .catch { error ->
+            Timber.e(error, "❌ Erro ao observar eventos próximos")
+            emit(emptyList())
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+    
+    // Eventos próximos combinados com aniversários virtuais
+    val eventosProximos: StateFlow<List<EventoFamilia>> = combine(
+        eventosProximosReais,
+        pessoas
+    ) { eventosReais, todasPessoas ->
+        val aniversarios = gerarEventosAniversario(todasPessoas)
+        val casamentos = gerarEventosCasamento(todasPessoas)
+        val nascimentos = gerarEventosNascimento(todasPessoas)
+        (eventosReais + aniversarios + casamentos + nascimentos)
+            .sortedBy { it.data }
+            .distinctBy { "${it.tipo}_${it.pessoaRelacionadaId}_${it.data.time}" }
+    }
+        .catch { error ->
+            Timber.e(error, "❌ Erro ao combinar eventos com aniversários")
+            emit(emptyList())
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+    
+    // Notícias recentes (últimas 24h) - apenas notícias reais do Firestore
+    private val noticiasRecentesReais: StateFlow<List<NoticiaFamilia>> = noticiaFamiliaRepository.observarNoticiasRecentes()
+        .catch { error ->
+            Timber.e(error, "❌ Erro ao observar notícias recentes")
+            emit(emptyList())
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+    
+    // Notícias recentes combinadas com notícias virtuais
+    val noticiasRecentes: StateFlow<List<NoticiaFamilia>> = combine(
+        noticiasRecentesReais,
+        pessoas
+    ) { noticiasReais, todasPessoas ->
+        val noticiasVirtuais = gerarNoticiasVirtuais(todasPessoas)
+        (noticiasReais + noticiasVirtuais)
+            .sortedByDescending { it.criadoEm }
+            .distinctBy { "${it.tipo}_${it.pessoaRelacionadaId}_${it.criadoEm.time / 1000}" } // Agrupar por segundo
+            .take(10) // Limitar a 10 notícias mais recentes
+    }
+        .catch { error ->
+            Timber.e(error, "❌ Erro ao combinar notícias com virtuais")
+            emit(emptyList())
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+    
     init {
         carregarDados()
         observarFamiliaZero()
@@ -569,6 +642,254 @@ class HomeViewModel @Inject constructor(
             pessoa.biografia?.lowercase()?.contains(termoLower) == true ||
             pessoa.nomeNormalizado.contains(termoLower)
         }
+    }
+    
+    /**
+     * Gera notícias virtuais a partir de atividades recentes (últimas 24h)
+     */
+    private fun gerarNoticiasVirtuais(pessoas: List<Pessoa>): List<NoticiaFamilia> {
+        val agora = Date()
+        val vintequatroHorasAtras = Date(agora.time - 24 * 60 * 60 * 1000L)
+        val noticias = mutableListOf<NoticiaFamilia>()
+        
+        pessoas.forEach { pessoa ->
+            // NOVA_PESSOA: Pessoas criadas nas últimas 24h
+            if (pessoa.criadoEm.after(vintequatroHorasAtras) && pessoa.aprovado) {
+                noticias.add(
+                    NoticiaFamilia(
+                        id = "nova_pessoa_${pessoa.id}",
+                        tipo = TipoNoticiaFamilia.NOVA_PESSOA,
+                        titulo = "${pessoa.nome.split(" ").firstOrNull() ?: pessoa.nome} foi adicionado(a) à família",
+                        descricao = null,
+                        autorId = pessoa.criadoPor,
+                        autorNome = "Sistema",
+                        pessoaRelacionadaId = pessoa.id,
+                        pessoaRelacionadaNome = pessoa.nome,
+                        criadoEm = pessoa.criadoEm
+                    )
+                )
+            }
+            
+            // CASAMENTO: Pessoas com dataCasamento nas últimas 24h
+            pessoa.dataCasamento?.let { dataCasamento ->
+                if (dataCasamento.after(vintequatroHorasAtras) && dataCasamento.before(agora)) {
+                    val conjugeId = pessoa.conjugeAtual
+                    val conjugeNome = if (conjugeId != null) {
+                        pessoas.find { it.id == conjugeId }?.nome
+                    } else null
+                    
+                    val descricao = if (conjugeNome != null) {
+                        "casou-se com $conjugeNome"
+                    } else {
+                        "casou-se"
+                    }
+                    
+                    noticias.add(
+                        NoticiaFamilia(
+                            id = "casamento_${pessoa.id}",
+                            tipo = TipoNoticiaFamilia.CASAMENTO,
+                            titulo = "${pessoa.nome.split(" ").firstOrNull() ?: pessoa.nome} $descricao",
+                            descricao = null,
+                            autorId = "",
+                            autorNome = "Sistema",
+                            pessoaRelacionadaId = pessoa.id,
+                            pessoaRelacionadaNome = pessoa.nome,
+                            criadoEm = dataCasamento
+                        )
+                    )
+                }
+            }
+            
+            // NASCIMENTO: Pessoas com dataNascimento nas últimas 24h (bebês recém-nascidos)
+            pessoa.dataNascimento?.let { dataNasc ->
+                if (dataNasc.after(vintequatroHorasAtras) && dataNasc.before(agora)) {
+                    noticias.add(
+                        NoticiaFamilia(
+                            id = "nascimento_${pessoa.id}",
+                            tipo = TipoNoticiaFamilia.NASCIMENTO,
+                            titulo = "${pessoa.nome.split(" ").firstOrNull() ?: pessoa.nome} nasceu!",
+                            descricao = "Bem-vindo(a) à família",
+                            autorId = "",
+                            autorNome = "Sistema",
+                            pessoaRelacionadaId = pessoa.id,
+                            pessoaRelacionadaNome = pessoa.nome,
+                            criadoEm = dataNasc
+                        )
+                    )
+                }
+            }
+        }
+        
+        Timber.d("📰 Geradas ${noticias.size} notícias virtuais das últimas 24h")
+        return noticias
+    }
+    
+    /**
+     * Gera eventos de aniversário virtuais para os próximos 30 dias
+     */
+    private fun gerarEventosAniversario(pessoas: List<Pessoa>): List<EventoFamilia> {
+        val hoje = Calendar.getInstance()
+        val trintaDiasDepois = Calendar.getInstance().apply {
+            add(Calendar.DAY_OF_YEAR, 30)
+        }
+        
+        val aniversarios = mutableListOf<EventoFamilia>()
+        
+        pessoas.forEach { pessoa ->
+            pessoa.dataNascimento?.let { dataNasc ->
+                // Calcular próximo aniversário
+                val proximoAniversario = Calendar.getInstance().apply {
+                    time = dataNasc
+                    set(Calendar.YEAR, hoje.get(Calendar.YEAR))
+                    
+                    // Se já passou este ano, usar ano que vem
+                    if (before(hoje)) {
+                        // Verificar se está nos próximos 30 dias
+                        if (before(trintaDiasDepois) || equals(trintaDiasDepois)) {
+                            // Aniversário está nos próximos 30 dias deste ano
+                        } else {
+                            return@forEach // Já passou e não está nos próximos 30 dias
+                        }
+                    } else {
+                        // Aniversário ainda não chegou este ano
+                        if (after(trintaDiasDepois)) {
+                            return@forEach // Está muito longe (mais de 30 dias)
+                        }
+                    }
+                }
+                
+                // Verificar se está realmente nos próximos 30 dias
+                if (proximoAniversario.after(hoje) && 
+                    (proximoAniversario.before(trintaDiasDepois) || proximoAniversario.equals(trintaDiasDepois))) {
+                    
+                    val idade = hoje.get(Calendar.YEAR) - Calendar.getInstance().apply { time = dataNasc }.get(Calendar.YEAR)
+                    
+                    aniversarios.add(
+                        EventoFamilia(
+                            id = "aniversario_${pessoa.id}_${proximoAniversario.timeInMillis}",
+                            tipo = TipoEventoFamilia.ANIVERSARIO,
+                            titulo = "Aniversário de ${pessoa.nome.split(" ").firstOrNull() ?: pessoa.nome}",
+                            descricao = "${pessoa.nome} fará $idade anos",
+                            data = proximoAniversario.time,
+                            pessoaRelacionadaId = pessoa.id,
+                            pessoaRelacionadaNome = pessoa.nome,
+                            criadoPor = "", // Evento virtual
+                            criadoEm = Date()
+                        )
+                    )
+                }
+            }
+        }
+        
+        Timber.d("🎂 Gerados ${aniversarios.size} eventos de aniversário para os próximos 30 dias")
+        return aniversarios
+    }
+    
+    /**
+     * Gera eventos de casamento virtuais para os próximos 30 dias
+     */
+    private fun gerarEventosCasamento(pessoas: List<Pessoa>): List<EventoFamilia> {
+        val hoje = Calendar.getInstance()
+        val trintaDiasDepois = Calendar.getInstance().apply {
+            add(Calendar.DAY_OF_YEAR, 30)
+        }
+        
+        val casamentos = mutableListOf<EventoFamilia>()
+        
+        pessoas.forEach { pessoa ->
+            pessoa.dataCasamento?.let { dataCasamento ->
+                // Calcular próximo aniversário de casamento
+                val proximoAniversarioCasamento = Calendar.getInstance().apply {
+                    time = dataCasamento
+                    set(Calendar.YEAR, hoje.get(Calendar.YEAR))
+                    
+                    // Se já passou este ano, usar ano que vem
+                    if (before(hoje)) {
+                        if (before(trintaDiasDepois) || equals(trintaDiasDepois)) {
+                            // Está nos próximos 30 dias
+                        } else {
+                            return@forEach
+                        }
+                    } else {
+                        if (after(trintaDiasDepois)) {
+                            return@forEach
+                        }
+                    }
+                }
+                
+                if (proximoAniversarioCasamento.after(hoje) && 
+                    (proximoAniversarioCasamento.before(trintaDiasDepois) || proximoAniversarioCasamento.equals(trintaDiasDepois))) {
+                    
+                    val anosDeCasamento = hoje.get(Calendar.YEAR) - Calendar.getInstance().apply { time = dataCasamento }.get(Calendar.YEAR)
+                    val conjugeId = pessoa.conjugeAtual
+                    val conjugeNome = if (conjugeId != null) {
+                        pessoas.find { it.id == conjugeId }?.nome?.split(" ")?.firstOrNull()
+                    } else null
+                    
+                    val titulo = if (conjugeNome != null && anosDeCasamento > 0) {
+                        "Bodas de ${pessoa.nome.split(" ").firstOrNull()} & $conjugeNome"
+                    } else if (conjugeNome != null) {
+                        "Casamento de ${pessoa.nome.split(" ").firstOrNull()} & $conjugeNome"
+                    } else {
+                        "Aniversário de casamento de ${pessoa.nome.split(" ").firstOrNull()}"
+                    }
+                    
+                    casamentos.add(
+                        EventoFamilia(
+                            id = "casamento_${pessoa.id}_${proximoAniversarioCasamento.timeInMillis}",
+                            tipo = if (anosDeCasamento > 0) TipoEventoFamilia.BODAS else TipoEventoFamilia.CASAMENTO,
+                            titulo = titulo,
+                            descricao = if (anosDeCasamento > 0) "$anosDeCasamento anos de casados" else "Dia do casamento",
+                            data = proximoAniversarioCasamento.time,
+                            pessoaRelacionadaId = pessoa.id,
+                            pessoaRelacionadaNome = pessoa.nome,
+                            criadoPor = "",
+                            criadoEm = Date()
+                        )
+                    )
+                }
+            }
+        }
+        
+        Timber.d("💒 Gerados ${casamentos.size} eventos de casamento para os próximos 30 dias")
+        return casamentos
+    }
+    
+    /**
+     * Gera eventos de nascimento virtuais para os próximos 30 dias
+     * (para bebês que ainda vão nascer - data de nascimento prevista)
+     */
+    private fun gerarEventosNascimento(pessoas: List<Pessoa>): List<EventoFamilia> {
+        val hoje = Date()
+        val trintaDiasDepois = Calendar.getInstance().apply {
+            add(Calendar.DAY_OF_YEAR, 30)
+        }.time
+        
+        val nascimentos = mutableListOf<EventoFamilia>()
+        
+        pessoas.forEach { pessoa ->
+            pessoa.dataNascimento?.let { dataNasc ->
+                // Se a data de nascimento está no futuro (bebê ainda vai nascer)
+                if (dataNasc.after(hoje) && dataNasc.before(trintaDiasDepois)) {
+                    nascimentos.add(
+                        EventoFamilia(
+                            id = "nascimento_${pessoa.id}",
+                            tipo = TipoEventoFamilia.NASCIMENTO,
+                            titulo = "Nascimento de ${pessoa.nome.split(" ").firstOrNull() ?: pessoa.nome}",
+                            descricao = "Data prevista de nascimento",
+                            data = dataNasc,
+                            pessoaRelacionadaId = pessoa.id,
+                            pessoaRelacionadaNome = pessoa.nome,
+                            criadoPor = "",
+                            criadoEm = Date()
+                        )
+                    )
+                }
+            }
+        }
+        
+        Timber.d("👶 Gerados ${nascimentos.size} eventos de nascimento para os próximos 30 dias")
+        return nascimentos
     }
     
     /**

@@ -157,6 +157,9 @@ dependencies {
     // Lottie (Animações)
     implementation("com.airbnb.android:lottie-compose:6.3.0")
     
+    // Reorderable (Drag-and-Drop para LazyColumn)
+    implementation("sh.calvin.reorderable:reorderable:2.1.1")
+    
     // Testing
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")

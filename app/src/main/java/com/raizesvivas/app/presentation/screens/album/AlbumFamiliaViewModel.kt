@@ -10,6 +10,7 @@ import com.raizesvivas.app.data.repository.PessoaRepository
 import com.raizesvivas.app.domain.model.FotoAlbum
 import com.raizesvivas.app.domain.model.Pessoa
 import com.raizesvivas.app.domain.model.ComentarioFoto
+import com.raizesvivas.app.domain.usecase.GerarNoticiaUseCase
 import com.raizesvivas.app.utils.ImageCompressor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -29,7 +30,8 @@ class AlbumFamiliaViewModel @Inject constructor(
     private val pessoaRepository: PessoaRepository,
     private val storageService: StorageService,
     private val authService: AuthService,
-    private val firestoreService: FirestoreService
+    private val firestoreService: FirestoreService,
+    private val gerarNoticiaUseCase: GerarNoticiaUseCase
 ) : ViewModel() {
     
     private val _state = MutableStateFlow(AlbumFamiliaState())
@@ -754,6 +756,18 @@ class AlbumFamiliaViewModel @Inject constructor(
                 resultado.fold(
                     onSuccess = {
                         Timber.d("✅ Comentário adicionado com sucesso")
+                        
+                        // Gerar notícia automática
+                        viewModelScope.launch {
+                            gerarNoticiaUseCase.novoComentario(
+                                autorId = firebaseUser.uid,
+                                autorNome = usuario.nome,
+                                fotoId = foto.id,
+                                comentarioTexto = texto.trim(),
+                                pessoaRelacionadaNome = foto.pessoaNome
+                            )
+                        }
+                        
                         _state.update { it.copy(erro = null) }
                         // Expandir comentários e garantir que estejam sendo observados após adicionar
                         if (!_state.value.fotosComComentariosExpandidos.contains(foto.id)) {

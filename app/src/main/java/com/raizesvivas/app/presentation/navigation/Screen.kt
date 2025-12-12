@@ -60,6 +60,16 @@ sealed class Screen(val route: String) {
     // Amigo da Família
     object AdicionarAmigo : Screen("adicionar_amigo")
     
+    // Eventos da Família
+    object Eventos : Screen("eventos")
+    object CadastroEvento : Screen("cadastro_evento")
+    object EditarEvento : Screen("cadastro_evento/{eventoId}") {
+        fun createRoute(eventoId: String) = "cadastro_evento/$eventoId"
+    }
+    object DetalhesEvento : Screen("detalhes_evento/{eventoId}") {
+        fun createRoute(eventoId: String) = "detalhes_evento/$eventoId"
+    }
+    
     // Privacidade
     object PoliticaPrivacidade : Screen("politica_privacidade")
 }
