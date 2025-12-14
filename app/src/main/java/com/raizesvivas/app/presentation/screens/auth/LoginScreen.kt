@@ -2,6 +2,7 @@ package com.raizesvivas.app.presentation.screens.auth
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -174,7 +175,7 @@ fun LoginScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 20.dp, vertical = 32.dp),
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.TopCenter
             ) {
             Box(
                 modifier = Modifier
@@ -186,6 +187,7 @@ fun LoginScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
                         .background(Color.Transparent)
                         .padding(horizontal = 28.dp, vertical = 32.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,

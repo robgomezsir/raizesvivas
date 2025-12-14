@@ -1921,7 +1921,14 @@ class FirestoreService @Inject constructor(
                 }
             }
             
-            pessoa.copy(genero = genero)
+            // Garantir que apelido seja recuperado corretamente do Firestore
+            // A conversão automática pode falhar silenciosamente para campos String? nullable
+            val apelido = pessoa.apelido ?: (this.data?.get("apelido") as? String)
+            
+            pessoa.copy(
+                genero = genero,
+                apelido = apelido
+            )
         } catch (e: Exception) {
             Timber.e(e, "❌ Erro ao converter DocumentSnapshot para Pessoa")
             null
