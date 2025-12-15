@@ -32,6 +32,7 @@ import com.raizesvivas.app.presentation.screens.chat.ChatConversationScreen
 import com.raizesvivas.app.presentation.screens.album.AlbumFamiliaScreen
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.raizesvivas.app.presentation.screens.perfil.PerfilViewModel
+import com.raizesvivas.app.presentation.screens.familia.ReordenarFamiliasScreen
 
 /**
  * Calcula o tamanho de fonte único para todos os labels da NavigationBar
@@ -129,7 +130,8 @@ fun MainNavigation(
         !route.contains("familia_zero") &&
         !route.contains("chat_contacts") &&
         !route.contains("chat_conversation") &&
-        !route.contains("detalhes_pessoa")
+        !route.contains("detalhes_pessoa") &&
+        !route.contains("reordenar_familias")
     } ?: true
     
     Scaffold(
@@ -376,6 +378,11 @@ fun MainNavigation(
                         navControllerPrincipal.navigate(Screen.PoliticaPrivacidade.route) {
                             launchSingleTop = true
                         }
+                    },
+                    onNavigateToReordenarFamilias = {
+                        navController.navigate(Screen.ReordenarFamilias.route) {
+                            launchSingleTop = true
+                        }
                     }
                 )
             }
@@ -591,6 +598,14 @@ fun MainNavigation(
                         navControllerPrincipal.navigate(Screen.Configuracoes.route) {
                             launchSingleTop = true
                         }
+                    }
+                )
+            }
+            
+            composable(Screen.ReordenarFamilias.route) {
+                ReordenarFamiliasScreen(
+                    onNavigateBack = {
+                        navController.popBackStack()
                     }
                 )
             }

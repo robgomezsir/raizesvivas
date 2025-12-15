@@ -4,6 +4,7 @@ package com.raizesvivas.app.presentation.screens.familia
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.expandVertically
@@ -14,6 +15,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,6 +32,7 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -48,6 +51,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.ViewList
+import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.outlined.GroupAdd
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
@@ -164,6 +168,8 @@ import androidx.compose.material.icons.filled.MoreVert
 import com.raizesvivas.app.presentation.screens.home.HomeDrawerContent
 import com.raizesvivas.app.presentation.viewmodel.NotificacaoViewModel
 import androidx.compose.runtime.rememberCoroutineScope
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -178,7 +184,8 @@ fun FamiliaScreen(
     onNavigateToResolverDuplicatas: () -> Unit = {},
     onNavigateToGerenciarUsuarios: () -> Unit = {},
     onNavigateToConfiguracoes: () -> Unit = {},
-    onNavigateToPoliticaPrivacidade: () -> Unit = {}
+    onNavigateToPoliticaPrivacidade: () -> Unit = {},
+    onNavigateToReordenarFamilias: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
     val pullRefreshState = rememberPullToRefreshState()
@@ -505,7 +512,8 @@ fun FamiliaScreen(
                                 nomeAmigoEditado = nomeAmigoEditado,
                                 telefoneAmigoEditado = telefoneAmigoEditado,
                                 termoBusca = termoBusca,
-                                onNavigateToDetalhesPessoa = onNavigateToDetalhesPessoa
+                                onNavigateToDetalhesPessoa = onNavigateToDetalhesPessoa,
+                                onOpenReorderModal = onNavigateToReordenarFamilias
                             )
                         }
                     }
@@ -2445,7 +2453,8 @@ private fun ConteudoAbaLista(
     nomeAmigoEditado: androidx.compose.runtime.MutableState<String>,
     telefoneAmigoEditado: androidx.compose.runtime.MutableState<String>,
     termoBusca: String,
-    onNavigateToDetalhesPessoa: (String) -> Unit
+    onNavigateToDetalhesPessoa: (String) -> Unit,
+    onOpenReorderModal: () -> Unit
 ) {
     // Buscar pessoas individuais quando houver termo de busca
     val pessoasFiltradas = remember(
@@ -2692,7 +2701,8 @@ private fun ConteudoAbaLista(
                             modoVisualizacao = ModoVisualizacao.LISTA,
                             familias = state.familias,
                             todasPessoas = todasPessoasDasFamilias,
-                            outrosFamiliares = state.outrosFamiliares
+                            outrosFamiliares = state.outrosFamiliares,
+                            onOpenReorderModal = onOpenReorderModal
                         )
                     }
                 }
@@ -2996,7 +3006,8 @@ private fun FamiliaCardLista(
     viewModel: FamiliaViewModel,
     familias: List<FamiliaUiModel> = emptyList(),
     todasPessoas: List<Pessoa> = emptyList(),
-    outrosFamiliares: List<Pessoa> = emptyList()
+    outrosFamiliares: List<Pessoa> = emptyList(),
+    onOpenReorderModal: () -> Unit = {}
 ) {
     val colorScheme = MaterialTheme.colorScheme
     
@@ -3072,6 +3083,22 @@ private fun FamiliaCardLista(
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
+                        // Ícone de reorganização (apenas para famílias não-zero)
+                        if (!familia.ehFamiliaZero) {
+                            IconButton(
+                                onClick = onOpenReorderModal,
+                                modifier = Modifier.size(40.dp),
+                                colors = IconButtonDefaults.iconButtonColors(
+                                    contentColor = colorScheme.onSurface.copy(alpha = 0.6f)
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.DragHandle,
+                                    contentDescription = "Reorganizar famílias",
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
                         IconButton(
                             onClick = { onGerenciarFamilia(familia) },
                             modifier = Modifier.size(40.dp),
@@ -3516,7 +3543,8 @@ private fun FamiliaCard(
     modoVisualizacao: ModoVisualizacao = ModoVisualizacao.LISTA,
     familias: List<FamiliaUiModel> = emptyList(),
     todasPessoas: List<Pessoa> = emptyList(),
-    outrosFamiliares: List<Pessoa> = emptyList()
+    outrosFamiliares: List<Pessoa> = emptyList(),
+    onOpenReorderModal: () -> Unit = {}
 ) {
     when (modoVisualizacao) {
         ModoVisualizacao.LISTA -> {
@@ -3531,7 +3559,8 @@ private fun FamiliaCard(
                 viewModel = viewModel,
                 familias = familias,
                 todasPessoas = todasPessoas,
-                outrosFamiliares = outrosFamiliares
+                outrosFamiliares = outrosFamiliares,
+                onOpenReorderModal = onOpenReorderModal
             )
         }
         ModoVisualizacao.ARVORE -> {
@@ -3823,6 +3852,164 @@ private fun AvatarComBorda(
                 personName = pessoa.nome,
                 size = tamanho,
                 textSize = (tamanho.value * 0.4).sp
+            )
+        }
+    }
+}
+
+/**
+ * Modal para reorganizar a ordem das famílias
+ */
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
+@Composable
+private fun ModalReordenarFamilias(
+    familias: List<FamiliaUiModel>,
+    onDismiss: () -> Unit,
+    onConfirmar: (List<String>) -> Unit
+) {
+    // Filtrar Família Zero
+    val familiasReordenar = remember(familias) {
+        familias.filter { !it.ehFamiliaZero }
+    }
+    
+    var ordemAtual by remember {
+        mutableStateOf(familiasReordenar.map { it.id })
+    }
+    
+    val lazyListState = rememberLazyListState()
+    val reorderableLazyListState = rememberReorderableLazyListState(lazyListState) { from, to ->
+        ordemAtual = ordemAtual.toMutableList().apply {
+            add(to.index, removeAt(from.index))
+        }
+    }
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Reorganizar Famílias",
+                style = MaterialTheme.typography.headlineSmall
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 400.dp)
+            ) {
+                Text(
+                    text = "Arraste os cards para reorganizar a ordem das famílias",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                
+                LazyColumn(
+                    state = lazyListState,
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(
+                        count = ordemAtual.size,
+                        key = { index -> ordemAtual[index] }
+                    ) { index ->
+                        ReorderableItem(reorderableLazyListState, key = ordemAtual[index]) { isDragging ->
+                            val familia = familiasReordenar.find { it.id == ordemAtual[index] }
+                            if (familia != null) {
+                                FamiliaCardReorder(
+                                    familia = familia,
+                                    isDragging = isDragging
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                onConfirmar(ordemAtual)
+                onDismiss()
+            }) {
+                Text("Confirmar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar")
+            }
+        }
+    )
+}
+
+/**
+ * Card simplificado para exibição no modal de reorganização
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun FamiliaCardReorder(
+    familia: FamiliaUiModel,
+    isDragging: Boolean
+) {
+    val elevation by animateDpAsState(
+        targetValue = if (isDragging) 8.dp else 2.dp,
+        label = "elevation"
+    )
+    
+    val alpha by animateFloatAsState(
+        targetValue = if (isDragging) 0.9f else 1f,
+        label = "alpha"
+    )
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .alpha(alpha),
+        elevation = CardDefaults.cardElevation(defaultElevation = elevation),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Ícone de drag handle
+            Icon(
+                imageVector = Icons.Default.DragHandle,
+                contentDescription = "Arrastar",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            
+            // Ícone do tipo de família
+            Icon(
+                imageVector = when {
+                    familia.ehFamiliaMonoparental -> Icons.Filled.Person
+                    else -> Icons.Filled.FamilyRestroom
+                },
+                contentDescription = null,
+                tint = when {
+                    familia.ehFamiliaMonoparental -> MaterialTheme.colorScheme.secondary
+                    else -> MaterialTheme.colorScheme.primary
+                }
+            )
+            
+            // Nome da família
+            Text(
+                text = familia.nomeExibicao,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.weight(1f)
+            )
+            
+            // Número de membros
+            Text(
+                text = "${familia.membrosFlatten.size} membros",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

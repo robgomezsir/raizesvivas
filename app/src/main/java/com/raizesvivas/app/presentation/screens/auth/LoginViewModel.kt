@@ -29,7 +29,8 @@ class LoginViewModel @Inject constructor(
     private val biometricCrypto: BiometricCrypto,
     private val gamificacaoRepository: GamificacaoRepository,
     private val usuarioRepository: UsuarioRepository,
-    private val notificacaoRepository: com.raizesvivas.app.data.repository.NotificacaoRepository
+    private val notificacaoRepository: com.raizesvivas.app.data.repository.NotificacaoRepository,
+    private val syncManager: com.raizesvivas.app.data.sync.SyncManager
 ) : ViewModel() {
     
     private val _state = MutableStateFlow(LoginState())
@@ -126,6 +127,25 @@ class LoginViewModel @Inject constructor(
             
             result.onSuccess { user ->
                 Timber.d("✅ Login bem-sucedido: ${user.uid}")
+                
+                // Renovar cache do Firestore para garantir dados atualizados
+                Timber.d("🔄 Renovando cache do Firestore após login...")
+                viewModelScope.launch {
+                    syncManager.syncIncremental(forceSync = true).collect { syncResult ->
+                        when (syncResult) {
+                            is com.raizesvivas.app.data.sync.SyncResult.Success -> {
+                                Timber.d("✅ Cache renovado com sucesso: ${syncResult.message}")
+                            }
+                            is com.raizesvivas.app.data.sync.SyncResult.Error -> {
+                                Timber.w("⚠️ Erro ao renovar cache: ${syncResult.message}")
+                                // Continuar mesmo com erro - sincronização em tempo real vai compensar
+                            }
+                            is com.raizesvivas.app.data.sync.SyncResult.InProgress -> {
+                                Timber.d("🔄 Sincronizando cache: ${syncResult.progress}%")
+                            }
+                        }
+                    }
+                }
                 
                 // Registrar ação de primeiro login para gamificação
                 viewModelScope.launch {

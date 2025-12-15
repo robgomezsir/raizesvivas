@@ -327,18 +327,17 @@ class FamiliaViewModel @Inject constructor(
         _state.update { it.copy(mostrarDialogFamiliaPendente = false) }
     }
     
-    /**
-     * Aplica a ordem personalizada às famílias
-     * Família Zero sempre fica na primeira posição
-     */
     private fun aplicarOrdemFamilias(
         familias: List<FamiliaUiModel>,
         ordemPersonalizada: List<String>
     ): List<FamiliaUiModel> {
+        Timber.d("🔄 Aplicando ordem: ${ordemPersonalizada.size} IDs na ordem, ${familias.size} famílias totais")
+        
         if (ordemPersonalizada.isEmpty()) {
             // Se não há ordem salva, retornar ordem padrão (Família Zero primeiro)
             val familiaZero = familias.firstOrNull { it.ehFamiliaZero }
             val outrasFamilias = familias.filter { !it.ehFamiliaZero }
+            Timber.d("📋 Sem ordem personalizada - usando ordem padrão")
             return listOfNotNull(familiaZero) + outrasFamilias
         }
         
@@ -358,12 +357,12 @@ class FamiliaViewModel @Inject constructor(
         val familiasNaOrdem = ordemPersonalizada.toSet()
         val familiasNovas = outrasFamilias.filter { it.id !in familiasNaOrdem }
         
-        return listOfNotNull(familiaZero) + familiasOrdenadas + familiasNovas
+        val resultado = listOfNotNull(familiaZero) + familiasOrdenadas + familiasNovas
+        Timber.d("✅ Ordem aplicada: ${resultado.map { it.nomeExibicao }}")
+        
+        return resultado
     }
     
-    /**
-     * Reordena as famílias e persiste a nova ordem
-     */
     fun reordenarFamilias(novaOrdem: List<String>) {
         viewModelScope.launch {
             try {
@@ -373,9 +372,17 @@ class FamiliaViewModel @Inject constructor(
                     familia?.ehFamiliaZero != true
                 }
                 
+                // Salvar a ordem nas preferências
                 FamiliaOrdemPreferences.salvarOrdem(context, ordemSemFamiliaZero)
+                
+                // Aplicar imediatamente a nova ordem ao state atual para atualização instantânea da UI
+                val familiasOrdenadas = aplicarOrdemFamilias(_state.value.familias, ordemSemFamiliaZero)
+                _state.update { it.copy(familias = familiasOrdenadas) }
+                
+                // Atualizar o StateFlow para persistência (o combine pode não triggar imediatamente)
                 ordemFamilias.value = ordemSemFamiliaZero
-                Timber.d("✅ Ordem das famílias salva: ${ordemSemFamiliaZero.size} famílias")
+                
+                Timber.d("✅ Ordem das famílias salva e aplicada: ${ordemSemFamiliaZero.size} famílias")
             } catch (e: Exception) {
                 Timber.e(e, "❌ Erro ao salvar ordem das famílias")
             }

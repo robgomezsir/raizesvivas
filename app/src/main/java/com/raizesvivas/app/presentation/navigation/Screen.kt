@@ -72,5 +72,8 @@ sealed class Screen(val route: String) {
     
     // Privacidade
     object PoliticaPrivacidade : Screen("politica_privacidade")
+    
+    // Reorganizar Famílias
+    object ReordenarFamilias : Screen("reordenar_familias")
 }
 

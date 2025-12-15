@@ -638,8 +638,35 @@ class PessoaRepository @Inject constructor(
             val resultado = firestoreService.deletarPessoa(pessoaId)
             
             resultado.onSuccess {
-                // Deletar do cache local
+                // Sucesso: deletar do cache local
                 pessoaDao.deletarPorId(pessoaId)
+                Timber.d("✅ Pessoa deletada do Firestore e cache local")
+            }
+            
+            resultado.onFailure { error ->
+                // Verificar se é erro de permissão
+                val isPermissionError = error.message?.contains("PERMISSION_DENIED") == true ||
+                                       error.message?.contains("Missing or insufficient permissions") == true
+                
+                if (isPermissionError) {
+                    Timber.w("⚠️ Erro de permissão ao deletar do Firestore - limpando cache local e forçando sincronização")
+                    
+                    // Limpar do cache local para remover pessoa "fantasma"
+                    // Isso garante que a pessoa desapareça da UI imediatamente
+                    pessoaDao.deletarPorId(pessoaId)
+                    Timber.d("✅ Pessoa removida do cache local")
+                    
+                    // Forçar sincronização imediata para restaurar estado correto do Firestore
+                    // Se a pessoa realmente existe no Firestore, ela será restaurada
+                    // Se foi deletada por um admin, ela permanecerá removida
+                    sincronizarDoFirestore()
+                    Timber.d("✅ Sincronização forçada concluída")
+                    
+                    // Retornar erro informativo para o usuário
+                    return Result.failure(
+                        Exception("Você não tem permissão para deletar pessoas. Apenas administradores podem fazer isso.")
+                    )
+                }
             }
             
             resultado
