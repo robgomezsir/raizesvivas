@@ -70,10 +70,19 @@ object TreeBuilder {
             c.filhos.filter { it.isNotBlank() && it in pessoasMap }.forEach { filhosIds.add(it) }
         }
         
-        // Buscar filhos adicionais através do cônjuge (casos onde o cônjuge tem filhos de relacionamento anterior)
+        // Buscar filhos por referência da PESSOA PRINCIPAL (mesmo sem cônjuge)
+        // Isso garante que famílias monoparentais funcionem corretamente
+        pessoasMap.values.forEach { pessoaCadastrada ->
+            if ((pessoaCadastrada.pai == pessoa.id || pessoaCadastrada.mae == pessoa.id) && 
+                pessoaCadastrada.id.isNotBlank() && 
+                pessoaCadastrada.id in pessoasMap) {
+                filhosIds.add(pessoaCadastrada.id)
+            }
+        }
+        
+        // Buscar filhos adicionais através do cônjuge (se houver)
+        // Casos onde o cônjuge tem filhos de relacionamento anterior
         conjuge?.let { c ->
-            // Se o cônjuge tem filhos que não estão na lista de filhos da pessoa atual
-            // mas são filhos biológicos do cônjuge, incluir também
             pessoasMap.values.forEach { pessoaCadastrada ->
                 if ((pessoaCadastrada.pai == c.id || pessoaCadastrada.mae == c.id) && 
                     pessoaCadastrada.id.isNotBlank() && 

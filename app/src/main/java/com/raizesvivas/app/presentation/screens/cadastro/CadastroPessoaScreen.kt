@@ -619,7 +619,24 @@ fun PessoaSelector(
                 Icon(Icons.Default.Person, contentDescription = null)
             },
             trailingIcon = {
-                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                Row {
+                    // Botão de remoção (X) - aparece apenas quando há uma pessoa selecionada
+                    if (pessoaSelecionada != null) {
+                        IconButton(
+                            onClick = {
+                                onPessoaSelecionada(null)
+                            }
+                        ) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "Remover seleção",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    // Ícone do dropdown
+                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                }
             },
             readOnly = true,
             modifier = Modifier
