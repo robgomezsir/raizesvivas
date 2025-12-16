@@ -106,7 +106,9 @@ fun SearchScreen(
         ) {
             items(
                 count = pessoasPaginadas.itemCount,
-                key = pessoasPaginadas.itemKey { it.id }
+                key = { index ->
+                    pessoasPaginadas[index]?.id?.takeIf { it.isNotBlank() } ?: "index_$index"
+                }
             ) { index ->
                 val pessoa = pessoasPaginadas[index]
                 if (pessoa != null) {

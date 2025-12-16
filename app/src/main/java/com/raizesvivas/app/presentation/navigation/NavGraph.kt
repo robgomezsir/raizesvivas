@@ -532,26 +532,6 @@ fun NavGraph(
             )
         }
 
-        // ============================================
-        // BUSCA AVANÇADA
-        // ============================================
-
-
-        composable(
-            route = Screen.Search.route,
-            enterTransition = { Transitions.enterTransition() },
-            exitTransition = { Transitions.exitTransition() },
-            popEnterTransition = { Transitions.popEnterTransition() },
-            popExitTransition = { Transitions.popExitTransition() }
-        ) {
-            com.raizesvivas.app.presentation.screens.search.SearchScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToPessoa = { pessoaId ->
-                    navController.navigate(Screen.DetalhesPessoa.createRoute(pessoaId))
-                }
-            )
-        }
-
     }
 }
 

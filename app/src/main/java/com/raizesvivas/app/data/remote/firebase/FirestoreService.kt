@@ -627,7 +627,6 @@ class FirestoreService @Inject constructor(
             Timber.d("🔍 Buscando pessoas com filtros: termoBusca='${filtro.termoBusca}', genero=${filtro.genero}, localNascimento=${filtro.localNascimento}, apenasVivos=${filtro.apenasVivos}")
             
             var query: Query = peopleCollection
-                .whereEqualTo("aprovado", true)
 
             // Aplicar filtros
             
@@ -700,6 +699,11 @@ class FirestoreService @Inject constructor(
             }
             
             Timber.d("  ✅ ${pessoas.size} documentos convertidos para Pessoa")
+            
+            // Log dos nomes das pessoas retornadas para debugging
+            if (pessoas.isNotEmpty()) {
+                Timber.d("  📋 Pessoas retornadas: ${pessoas.joinToString(", ") { "${it.nome} (${it.id})" }}")
+            }
             
             // Filtragem Client-Side adicional se necessário
             // Se usarmos filtro de data E busca por nome, o nome precisa ser filtrado aqui.
@@ -2059,7 +2063,10 @@ class FirestoreService @Inject constructor(
             // A conversão automática pode falhar silenciosamente para campos String? nullable
             val apelido = pessoa.apelido ?: (this.data?.get("apelido") as? String)
             
+            // CRÍTICO: Garantir que o ID do documento seja setado no objeto Pessoa
+            // O toObject() não seta o ID automaticamente
             pessoa.copy(
+                id = this.id, // Usar o ID do documento do Firestore
                 genero = genero,
                 apelido = apelido
             )

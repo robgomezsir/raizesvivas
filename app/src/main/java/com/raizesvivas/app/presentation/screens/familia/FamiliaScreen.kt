@@ -360,9 +360,9 @@ fun FamiliaScreen(
                 actions = {
                     if (!mostrarBusca) {
                         if (abaSelecionada == 2) {
-                            // Na aba Pessoas, mostrar botão para Busca Avançada e não mostrar busca local
-                            IconButton(onClick = onNavigateToSearch) {
-                                Icon(Icons.Default.Search, contentDescription = "Busca Avançada")
+                            // Na aba Pessoas, mostrar botão para busca local
+                            IconButton(onClick = { mostrarBusca = true }) {
+                                Icon(Icons.Filled.Search, contentDescription = "Buscar")
                             }
                         } else if (abaSelecionada == 1) {
                             // Aba Lista: busca local
@@ -542,7 +542,8 @@ fun FamiliaScreen(
                             // Aba Pessoas - Mostrar lista paginada de todas as pessoas
                             ConteudoAbaPessoas(
                                 viewModel = viewModel,
-                                onNavigateToPessoa = onNavigateToDetalhesPessoa
+                                onNavigateToPessoa = onNavigateToDetalhesPessoa,
+                                termoBusca = termoBusca
                             )
                         }
                     }
