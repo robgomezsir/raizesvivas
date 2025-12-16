@@ -1,0 +1,192 @@
+Initialized native services in: C:\Users\robgo\.gradle\native
+Initialized jansi services in: C:\Users\robgo\.gradle\native
+Found daemon DaemonInfo{pid=17276, address=[e37be5f8-c034-4c42-98b5-f78c1ac57c83 port:52757, addresses:[/127.0.0.1]], state=Idle, lastBusy=1765852227227, context=DefaultDaemonContext[uid=ca208b8d-c47d-4e47-85c9-9dd4576754db,javaHome=C:\Program Files\Eclipse Adoptium\jdk-17.0.16.8-hotspot,javaVersion=17,javaVendor=Eclipse Adoptium,daemonRegistryDir=C:\Users\robgo\.gradle\daemon,pid=17276,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=-XX:MaxMetaspaceSize=512m,-Xmx2048m,-Dfile.encoding=UTF-8,-Duser.country=BR,-Duser.language=pt,-Duser.variant]} however its context does not match the desired criteria.
+JVM is incompatible.
+Wanted: DaemonRequestContext{jvmCriteria=C:\Program Files\Android\Android Studio\jbr (no JDK specified, using current Java home), daemonOpts=[-XX:MaxMetaspaceSize=512m, -Xmx2048m, -Dfile.encoding=UTF-8, -Duser.country=BR, -Duser.language=pt, -Duser.variant], applyInstrumentationAgent=true, nativeServicesMode=ENABLED, priority=NORMAL}
+Actual: DefaultDaemonContext[uid=ca208b8d-c47d-4e47-85c9-9dd4576754db,javaHome=C:\Program Files\Eclipse Adoptium\jdk-17.0.16.8-hotspot,javaVersion=17,javaVendor=Eclipse Adoptium,daemonRegistryDir=C:\Users\robgo\.gradle\daemon,pid=17276,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=-XX:MaxMetaspaceSize=512m,-Xmx2048m,-Dfile.encoding=UTF-8,-Duser.country=BR,-Duser.language=pt,-Duser.variant]
+
+  Looking for a different daemon...
+The client will now receive all logging from the daemon (pid: 23252). The daemon log file: C:\Users\robgo\.gradle\daemon\8.13\daemon-23252.out.log
+Starting 6th build in daemon [uptime: 16 mins 0.105 secs, performance: 100%, GC rate: 0.00/s, heap usage: 0% of 2 GiB, non-heap usage: 38% of 512 MiB]
+Using 12 worker leases.
+Now considering [C:\Users\robgo\raizesvivas] as hierarchies to watch
+Reusing configuration cache.
+Now considering [C:\Users\robgo\raizesvivas] as hierarchies to watch
+Watching the file system is configured to be enabled if available
+File system watching is active
+Using local directory build cache for the root build (location = C:\Users\robgo\.gradle\caches\build-cache-1, remove unused entries = after 7 days).
+Tasks to be executed: [task ':app:checkKotlinGradlePluginConfigurationErrors', task ':app:preBuild', task ':app:preDebugBuild', task ':app:generateDebugBuildConfig', task ':app:checkDebugAarMetadata', task ':app:processDebugNavigationResources', task ':app:compileDebugNavigationResources', task ':app:generateDebugResValues', task ':app:injectCrashlyticsMappingFileIdDebug', task ':app:processDebugGoogleServices', task ':app:mapDebugSourceSetPaths', task ':app:generateDebugResources', task ':app:mergeDebugResources', task ':app:packageDebugResources', task ':app:parseDebugLocalResources', task ':app:createDebugCompatibleScreenManifests', task ':app:extractDeepLinksDebug', task ':app:processDebugMainManifest', task ':app:processDebugManifest', task ':app:processDebugManifestForPackage', task ':app:processDebugResources', task ':app:kaptGenerateStubsDebugKotlin', task ':app:kaptDebugKotlin']
+Tasks that were excluded: []
+Resolve mutations for :app:checkKotlinGradlePluginConfigurationErrors (Thread[#406,Execution worker,5,main]) started.
+Resolve mutations for :app:preBuild (Thread[#407,Execution worker Thread 2,5,main]) started.
+Resolve mutations for :app:injectCrashlyticsMappingFileIdDebug (Thread[#409,Execution worker Thread 4,5,main]) started.
+Resolve mutations for :app:processDebugGoogleServices (Thread[#408,Execution worker Thread 3,5,main]) started.
+:app:preBuild (Thread[#407,Execution worker Thread 2,5,main]) started.
+:app:checkKotlinGradlePluginConfigurationErrors (Thread[#406,Execution worker,5,main]) started.
+:app:injectCrashlyticsMappingFileIdDebug (Thread[#409,Execution worker Thread 4,5,main]) started.
+:app:processDebugGoogleServices (Thread[#414,Execution worker Thread 9,5,main]) started.
+
+> Task :app:preBuild UP-TO-DATE
+Skipping task ':app:preBuild' as it has no actions.
+Resolve mutations for :app:preDebugBuild (Thread[#407,Execution worker Thread 2,5,main]) started.
+:app:preDebugBuild (Thread[#415,Execution worker Thread 10,5,main]) started.
+
+> Task :app:preDebugBuild UP-TO-DATE
+Skipping task ':app:preDebugBuild' as it has no actions.
+
+> Task :app:checkKotlinGradlePluginConfigurationErrors
+Caching disabled for task ':app:checkKotlinGradlePluginConfigurationErrors' because:
+  This task renders reported diagnostics; caching this task will hide diagnostics and obscure issues in the build
+Task ':app:checkKotlinGradlePluginConfigurationErrors' is not up-to-date because:
+  Task has not declared any outputs despite executing actions.
+Resolve mutations for :app:generateDebugBuildConfig (Thread[#415,Execution worker Thread 10,5,main]) started.
+Resolve mutations for :app:checkDebugAarMetadata (Thread[#407,Execution worker Thread 2,5,main]) started.
+Resolve mutations for :app:generateDebugResValues (Thread[#408,Execution worker Thread 3,5,main]) started.
+Resolve mutations for :app:createDebugCompatibleScreenManifests (Thread[#416,Execution worker Thread 11,5,main]) started.
+Resolve mutations for :app:processDebugNavigationResources (Thread[#411,Execution worker Thread 6,5,main]) started.
+:app:generateDebugResValues (Thread[#408,Execution worker Thread 3,5,main]) started.
+
+> Task :app:processDebugGoogleServices UP-TO-DATE
+Build cache key for task ':app:processDebugGoogleServices' is 7886ccc6df39cb76209d546a95873e12
+Skipping task ':app:processDebugGoogleServices' as it is up-to-date.
+:app:createDebugCompatibleScreenManifests (Thread[#416,Execution worker Thread 11,5,main]) started.
+:app:generateDebugBuildConfig (Thread[#415,Execution worker Thread 10,5,main]) started.
+:app:checkDebugAarMetadata (Thread[#407,Execution worker Thread 2,5,main]) started.
+:app:processDebugNavigationResources (Thread[#411,Execution worker Thread 6,5,main]) started.
+
+> Task :app:generateDebugResValues UP-TO-DATE
+Build cache key for task ':app:generateDebugResValues' is e7ee2d66538a594e18da2d50a6f46475
+Skipping task ':app:generateDebugResValues' as it is up-to-date.
+Resolve mutations for :app:generateDebugResources (Thread[#408,Execution worker Thread 3,5,main]) started.
+:app:generateDebugResources (Thread[#408,Execution worker Thread 3,5,main]) started.
+
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+Build cache key for task ':app:generateDebugBuildConfig' is 5e5686158884582728ca829b316ac5a3
+Skipping task ':app:generateDebugBuildConfig' as it is up-to-date.
+
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+Caching disabled for task ':app:createDebugCompatibleScreenManifests' because:
+  Caching has been disabled for the task
+Skipping task ':app:createDebugCompatibleScreenManifests' as it is up-to-date.
+
+> Task :app:injectCrashlyticsMappingFileIdDebug UP-TO-DATE
+Caching disabled for task ':app:injectCrashlyticsMappingFileIdDebug' because:
+  Caching has not been enabled for the task
+Skipping task ':app:injectCrashlyticsMappingFileIdDebug' as it is up-to-date.
+
+> Task :app:generateDebugResources UP-TO-DATE
+Build cache key for task ':app:generateDebugResources' is 9df45e58fea2211b2fa31dfa68086b7b
+Skipping task ':app:generateDebugResources' as it is up-to-date.
+Resolve mutations for :app:mapDebugSourceSetPaths (Thread[#409,Execution worker Thread 4,5,main]) started.
+Resolve mutations for :app:extractDeepLinksDebug (Thread[#416,Execution worker Thread 11,5,main]) started.
+Resolve mutations for :app:mergeDebugResources (Thread[#408,Execution worker Thread 3,5,main]) started.
+Resolve mutations for :app:packageDebugResources (Thread[#406,Execution worker,5,main]) started.
+:app:extractDeepLinksDebug (Thread[#416,Execution worker Thread 11,5,main]) started.
+:app:mapDebugSourceSetPaths (Thread[#409,Execution worker Thread 4,5,main]) started.
+:app:mergeDebugResources (Thread[#408,Execution worker Thread 3,5,main]) started.
+:app:packageDebugResources (Thread[#406,Execution worker,5,main]) started.
+
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+Build cache key for task ':app:extractDeepLinksDebug' is dfe1a78728766ba631a80621597aeea5
+Skipping task ':app:extractDeepLinksDebug' as it is up-to-date.
+Resolve mutations for :app:processDebugMainManifest (Thread[#416,Execution worker Thread 11,5,main]) started.
+:app:processDebugMainManifest (Thread[#416,Execution worker Thread 11,5,main]) started.
+
+> Task :app:packageDebugResources UP-TO-DATE
+Build cache key for task ':app:packageDebugResources' is 89ef80607601d89efaa0db88c983f709
+Skipping task ':app:packageDebugResources' as it is up-to-date.
+
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+Caching disabled for task ':app:checkDebugAarMetadata' because:
+  Caching has been disabled for the task
+Skipping task ':app:checkDebugAarMetadata' as it is up-to-date.
+
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+Caching disabled for task ':app:mapDebugSourceSetPaths' because:
+  Caching has been disabled for the task
+Skipping task ':app:mapDebugSourceSetPaths' as it is up-to-date.
+
+> Task :app:processDebugNavigationResources UP-TO-DATE
+Build cache key for task ':app:processDebugNavigationResources' is ee251565264ea5450c16372ed5c5136e
+Skipping task ':app:processDebugNavigationResources' as it is up-to-date.
+Resolve mutations for :app:compileDebugNavigationResources (Thread[#411,Execution worker Thread 6,5,main]) started.
+Resolve mutations for :app:parseDebugLocalResources (Thread[#406,Execution worker,5,main]) started.
+
+> Task :app:mergeDebugResources UP-TO-DATE
+Build cache key for task ':app:mergeDebugResources' is ebc30efe61293dcf7762c6bfe782cda3
+Skipping task ':app:mergeDebugResources' as it is up-to-date.
+:app:parseDebugLocalResources (Thread[#414,Execution worker Thread 9,5,main]) started.
+:app:compileDebugNavigationResources (Thread[#411,Execution worker Thread 6,5,main]) started.
+
+> Task :app:compileDebugNavigationResources UP-TO-DATE
+Build cache key for task ':app:compileDebugNavigationResources' is 5b6a466e232e136a41de428396743278
+Skipping task ':app:compileDebugNavigationResources' as it is up-to-date.
+
+> Task :app:parseDebugLocalResources UP-TO-DATE
+Build cache key for task ':app:parseDebugLocalResources' is cf2aec942764b9e06ac11c13126193eb
+Skipping task ':app:parseDebugLocalResources' as it is up-to-date.
+
+> Task :app:processDebugMainManifest UP-TO-DATE
+Build cache key for task ':app:processDebugMainManifest' is 1e676225ed8db601100a8e4903ff1d1c
+Skipping task ':app:processDebugMainManifest' as it is up-to-date.
+Resolve mutations for :app:processDebugManifest (Thread[#416,Execution worker Thread 11,5,main]) started.
+:app:processDebugManifest (Thread[#416,Execution worker Thread 11,5,main]) started.
+
+> Task :app:processDebugManifest UP-TO-DATE
+Build cache key for task ':app:processDebugManifest' is d1283a4bcddf9856ca1a58a494a9cf92
+Skipping task ':app:processDebugManifest' as it is up-to-date.
+Resolve mutations for :app:processDebugManifestForPackage (Thread[#416,Execution worker Thread 11,5,main]) started.
+:app:processDebugManifestForPackage (Thread[#416,Execution worker Thread 11,5,main]) started.
+
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+Build cache key for task ':app:processDebugManifestForPackage' is c363f9e0f19c77af6cd7323763f869d4
+Skipping task ':app:processDebugManifestForPackage' as it is up-to-date.
+Resolve mutations for :app:processDebugResources (Thread[#405,included builds,5,main]) started.
+:app:processDebugResources (Thread[#405,included builds,5,main]) started.
+
+> Task :app:processDebugResources UP-TO-DATE
+Build cache key for task ':app:processDebugResources' is a8685d62c64da20a73f0b769061384ca
+Skipping task ':app:processDebugResources' as it is up-to-date.
+Resolve mutations for :app:kaptGenerateStubsDebugKotlin (Thread[#405,included builds,5,main]) started.
+:app:kaptGenerateStubsDebugKotlin (Thread[#405,included builds,5,main]) started.
+
+> Task :app:kaptGenerateStubsDebugKotlin UP-TO-DATE
+Build cache key for task ':app:kaptGenerateStubsDebugKotlin' is 23530507132f9cc3ea372a7b70ab4a38
+Skipping task ':app:kaptGenerateStubsDebugKotlin' as it is up-to-date.
+Resolve mutations for :app:kaptDebugKotlin (Thread[#405,included builds,5,main]) started.
+:app:kaptDebugKotlin (Thread[#405,included builds,5,main]) started.
+
+> Task :app:kaptDebugKotlin FAILED
+file or directory 'C:\Users\robgo\raizesvivas\app\src\debug\kotlin', not found
+file or directory 'C:\Users\robgo\raizesvivas\app\src\debug\kotlin', not found
+file or directory 'C:\Users\robgo\raizesvivas\app\src\debug\java', not found
+file or directory 'C:\Users\robgo\raizesvivas\app\src\debug\java', not found
+file or directory 'C:\Users\robgo\raizesvivas\app\src\debug\kotlin', not found
+file or directory 'C:\Users\robgo\raizesvivas\app\src\debug\java', not found
+file or directory 'C:\Users\robgo\raizesvivas\app\src\main\kotlin', not found
+file or directory 'C:\Users\robgo\raizesvivas\app\src\main\kotlin', not found
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:kaptDebugKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.gradle.internal.KaptWithoutKotlincTask$KaptExecutionWorkAction
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 3s
+file or directory 'C:\Users\robgo\raizesvivas\app\src\main\kotlin', not found
+file or directory 'C:\Users\robgo\raizesvivas\app\src\debug\java', not found
+Build cache key for task ':app:kaptDebugKotlin' is bdc24bf91aa8913b22186535c70414e5
+Task ':app:kaptDebugKotlin' is not up-to-date because:
+  Task has failed previously.
+The input changes require a full rebuild for incremental task ':app:kaptDebugKotlin'.
+Running kapt annotation processing using the Gradle Worker API
+Using workers NONE isolation mode to run kapt
+21 actionable tasks: 2 executed, 19 up-to-date
+Watched directory hierarchies: [C:\Users\robgo\raizesvivas]
+Configuration cache entry reused.

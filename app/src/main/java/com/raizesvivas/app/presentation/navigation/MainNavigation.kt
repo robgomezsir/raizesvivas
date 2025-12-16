@@ -383,6 +383,9 @@ fun MainNavigation(
                         navController.navigate(Screen.ReordenarFamilias.route) {
                             launchSingleTop = true
                         }
+                    },
+                    onNavigateToSearch = {
+                        navControllerPrincipal.navigate(Screen.Search.route)
                     }
                 )
             }

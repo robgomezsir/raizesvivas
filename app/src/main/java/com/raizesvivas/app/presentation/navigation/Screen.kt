@@ -75,5 +75,8 @@ sealed class Screen(val route: String) {
     
     // Reorganizar Famílias
     object ReordenarFamilias : Screen("reordenar_familias")
+    
+    // Busca Avançada
+    object Search : Screen("search")
 }
 

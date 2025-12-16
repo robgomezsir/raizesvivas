@@ -3,7 +3,9 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("com.google.dagger.hilt.android")
     id("com.google.gms.google-services")
-    kotlin("kapt")
+    id("com.google.firebase.crashlytics")
+    id("com.google.firebase.firebase-perf")
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -24,13 +26,7 @@ android {
         
         // Configuração do Room schema location
         // Isso evita warnings sobre opções não reconhecidas
-        javaCompileOptions {
-            annotationProcessorOptions {
-                arguments += mapOf(
-                    "room.schemaLocation" to "$projectDir/schemas"
-                )
-            }
-        }
+        // Configuração do Room schema location movida para bloco ksp
     }
 
     buildTypes {
@@ -97,16 +93,16 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.7.6")
     
     // Hilt (Injeção de Dependência)
-    implementation("com.google.dagger:hilt-android:2.48")
-    kapt("com.google.dagger:hilt-android-compiler:2.48")
+    implementation("com.google.dagger:hilt-android:2.51")
+    ksp("com.google.dagger:hilt-android-compiler:2.51")
     
     // Hilt Work (para Workers com Hilt)
     implementation("androidx.hilt:hilt-work:1.1.0")
-    kapt("androidx.hilt:hilt-compiler:1.1.0")
+    ksp("androidx.hilt:hilt-compiler:1.1.0")
     
     // WorkManager
     implementation("androidx.work:work-runtime-ktx:2.9.0")
-    kapt("com.google.dagger:hilt-compiler:2.48")
+    ksp("com.google.dagger:hilt-compiler:2.51")
     implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
     
     // Firebase
@@ -121,7 +117,7 @@ dependencies {
     val roomVersion = "2.6.1"
     implementation("androidx.room:room-runtime:$roomVersion")
     implementation("androidx.room:room-ktx:$roomVersion")
-    kapt("androidx.room:room-compiler:$roomVersion")
+    ksp("androidx.room:room-compiler:$roomVersion")
     
     // Coil (Carregamento de Imagens)
     implementation("io.coil-kt:coil-compose:2.5.0")
@@ -179,24 +175,20 @@ dependencies {
     
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+
+    // Paging 3
+    implementation("androidx.paging:paging-runtime-ktx:3.2.1")
+    implementation("androidx.paging:paging-compose:3.2.1")
+
+    // Firebase Performance & Crashlytics
+    implementation("com.google.firebase:firebase-perf-ktx")
+    implementation("com.google.firebase:firebase-crashlytics-ktx")
 }
 
 // Configuração do kapt para Hilt e Room
-kapt {
-    correctErrorTypes = true
-    
-    // Usar useBuildCache para melhor performance
-    useBuildCache = true
-    
-    // Configurar javacOptions para evitar warnings
-    javacOptions {
-        option("-source", "17")
-        option("-target", "17")
-        // Suprimir warnings de processamento de anotações
-        // Isso evita warnings sobre opções não reconhecidas por processadores específicos
-        // (como room.schemaLocation que é específico do Room, não do Hilt)
-        option("-Xlint:-processing")
-    }
+// Configuração do KSP
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 

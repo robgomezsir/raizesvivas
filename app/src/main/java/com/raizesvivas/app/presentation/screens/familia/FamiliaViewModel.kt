@@ -62,6 +62,10 @@ class FamiliaViewModel @Inject constructor(
     private val _state = MutableStateFlow(FamiliaState(isLoading = true))
     val state: StateFlow<FamiliaState> = _state
 
+    // Flow paginado de pessoas
+    val pessoasPaginadas = pessoaRepository.getPessoasPaginadas()
+
+
     init {
         carregarPreferenciasRejeitadas()
         carregarOrdemFamilias()

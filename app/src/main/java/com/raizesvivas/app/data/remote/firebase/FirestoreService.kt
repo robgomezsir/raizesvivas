@@ -458,8 +458,8 @@ class FirestoreService @Inject constructor(
                 "aprovado" to pessoa.aprovado,
                 "versao" to pessoa.versao,
                 "ehFamiliaZero" to pessoa.ehFamiliaZero,
-                "distanciaFamiliaZero" to pessoa.distanciaFamiliaZero
-                // nomeNormalizado é uma propriedade calculada, não deve ser salvo
+                "distanciaFamiliaZero" to pessoa.distanciaFamiliaZero,
+                "nomeNormalizado" to pessoa.nomeNormalizado
             )
             
             peopleCollection.document(pessoa.id)
@@ -611,6 +611,140 @@ class FirestoreService @Inject constructor(
             
         } catch (e: Exception) {
             Timber.e(e, "❌ Erro ao buscar pessoas paginadas")
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Busca pessoas com filtros avançados e paginação
+     */
+    suspend fun buscarPessoasComFiltros(
+        filtro: PessoaFilter,
+        limit: Long,
+        startAfter: com.google.firebase.firestore.DocumentSnapshot?
+    ): Result<PagedResult<Pessoa>> {
+        return try {
+            Timber.d("🔍 Buscando pessoas com filtros: termoBusca='${filtro.termoBusca}', genero=${filtro.genero}, localNascimento=${filtro.localNascimento}, apenasVivos=${filtro.apenasVivos}")
+            
+            var query: Query = peopleCollection
+                .whereEqualTo("aprovado", true)
+
+            // Aplicar filtros
+            
+            // 1. Gênero
+            if (filtro.genero != null) {
+                Timber.d("  Aplicando filtro de gênero: ${filtro.genero.name}")
+                query = query.whereEqualTo("genero", filtro.genero.name)
+            }
+
+            // 2. Local de Nascimento
+            if (!filtro.localNascimento.isNullOrBlank()) {
+                Timber.d("  Aplicando filtro de local: ${filtro.localNascimento}")
+                query = query.whereEqualTo("localNascimento", filtro.localNascimento)
+            }
+            
+            // 3. Status Vital (Apenas Vivos)
+            if (filtro.apenasVivos) {
+                Timber.d("  Aplicando filtro apenas vivos")
+                query = query.whereEqualTo("dataFalecimento", null)
+            }
+
+            // 4. Data de Nascimento (Range)
+            if (filtro.dataNascimentoInicio != null) {
+                Timber.d("  Aplicando filtro data início: ${filtro.dataNascimentoInicio}")
+                query = query.whereGreaterThanOrEqualTo("dataNascimento", filtro.dataNascimentoInicio)
+            }
+            if (filtro.dataNascimentoFim != null) {
+                Timber.d("  Aplicando filtro data fim: ${filtro.dataNascimentoFim}")
+                query = query.whereLessThanOrEqualTo("dataNascimento", filtro.dataNascimentoFim)
+            }
+
+            // Ordenação e Busca por Nome
+            
+            if (filtro.dataNascimentoInicio != null || filtro.dataNascimentoFim != null) {
+                // Se filtramos por data, ordenamos por data
+                Timber.d("  Ordenando por dataNascimento")
+                query = query.orderBy("dataNascimento", Query.Direction.ASCENDING)
+            } else if (filtro.termoBusca.isNotBlank()) {
+                // Se buscamos por nome (startAt/endAt), ordenamos por nomeNormalizado
+                val termo = filtro.termoBusca.lowercase().trim()
+                Timber.d("  Buscando por nome: '$termo' (usando nomeNormalizado)")
+                query = query.orderBy("nomeNormalizado")
+                    .startAt(termo)
+                    .endAt(termo + "\uf8ff")
+            } else {
+                // Padrão: Ordenar por nome
+                Timber.d("  Ordenando por nomeNormalizado (sem filtro de nome)")
+                query = query.orderBy("nomeNormalizado", Query.Direction.ASCENDING)
+            }
+
+            // Aplicar paginação
+            query = query.limit(limit)
+            
+            if (startAfter != null) {
+                Timber.d("  Paginação: startAfter documento ${startAfter.id}")
+                query = query.startAfter(startAfter)
+            }
+
+            Timber.d("  Executando query no Firestore...")
+            val snapshot = query.get().await()
+            Timber.d("  ✅ Query retornou ${snapshot.documents.size} documentos")
+
+            val pessoas = snapshot.documents.mapNotNull { doc ->
+                try {
+                    doc.toPessoa()
+                } catch (e: Exception) {
+                    Timber.e(e, "❌ Erro ao converter documento ${doc.id} para Pessoa")
+                    null
+                }
+            }
+            
+            Timber.d("  ✅ ${pessoas.size} documentos convertidos para Pessoa")
+            
+            // Filtragem Client-Side adicional se necessário
+            // Se usarmos filtro de data E busca por nome, o nome precisa ser filtrado aqui.
+            val pessoasFiltradas = if ((filtro.dataNascimentoInicio != null || filtro.dataNascimentoFim != null) && filtro.termoBusca.isNotBlank()) {
+                val filtradas = pessoas.filter { it.nomeNormalizado.contains(filtro.termoBusca.lowercase().trim()) }
+                Timber.d("  Filtragem client-side: ${pessoas.size} -> ${filtradas.size} pessoas")
+                filtradas
+            } else {
+                pessoas
+            }
+            
+            // Paginação manual se filtramos no client-side (simplificado: retorna o que tem)
+            // Idealmente deveria buscar mais se filtrou tudo, mas para MVP ok.
+            
+            val lastDocument = snapshot.documents.lastOrNull()
+            // Se filtramos no cliente, o hasMore pode ser impreciso se não ajustarmos o limit, mas startAfter funciona via documento
+            // Para simplicidade, assumimos que o documento retornado pelo Firestore é o cursor, mesmo que o item tenha sido filtrado fora.
+            // Mas se o lastDocument foi filtrado fora, podemos ter problemas de UX (cursor "inválido" visualmente, mas válido pro Firestore).
+            // Manteremos o lastDocument do snapshot original para garantir a continuidade da paginação do Firestore.
+
+            Timber.d("✅ Busca concluída: ${pessoasFiltradas.size} resultados, hasMore=${lastDocument != null}")
+            
+            Result.success(PagedResult(
+                data = pessoasFiltradas,
+                hasMore = lastDocument != null,
+                lastDocument = lastDocument
+            ))
+        } catch (e: com.google.firebase.firestore.FirebaseFirestoreException) {
+            // Erro específico do Firestore
+            when (e.code) {
+                com.google.firebase.firestore.FirebaseFirestoreException.Code.FAILED_PRECONDITION -> {
+                    Timber.e(e, "❌ Índice Firestore não encontrado. Verifique firestore.indexes.json")
+                    Result.failure(Exception("Índice do Firestore não configurado. Entre em contato com o administrador.", e))
+                }
+                com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED -> {
+                    Timber.e(e, "❌ Permissão negada ao buscar pessoas")
+                    Result.failure(Exception("Sem permissão para buscar pessoas.", e))
+                }
+                else -> {
+                    Timber.e(e, "❌ Erro do Firestore ao buscar pessoas: ${e.code}")
+                    Result.failure(e)
+                }
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro inesperado ao buscar pessoas com filtros")
             Result.failure(e)
         }
     }

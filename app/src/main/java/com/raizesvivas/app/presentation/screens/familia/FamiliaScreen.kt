@@ -185,7 +185,9 @@ fun FamiliaScreen(
     onNavigateToGerenciarUsuarios: () -> Unit = {},
     onNavigateToConfiguracoes: () -> Unit = {},
     onNavigateToPoliticaPrivacidade: () -> Unit = {},
-    onNavigateToReordenarFamilias: () -> Unit = {}
+
+    onNavigateToReordenarFamilias: () -> Unit = {},
+    onNavigateToSearch: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
     val pullRefreshState = rememberPullToRefreshState()
@@ -357,9 +359,19 @@ fun FamiliaScreen(
                 windowInsets = WindowInsets(0.dp),
                 actions = {
                     if (!mostrarBusca) {
-                        IconButton(onClick = { mostrarBusca = true }) {
-                            Icon(Icons.Filled.Search, contentDescription = "Buscar")
+                        if (abaSelecionada == 2) {
+                            // Na aba Pessoas, mostrar botão para Busca Avançada e não mostrar busca local
+                            IconButton(onClick = onNavigateToSearch) {
+                                Icon(Icons.Default.Search, contentDescription = "Busca Avançada")
+                            }
+                        } else if (abaSelecionada == 1) {
+                            // Aba Lista: busca local
+                             IconButton(onClick = { mostrarBusca = true }) {
+                                Icon(Icons.Filled.Search, contentDescription = "Buscar")
+                            }
                         }
+                        
+                        // Botões comuns
                         IconButton(onClick = onNavigateToAlbum) {
                             Icon(Icons.Filled.PhotoLibrary, contentDescription = "Álbum de Família")
                         }
@@ -372,8 +384,6 @@ fun FamiliaScreen(
                             Icon(Icons.Default.MoreVert, contentDescription = "Abrir menu lateral")
                         }
                     }
-                    // Quando mostrarBusca = true, não mostramos botão X aqui
-                    // porque RaizesVivasTextField já tem seu próprio botão de limpar
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
@@ -474,6 +484,17 @@ fun FamiliaScreen(
                             )
                         }
                     )
+                    Tab(
+                        selected = abaSelecionada == 2,
+                        onClick = { abaSelecionada = 2 },
+                        text = { Text("Pessoas") },
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Filled.Person,
+                                contentDescription = "Lista de Pessoas"
+                            )
+                        }
+                    )
                 }
                 
                 // Conteúdo baseado na aba selecionada
@@ -512,8 +533,16 @@ fun FamiliaScreen(
                                 nomeAmigoEditado = nomeAmigoEditado,
                                 telefoneAmigoEditado = telefoneAmigoEditado,
                                 termoBusca = termoBusca,
+
                                 onNavigateToDetalhesPessoa = onNavigateToDetalhesPessoa,
-                                onOpenReorderModal = onNavigateToReordenarFamilias
+                                onNavigateToReordenarFamilias = onNavigateToReordenarFamilias
+                            )
+                        }
+                        2 -> {
+                            // Aba Pessoas - Mostrar lista paginada de todas as pessoas
+                            ConteudoAbaPessoas(
+                                viewModel = viewModel,
+                                onNavigateToPessoa = onNavigateToDetalhesPessoa
                             )
                         }
                     }
@@ -2454,7 +2483,7 @@ private fun ConteudoAbaLista(
     telefoneAmigoEditado: androidx.compose.runtime.MutableState<String>,
     termoBusca: String,
     onNavigateToDetalhesPessoa: (String) -> Unit,
-    onOpenReorderModal: () -> Unit
+    onNavigateToReordenarFamilias: () -> Unit
 ) {
     // Buscar pessoas individuais quando houver termo de busca
     val pessoasFiltradas = remember(
@@ -2702,7 +2731,7 @@ private fun ConteudoAbaLista(
                             familias = state.familias,
                             todasPessoas = todasPessoasDasFamilias,
                             outrosFamiliares = state.outrosFamiliares,
-                            onOpenReorderModal = onOpenReorderModal
+                            onNavigateToReordenarFamilias = onNavigateToReordenarFamilias
                         )
                     }
                 }
@@ -3007,7 +3036,7 @@ private fun FamiliaCardLista(
     familias: List<FamiliaUiModel> = emptyList(),
     todasPessoas: List<Pessoa> = emptyList(),
     outrosFamiliares: List<Pessoa> = emptyList(),
-    onOpenReorderModal: () -> Unit = {}
+    onNavigateToReordenarFamilias: () -> Unit = {}
 ) {
     val colorScheme = MaterialTheme.colorScheme
     
@@ -3086,7 +3115,7 @@ private fun FamiliaCardLista(
                         // Ícone de reorganização (apenas para famílias não-zero)
                         if (!familia.ehFamiliaZero) {
                             IconButton(
-                                onClick = onOpenReorderModal,
+                                onClick = onNavigateToReordenarFamilias,
                                 modifier = Modifier.size(40.dp),
                                 colors = IconButtonDefaults.iconButtonColors(
                                     contentColor = colorScheme.onSurface.copy(alpha = 0.6f)
@@ -3544,7 +3573,7 @@ private fun FamiliaCard(
     familias: List<FamiliaUiModel> = emptyList(),
     todasPessoas: List<Pessoa> = emptyList(),
     outrosFamiliares: List<Pessoa> = emptyList(),
-    onOpenReorderModal: () -> Unit = {}
+    onNavigateToReordenarFamilias: () -> Unit = {}
 ) {
     when (modoVisualizacao) {
         ModoVisualizacao.LISTA -> {
@@ -3560,7 +3589,7 @@ private fun FamiliaCard(
                 familias = familias,
                 todasPessoas = todasPessoas,
                 outrosFamiliares = outrosFamiliares,
-                onOpenReorderModal = onOpenReorderModal
+                onNavigateToReordenarFamilias = onNavigateToReordenarFamilias
             )
         }
         ModoVisualizacao.ARVORE -> {

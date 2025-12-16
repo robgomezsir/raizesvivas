@@ -6,11 +6,15 @@ import com.raizesvivas.app.data.local.entities.toDomain
 import com.raizesvivas.app.data.local.entities.toEntity
 import com.raizesvivas.app.data.remote.firebase.FirestoreService
 import com.raizesvivas.app.domain.model.Pessoa
+import com.raizesvivas.app.domain.model.PessoaFilter
 import com.raizesvivas.app.domain.model.Genero
 import com.raizesvivas.app.presentation.components.agruparPessoasPorFamilias
 import com.raizesvivas.app.utils.ErrorHandler
 import com.raizesvivas.app.utils.RateLimiter
 import com.raizesvivas.app.utils.OperationType
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
@@ -108,7 +112,37 @@ class PessoaRepository @Inject constructor(
     }
     
     /**
+     * Retorna todas as pessoas paginadas (Paging 3)
+     */
+    fun getPessoasPaginadas(): Flow<androidx.paging.PagingData<Pessoa>> {
+        return androidx.paging.Pager(
+            config = androidx.paging.PagingConfig(
+                pageSize = 20,
+                enablePlaceholders = false,
+                initialLoadSize = 20 * 3
+            ),
+            pagingSourceFactory = { PessoasPagingSource(firestoreService) }
+        ).flow
+    }
+
+    /**
+     * Busca pessoas com filtros avançados (Paging 3)
+     */
+    fun buscarPessoasAvancado(filtro: PessoaFilter): Flow<PagingData<Pessoa>> {
+        return Pager(
+            config = PagingConfig(
+                pageSize = 20,
+                enablePlaceholders = false
+            ),
+            pagingSourceFactory = {
+                SearchPessoasPagingSource(firestoreService, filtro)
+            }
+        ).flow
+    }
+
+    /**
      * Sincroniza pessoas do Firestore para o cache local
+
      * Não limpa dados existentes, apenas atualiza/insere
      */
     suspend fun sincronizarDoFirestore(): Result<Unit> {
