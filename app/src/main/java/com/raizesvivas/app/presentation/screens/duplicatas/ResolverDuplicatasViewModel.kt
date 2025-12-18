@@ -3,6 +3,7 @@ package com.raizesvivas.app.presentation.screens.duplicatas
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.raizesvivas.app.data.remote.firebase.AuthService
+import com.raizesvivas.app.data.remote.firebase.FirestoreService
 import com.raizesvivas.app.data.repository.PessoaRepository
 import com.raizesvivas.app.data.repository.UsuarioRepository
 import com.raizesvivas.app.domain.usecase.DetectarDuplicatasUseCase
@@ -20,6 +21,7 @@ class ResolverDuplicatasViewModel @Inject constructor(
     private val detectarDuplicatasUseCase: DetectarDuplicatasUseCase,
     private val pessoaRepository: PessoaRepository,
     private val usuarioRepository: UsuarioRepository,
+    private val firestoreService: FirestoreService,
     private val authService: AuthService
 ) : ViewModel() {
     
@@ -58,9 +60,49 @@ class ResolverDuplicatasViewModel @Inject constructor(
             try {
                 _state.update { it.copy(isLoading = true) }
                 
-                val duplicatasEncontradas = detectarDuplicatasUseCase.detectarTodasDuplicatas(threshold = 0.8f)
-                _duplicatas.value = duplicatasEncontradas
+                // Buscar IDs das duplicatas pendentes do Firestore
+                val duplicatasResult = firestoreService.buscarDuplicatasPendentes()
                 
+                duplicatasResult.onSuccess { listaDuplicatas ->
+                    val listaProcessada = mutableListOf<DuplicateDetector.DuplicataResultado>()
+                    
+                    for (dados in listaDuplicatas) {
+                        try {
+                            val pessoa1Id = dados["pessoa1Id"] as? String ?: continue
+                            val pessoa2Id = dados["pessoa2Id"] as? String ?: continue
+                            val score = (dados["score"] as? Number)?.toFloat() ?: 0f
+                            val razoes = (dados["razoes"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList()
+                            
+                            // Buscar objetos Pessoa completos
+                            val pessoa1 = pessoaRepository.buscarPorId(pessoa1Id)
+                            val pessoa2 = pessoaRepository.buscarPorId(pessoa2Id)
+                            
+                            if (pessoa1 != null && pessoa2 != null) {
+                                // Normalizar score para 0-1 se vier 0-100 do backend
+                                val scoreNormalizado = if (score > 1.0) score / 100f else score
+                                
+                                listaProcessada.add(
+                                    DuplicateDetector.DuplicataResultado(
+                                        pessoa1 = pessoa1,
+                                        pessoa2 = pessoa2,
+                                        scoreSimilaridade = scoreNormalizado,
+                                        razoes = razoes
+                                    )
+                                )
+                            }
+                        } catch (e: Exception) {
+                            Timber.e(e, "Erro ao processar item de duplicata")
+                        }
+                    }
+                    
+                    _duplicatas.value = listaProcessada
+                }
+                
+                duplicatasResult.onFailure { e ->
+                    Timber.e(e, "Erro ao buscar duplicatas do Firestore")
+                    _state.update { it.copy(erro = "Erro ao buscar duplicatas: ${e.message}") }
+                }
+
                 _state.update { it.copy(isLoading = false) }
                 
             } catch (e: Exception) {
@@ -124,6 +166,10 @@ class ResolverDuplicatasViewModel @Inject constructor(
                     
                     // Deletar pessoa2
                     pessoaRepository.deletar(pessoaId2)
+                    
+                    // Marcar duplicata como resolvida no Firestore
+                    val duplicataId = if (pessoaId1 < pessoaId2) "${pessoaId1}_${pessoaId2}" else "${pessoaId2}_${pessoaId1}"
+                    firestoreService.atualizarStatusDuplicata(duplicataId, "RESOLVED")
                     
                     _state.update { 
                         it.copy(
@@ -212,13 +258,23 @@ class ResolverDuplicatasViewModel @Inject constructor(
     }
     
     fun marcarComoNaoDuplicatas(pessoaId1: String, pessoaId2: String) {
-        // Por enquanto, apenas remove da lista
-        // TODO: Salvar decisão no Firestore para não mostrar novamente
-        _duplicatas.update { duplicatas ->
-            duplicatas.filter { 
-                !(it.pessoa1.id == pessoaId1 && it.pessoa2.id == pessoaId2) &&
-                !(it.pessoa1.id == pessoaId2 && it.pessoa2.id == pessoaId1)
-            }
+        viewModelScope.launch {
+            // Ignorar essa duplicata no Firestore
+            val duplicataId = if (pessoaId1 < pessoaId2) "${pessoaId1}_${pessoaId2}" else "${pessoaId2}_${pessoaId1}"
+            
+            firestoreService.atualizarStatusDuplicata(duplicataId, "IGNORED")
+                .onSuccess {
+                    // Remover da lista local para feedback imediato
+                     _duplicatas.update { duplicatas ->
+                        duplicatas.filter { 
+                            !(it.pessoa1.id == pessoaId1 && it.pessoa2.id == pessoaId2) &&
+                            !(it.pessoa1.id == pessoaId2 && it.pessoa2.id == pessoaId1)
+                        }
+                    }
+                }
+                .onFailure {
+                    _state.update { s -> s.copy(erro = "Erro ao ignorar duplicata") }
+                }
         }
     }
     

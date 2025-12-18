@@ -8,9 +8,15 @@ import { HttpsError } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions";
 import nodemailer from "nodemailer";
 
+// Importar detecção de duplicatas
+import { detectarDuplicatas as detectarDuplicatasFn } from "./duplicates";
+
 const app = initializeApp();
 const db = getFirestore(app);
 const messaging = getMessaging(app);
+
+// Exportar trigger de duplicatas
+export const detectarDuplicatas = detectarDuplicatasFn;
 
 /**
  * Auth Blocking Function - before user is created (v2)

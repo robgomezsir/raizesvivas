@@ -39,7 +39,6 @@ class FirestoreService @Inject constructor(
     private val familiaZeroCollection = firestore.collection("familia_zero")
     private val invitesCollection = firestore.collection("invites")
     private val pendingEditsCollection = firestore.collection("pending_edits")
-    @Suppress("unused")
     private val duplicatesCollection = firestore.collection("duplicates")
     private val recadosCollection = firestore.collection("recados")
     private val familiasPersonalizadasCollection = firestore.collection("familias_personalizadas")
@@ -48,6 +47,66 @@ class FirestoreService @Inject constructor(
     private val familiasExcluidasCollection = firestore.collection("familias_excluidas")
     private val eventosCollection = firestore.collection("eventos")
     private val noticiasCollection = firestore.collection("noticias_familia")
+
+    // ============================================
+    // DUPLICATAS
+    // ============================================
+
+    /**
+     * Busca duplicatas pendentes
+     */
+    suspend fun buscarDuplicatasPendentes(): Result<List<Map<String, Any>>> {
+        return try {
+            val snapshot = duplicatesCollection
+                .whereEqualTo("status", "PENDING")
+                .orderBy("score", Query.Direction.DESCENDING)
+                .get()
+                .await()
+
+            val duplicatas = snapshot.documents.map { doc ->
+                val data = doc.data ?: emptyMap()
+                data + ("id" to doc.id)
+            }
+
+            Result.success(duplicatas)
+
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao buscar duplicatas pendentes")
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Atualiza o status de uma duplicata
+     */
+    suspend fun atualizarStatusDuplicata(id: String, status: String): Result<Unit> {
+        return try {
+            duplicatesCollection.document(id)
+                .update("status", status)
+                .await()
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao atualizar status da duplicata $id")
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Deleta uma duplicata (geralmente após merge)
+     */
+    suspend fun deletarDuplicata(id: String): Result<Unit> {
+        return try {
+            duplicatesCollection.document(id)
+                .delete()
+                .await()
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao deletar duplicata $id")
+            Result.failure(e)
+        }
+    }
     
     // NOVA ESTRUTURA: Coleções de conquistas
     private val usuariosCollection = firestore.collection("usuarios")
