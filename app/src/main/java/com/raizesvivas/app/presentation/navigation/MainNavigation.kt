@@ -131,7 +131,8 @@ fun MainNavigation(
         !route.contains("chat_contacts") &&
         !route.contains("chat_conversation") &&
         !route.contains("detalhes_pessoa") &&
-        !route.contains("reordenar_familias")
+        !route.contains("reordenar_familias") &&
+        !route.contains("moderacao")
     } ?: true
     
     Scaffold(
@@ -304,6 +305,11 @@ fun MainNavigation(
                             launchSingleTop = true
                         }
                     },
+                    onNavigateToModeracao = {
+                        navControllerPrincipal.navigate(Screen.Moderacao.route) {
+                            launchSingleTop = true
+                        }
+                    },
                     onNavigateToChat = { destinatarioId, destinatarioNome ->
                         navController.navigate(Screen.ChatConversation.createRoute(destinatarioId, destinatarioNome))
                     },
@@ -386,6 +392,11 @@ fun MainNavigation(
                     },
                     onNavigateToSearch = {
                         navControllerPrincipal.navigate(Screen.Search.route)
+                    },
+                    onNavigateToModeracao = {
+                        navControllerPrincipal.navigate(Screen.Moderacao.route) {
+                            launchSingleTop = true
+                        }
                     }
                 )
             }
@@ -440,6 +451,11 @@ fun MainNavigation(
                     },
                     onNavigateToPoliticaPrivacidade = {
                         navControllerPrincipal.navigate(Screen.PoliticaPrivacidade.route) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onNavigateToModeracao = {
+                        navControllerPrincipal.navigate(Screen.Moderacao.route) {
                             launchSingleTop = true
                         }
                     }
@@ -526,6 +542,11 @@ fun MainNavigation(
                         navControllerPrincipal.navigate(Screen.PoliticaPrivacidade.route) {
                             launchSingleTop = true
                         }
+                    },
+                    onNavigateToModeracao = {
+                        navControllerPrincipal.navigate(Screen.Moderacao.route) {
+                            launchSingleTop = true
+                        }
                     }
                 )
             }
@@ -599,6 +620,16 @@ fun MainNavigation(
                     },
                     onNavigateToConfiguracoes = {
                         navControllerPrincipal.navigate(Screen.Configuracoes.route) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onNavigateToPoliticaPrivacidade = {
+                        navControllerPrincipal.navigate(Screen.PoliticaPrivacidade.route) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onNavigateToModeracao = {
+                        navControllerPrincipal.navigate(Screen.Moderacao.route) {
                             launchSingleTop = true
                         }
                     }

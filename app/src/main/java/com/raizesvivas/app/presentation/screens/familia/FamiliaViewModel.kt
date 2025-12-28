@@ -68,6 +68,7 @@ class FamiliaViewModel @Inject constructor(
 
     init {
         carregarPreferenciasRejeitadas()
+        carregarPreferenciasConfirmadas()
         carregarOrdemFamilias()
         observarDados()
         registrarVisualizacaoArvore()
@@ -97,6 +98,21 @@ class FamiliaViewModel @Inject constructor(
                 Timber.d("📋 Carregadas ${rejeitados.size} famílias monoparentais rejeitadas")
             } catch (e: Exception) {
                 Timber.e(e, "❌ Erro ao carregar preferências de famílias rejeitadas")
+            }
+        }
+    }
+    
+    /**
+     * Carrega as preferências de famílias monoparentais confirmadas
+     */
+    private fun carregarPreferenciasConfirmadas() {
+        viewModelScope.launch {
+            try {
+                val confirmados = FamiliaMonoparentalPreferences.obterConfirmados(context)
+                familiasMonoparentaisConfirmadas.value = confirmados
+                Timber.d("📋 Carregadas ${confirmados.size} famílias monoparentais confirmadas")
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao carregar preferências de famílias confirmadas")
             }
         }
     }
@@ -144,7 +160,7 @@ class FamiliaViewModel @Inject constructor(
 
     private fun observarDados() {
         viewModelScope.launch {
-            // Combinar flows em duas etapas (combine suporta até 5 flows)
+            // Combinar flows em três etapas (combine suporta até 5 flows)
             // Primeira etapa: combinar 5 flows
             val dadosParciais1Flow = combine(
                 pessoaRepository.observarTodasPessoas(),
@@ -156,9 +172,24 @@ class FamiliaViewModel @Inject constructor(
                 DadosParciais1(pessoas, familiaZero, personalizadas, usuario, rejeitados)
             }
             
-            // Segunda etapa: combinar resultado anterior com famílias excluídas
-            val dadosParciais2Flow = combine(
+            // Segunda etapa: adicionar confirmações
+            val dadosParciais1ComConfirmacoesFlow = combine(
                 dadosParciais1Flow,
+                familiasMonoparentaisConfirmadas
+            ) { parcial1, confirmados ->
+                DadosParciais1ComConfirmacoes(
+                    pessoas = parcial1.pessoas,
+                    familiaZero = parcial1.familiaZero,
+                    personalizadas = parcial1.personalizadas,
+                    usuario = parcial1.usuario,
+                    rejeitados = parcial1.rejeitados,
+                    confirmados = confirmados
+                )
+            }
+            
+            // Terceira etapa: combinar resultado anterior com famílias excluídas
+            val dadosParciais2Flow = combine(
+                dadosParciais1ComConfirmacoesFlow,
                 familiaExcluidaRepository.observarTodas()
             ) { parcial1, excluidas ->
                 val familiasExcluidasIds = excluidas.map { it.familiaId }.toSet()
@@ -168,11 +199,12 @@ class FamiliaViewModel @Inject constructor(
                     personalizadas = parcial1.personalizadas,
                     usuario = parcial1.usuario,
                     rejeitados = parcial1.rejeitados,
+                    confirmados = parcial1.confirmados,
                     familiasExcluidasIds = familiasExcluidasIds
                 )
             }
             
-            // Terceira etapa: combinar com amigos
+            // Quarta etapa: combinar com amigos
             val dadosFamiliaFlow = combine(
                 dadosParciais2Flow,
                 amigoRepository.observarTodosAmigos()
@@ -181,7 +213,8 @@ class FamiliaViewModel @Inject constructor(
                     pessoas = parcial2.pessoas,
                     familiaZero = parcial2.familiaZero,
                     nomesPersonalizados = parcial2.personalizadas,
-                    familiasExcluidasIds = parcial2.familiasExcluidasIds
+                    familiasExcluidasIds = parcial2.familiasExcluidasIds,
+                    confirmados = parcial2.confirmados
                 )
 
                 val outrosFamiliares = parcial2.pessoas.filter { pessoa ->
@@ -248,9 +281,21 @@ class FamiliaViewModel @Inject constructor(
      */
     fun confirmarCriarFamiliaMonoparental() {
         _state.value.familiaPendenteAtual?.let { pendente ->
-            // Adicionar o ID do pai à lista de confirmados
+            val paiId = pendente.responsavel.id
+            
+            // Adicionar o ID do pai à lista de confirmados em memória
             familiasMonoparentaisConfirmadas.update { atual ->
-                atual + pendente.responsavel.id
+                atual + paiId
+            }
+            
+            // Persistir a confirmação no DataStore
+            viewModelScope.launch {
+                try {
+                    FamiliaMonoparentalPreferences.adicionarConfirmado(context, paiId)
+                    Timber.d("💾 Família monoparental confirmada persistida para pai: $paiId")
+                } catch (e: Exception) {
+                    Timber.e(e, "❌ Erro ao persistir confirmação de família monoparental")
+                }
             }
         }
         
@@ -269,7 +314,7 @@ class FamiliaViewModel @Inject constructor(
                 atual.copy(mostrarDialogFamiliaPendente = false, familiaPendenteAtual = null)
             }
         }
-        // As famílias serão recalculadas automaticamente pelo flow e a família será criada
+        // A família será criada automaticamente pelo flow observarDados() que detectará a mudança em familiasMonoparentaisConfirmadas
     }
 
     /**
@@ -306,20 +351,28 @@ class FamiliaViewModel @Inject constructor(
     
     /**
      * Permite que o usuário solicite explicitamente a criação de uma família monoparental
-     * que foi previamente rejeitada, removendo-a da lista de rejeitados.
-     * Isso fará com que a família seja sugerida novamente na próxima vez que o agrupamento for recalculado.
+     * que foi previamente rejeitada, removendo-a da lista de rejeitados e adicionando às confirmadas.
+     * Isso fará com que a família seja criada imediatamente.
      */
     fun solicitarCriarFamiliaMonoparental(paiId: String) {
         viewModelScope.launch {
             try {
+                // Remover da lista de rejeitados
                 FamiliaMonoparentalPreferences.removerRejeitado(context, paiId)
                 familiasMonoparentaisRejeitadas.update { atual ->
                     atual - paiId
                 }
-                Timber.d("✅ Família monoparental removida da lista de rejeitados: $paiId")
-                // O flow observará a mudança e recalculará automaticamente
+                
+                // Adicionar à lista de confirmados
+                FamiliaMonoparentalPreferences.adicionarConfirmado(context, paiId)
+                familiasMonoparentaisConfirmadas.update { atual ->
+                    atual + paiId
+                }
+                
+                Timber.d("✅ Família monoparental removida da lista de rejeitados e adicionada às confirmadas: $paiId")
+                // O flow observará a mudança e criará a família automaticamente
             } catch (e: Exception) {
-                Timber.e(e, "❌ Erro ao remover família monoparental da lista de rejeitados")
+                Timber.e(e, "❌ Erro ao processar solicitação de família monoparental")
             }
         }
     }
@@ -1058,7 +1111,8 @@ class FamiliaViewModel @Inject constructor(
         pessoas: List<Pessoa>,
         familiaZero: FamiliaZero?,
         nomesPersonalizados: List<FamiliaPersonalizada>,
-        familiasExcluidasIds: Set<String> = emptySet()
+        familiasExcluidasIds: Set<String> = emptySet(),
+        confirmados: Set<String> = emptySet()
     ): FamiliaMontagem {
         if (pessoas.isEmpty()) return FamiliaMontagem(emptyList(), emptySet(), emptyList())
 
@@ -1066,7 +1120,7 @@ class FamiliaViewModel @Inject constructor(
         val resultado = agruparPessoasPorFamiliasComPendentes(
             pessoas, 
             pessoasMap,
-            familiasMonoparentaisConfirmadas = familiasMonoparentaisConfirmadas.value,
+            familiasMonoparentaisConfirmadas = confirmados,
             familiasMonoparentaisRejeitadas = familiasMonoparentaisRejeitadas.value
         )
         val grupos = resultado.familias
@@ -1315,12 +1369,22 @@ private data class DadosParciais1(
     val rejeitados: Set<String>
 )
 
+private data class DadosParciais1ComConfirmacoes(
+    val pessoas: List<Pessoa>,
+    val familiaZero: FamiliaZero?,
+    val personalizadas: List<FamiliaPersonalizada>,
+    val usuario: Usuario?,
+    val rejeitados: Set<String>,
+    val confirmados: Set<String>
+)
+
 private data class DadosParciais2(
     val pessoas: List<Pessoa>,
     val familiaZero: FamiliaZero?,
     val personalizadas: List<FamiliaPersonalizada>,
     val usuario: Usuario?,
     val rejeitados: Set<String>,
+    val confirmados: Set<String>,
     val familiasExcluidasIds: Set<String>
 )
 

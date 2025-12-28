@@ -1,0 +1,11 @@
+{
+  "name": "validate-json",
+  "version": "1.0.0",
+  "description": "Script para validar apenas os arquivos JSON importantes do projeto",
+  "scripts": {
+    "validate": "node validate-json.js"
+  },
+  "devDependencies": {
+    "jsonlint": "^1.6.3"
+  }
+}

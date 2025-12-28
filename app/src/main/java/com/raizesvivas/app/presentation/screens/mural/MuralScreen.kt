@@ -93,7 +93,8 @@ fun MuralScreen(
     onNavigateToResolverDuplicatas: () -> Unit = {},
     onNavigateToGerenciarUsuarios: () -> Unit = {},
     onNavigateToConfiguracoes: () -> Unit = {},
-    onNavigateToPoliticaPrivacidade: () -> Unit = {}
+    onNavigateToPoliticaPrivacidade: () -> Unit = {},
+    onNavigateToModeracao: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
     val recados by viewModel.recados.collectAsState()
@@ -209,6 +210,12 @@ fun MuralScreen(
                     scope.launch {
                         drawerState.close()
                         onNavigateToPoliticaPrivacidade()
+                    }
+                },
+                onModeracao = {
+                    scope.launch {
+                        drawerState.close()
+                        onNavigateToModeracao()
                     }
                 },
                 onSair = {

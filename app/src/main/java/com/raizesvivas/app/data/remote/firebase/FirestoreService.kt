@@ -47,6 +47,8 @@ class FirestoreService @Inject constructor(
     private val familiasExcluidasCollection = firestore.collection("familias_excluidas")
     private val eventosCollection = firestore.collection("eventos")
     private val noticiasCollection = firestore.collection("noticias_familia")
+    private val auditLogsCollection = firestore.collection("audit_logs")
+
 
     // ============================================
     // DUPLICATAS
@@ -555,15 +557,14 @@ class FirestoreService @Inject constructor(
     }
     
     /**
-     * Busca todas as pessoas (método legado - mantido para compatibilidade)
-     * Nota: Este método tem limite de 100 documentos. Use buscarPessoasPaginado para listas maiores.
+     * Busca todas as pessoas do Firestore
+     * Nota: Para listas muito grandes, considere usar buscarPessoasPaginado para melhor performance.
      */
     suspend fun buscarTodasPessoas(): Result<List<Pessoa>> {
         return try {
             Timber.d("🔍 Buscando todas as pessoas no Firestore...")
             val snapshot = peopleCollection
                 .orderBy("nome", Query.Direction.ASCENDING)
-                .limit(100)
                 .get()
                 .await()
             
@@ -880,7 +881,6 @@ class FirestoreService @Inject constructor(
     fun observarTodasPessoas(): Flow<List<Pessoa>> = callbackFlow {
         val registration = peopleCollection
             .orderBy("nome", Query.Direction.ASCENDING)
-            .limit(100)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     Timber.e(error, "Erro ao observar pessoas")
@@ -4650,6 +4650,138 @@ class FirestoreService @Inject constructor(
             Result.failure(e)
         }
     }
+    
+    // ============================================
+    // AUDIT LOGS
+    // ============================================
+    
+    /**
+     * Registra um log de auditoria
+     */
+    suspend fun registrarAuditLog(log: AuditLog): Result<Unit> {
+        return try {
+            val data = hashMapOf<String, Any>(
+                "usuarioId" to log.usuarioId,
+                "usuarioNome" to log.usuarioNome,
+                "usuarioEmail" to log.usuarioEmail,
+                "acao" to log.acao.name,
+                "entidade" to log.entidade,
+                "entidadeId" to log.entidadeId,
+                "entidadeNome" to log.entidadeNome,
+                "detalhes" to log.detalhes,
+                "timestamp" to com.google.firebase.Timestamp(log.timestamp)
+            )
+            
+            // Adicionar campos opcionais
+            log.ipAddress?.let { data["ipAddress"] = it }
+            log.deviceInfo?.let { data["deviceInfo"] = it }
+            
+            auditLogsCollection.add(data).await()
+            
+            Timber.d("✅ Log de auditoria registrado: ${log.acao.name}")
+            Result.success(Unit)
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao registrar log de auditoria")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Busca logs de auditoria (limitado)
+     */
+    suspend fun buscarAuditLogs(limit: Int = 100): Result<List<AuditLog>> {
+        return try {
+            val snapshot = auditLogsCollection
+                .orderBy("timestamp", Query.Direction.DESCENDING)
+                .limit(limit.toLong())
+                .get()
+                .await()
+            
+            val logs = snapshot.documents.mapNotNull { doc ->
+                doc.toAuditLog()
+            }
+            
+            Timber.d("✅ ${logs.size} logs de auditoria carregados")
+            Result.success(logs)
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao buscar logs de auditoria")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Observa logs de auditoria em tempo real
+     */
+    fun observarAuditLogs(limit: Int = 100): Flow<List<AuditLog>> = callbackFlow {
+        val registration = auditLogsCollection
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .limit(limit.toLong())
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Timber.e(error, "Erro ao observar logs de auditoria")
+                    close(error)
+                    return@addSnapshotListener
+                }
+                
+                val logs = snapshot?.documents?.mapNotNull { doc ->
+                    doc.toAuditLog()
+                } ?: emptyList()
+                
+                trySend(logs)
+            }
+        
+        awaitClose { registration.remove() }
+    }
+    
+    /**
+     * Busca logs por usuário específico
+     */
+    suspend fun buscarAuditLogsPorUsuario(usuarioId: String, limit: Int = 100): Result<List<AuditLog>> {
+        return try {
+            val snapshot = auditLogsCollection
+                .whereEqualTo("usuarioId", usuarioId)
+                .orderBy("timestamp", Query.Direction.DESCENDING)
+                .limit(limit.toLong())
+                .get()
+                .await()
+            
+            val logs = snapshot.documents.mapNotNull { doc ->
+                doc.toAuditLog()
+            }
+            
+            Result.success(logs)
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao buscar logs por usuário")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Busca logs por tipo de ação
+     */
+    suspend fun buscarAuditLogsPorAcao(acao: TipoAcaoAudit, limit: Int = 100): Result<List<AuditLog>> {
+        return try {
+            val snapshot = auditLogsCollection
+                .whereEqualTo("acao", acao.name)
+                .orderBy("timestamp", Query.Direction.DESCENDING)
+                .limit(limit.toLong())
+                .get()
+                .await()
+            
+            val logs = snapshot.documents.mapNotNull { doc ->
+                doc.toAuditLog()
+            }
+            
+            Result.success(logs)
+            
+        } catch (e: Exception) {
+            Timber.e(e, "❌ Erro ao buscar logs por ação")
+            Result.failure(e)
+        }
+    }
 }
 
 private fun com.google.firebase.firestore.DocumentSnapshot.toAmigo(): Amigo? {
@@ -4693,6 +4825,37 @@ private fun com.google.firebase.firestore.DocumentSnapshot.toEvento(): EventoFam
         )
     } catch (e: Exception) {
         Timber.e(e, "Erro ao converter documento para EventoFamilia: ${this.id}")
+        null
+    }
+}
+
+/**
+ * Extensão para converter DocumentSnapshot em AuditLog
+ */
+private fun com.google.firebase.firestore.DocumentSnapshot.toAuditLog(): AuditLog? {
+    return try {
+        val data = this.data ?: return null
+        
+        AuditLog(
+            id = this.id,
+            usuarioId = data["usuarioId"] as? String ?: "",
+            usuarioNome = data["usuarioNome"] as? String ?: "",
+            usuarioEmail = data["usuarioEmail"] as? String ?: "",
+            acao = try {
+                TipoAcaoAudit.valueOf(data["acao"] as? String ?: "OUTRO")
+            } catch (e: Exception) {
+                TipoAcaoAudit.OUTRO
+            },
+            entidade = data["entidade"] as? String ?: "",
+            entidadeId = data["entidadeId"] as? String ?: "",
+            entidadeNome = data["entidadeNome"] as? String ?: "",
+            detalhes = data["detalhes"] as? String ?: "",
+            timestamp = (data["timestamp"] as? com.google.firebase.Timestamp)?.toDate() ?: JavaDate(),
+            ipAddress = data["ipAddress"] as? String,
+            deviceInfo = data["deviceInfo"] as? String
+        )
+    } catch (e: Exception) {
+        Timber.e(e, "Erro ao converter documento para AuditLog: ${this.id}")
         null
     }
 }

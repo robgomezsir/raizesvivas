@@ -50,6 +50,9 @@ sealed class Screen(val route: String) {
     // Configurações (Admin Sênior)
     object Configuracoes : Screen("configuracoes")
     
+    // Moderação (Admin Sênior)
+    object Moderacao : Screen("moderacao")
+    
     // Chat
     object ChatContacts : Screen("chat_contacts")
     object ChatConversation : Screen("chat_conversation/{destinatarioId}/{destinatarioNome}") {

@@ -185,6 +185,7 @@ fun FamiliaScreen(
     onNavigateToGerenciarUsuarios: () -> Unit = {},
     onNavigateToConfiguracoes: () -> Unit = {},
     onNavigateToPoliticaPrivacidade: () -> Unit = {},
+    onNavigateToModeracao: () -> Unit = {},
 
     onNavigateToReordenarFamilias: () -> Unit = {},
     onNavigateToSearch: () -> Unit = {}
@@ -316,6 +317,12 @@ fun FamiliaScreen(
                     scope.launch {
                         drawerState.close()
                         onNavigateToPoliticaPrivacidade()
+                    }
+                },
+                onModeracao = {
+                    scope.launch {
+                        drawerState.close()
+                        onNavigateToModeracao()
                     }
                 },
                 onSair = {

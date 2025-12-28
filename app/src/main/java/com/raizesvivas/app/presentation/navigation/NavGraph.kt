@@ -469,6 +469,25 @@ fun NavGraph(
         }
         
         // ============================================
+        // MODERAÇÃO (ADMIN SÊNIOR)
+        // ============================================
+        
+        composable(
+            route = Screen.Moderacao.route,
+            enterTransition = { Transitions.enterTransition() },
+            exitTransition = { Transitions.exitTransition() },
+            popEnterTransition = { Transitions.popEnterTransition() },
+            popExitTransition = { Transitions.popExitTransition() }
+        ) {
+            com.raizesvivas.app.presentation.screens.moderacao.ModeracaoScreen(
+                onNavigateBack = {
+                    navController.previousBackStackEntry?.savedStateHandle?.set("open_drawer", true)
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        // ============================================
         // ADICIONAR AMIGO DA FAMÍLIA
         // ============================================
         

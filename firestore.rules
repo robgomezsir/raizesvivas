@@ -877,5 +877,52 @@ service cloud.firestore {
         return camposCriticosOk && sincronizacaoOk && motivoOk;
       }
     }
+    
+    // ==============================
+    // 📝 Coleção: audit_logs (LOGS DE AUDITORIA)
+    // ==============================
+    // LOGS DE AUDITORIA:
+    // - Apenas usuários autenticados podem criar logs (registrar ações)
+    // - Apenas ADMIN SR pode ler logs (visualizar histórico de ações)
+    // - Ninguém pode atualizar ou deletar logs (imutáveis)
+    match /audit_logs/{logId} {
+      // CRIAÇÃO: Qualquer usuário autenticado pode criar logs
+      // O app registra automaticamente as ações dos usuários
+      allow create: if isAuthenticated() &&
+                     validarAuditLog();
+      
+      // LEITURA E LISTAGEM: Apenas ADMIN SR pode visualizar logs
+      // Queries devem ser eficientes (limit <= 100 e orderBy)
+      allow read, list: if isAdminSenior() && isEfficientQuery();
+      
+      // ATUALIZAÇÃO E DELEÇÃO: Bloqueado (logs são imutáveis)
+      allow update, delete: if false;
+      
+      // Função auxiliar para validar dados de audit log
+      function validarAuditLog() {
+        let dados = request.resource.data;
+        return dados.keys().hasAll(['usuarioId', 'usuarioNome', 'usuarioEmail', 'acao', 'entidade', 'entidadeId', 'entidadeNome', 'detalhes', 'timestamp']) &&
+               dados.usuarioId is string &&
+               dados.usuarioId.size() > 0 &&
+               dados.usuarioNome is string &&
+               dados.usuarioNome.size() > 0 &&
+               dados.usuarioEmail is string &&
+               dados.usuarioEmail.size() > 0 &&
+               dados.acao is string &&
+               dados.acao.size() > 0 &&
+               dados.entidade is string &&
+               dados.entidade.size() > 0 &&
+               dados.entidadeId is string &&
+               dados.entidadeId.size() > 0 &&
+               dados.entidadeNome is string &&
+               dados.entidadeNome.size() > 0 &&
+               dados.detalhes is string &&
+               dados.detalhes.size() > 0 &&
+               dados.timestamp is timestamp &&
+               // Campos opcionais
+               (!dados.keys().hasAny(['ipAddress']) || dados.ipAddress == null || dados.ipAddress is string) &&
+               (!dados.keys().hasAny(['deviceInfo']) || dados.deviceInfo == null || dados.deviceInfo is string);
+      }
+    }
   }
 }

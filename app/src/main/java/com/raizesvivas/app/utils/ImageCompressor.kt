@@ -322,12 +322,54 @@ object ImageCompressor {
     }
     
     /**
+     * Comprime uma imagem com tamanho customizado
+     * 
+     * @param imagePath Caminho do arquivo de imagem original
+     * @param targetSizeKB Tamanho máximo em KB
+     * @param maxWidth Largura máxima (padrão: 1600 para álbum)
+     * @param maxHeight Altura máxima (padrão: 1600 para álbum)
+     * @return ByteArray da imagem comprimida ou null em caso de erro
+     */
+    suspend fun comprimirComTamanhoCustomizado(
+        imagePath: String, 
+        targetSizeKB: Int,
+        maxWidth: Int = MAX_WIDTH_ALBUM,
+        maxHeight: Int = MAX_HEIGHT_ALBUM
+    ): Result<ByteArray> {
+        return withContext(Dispatchers.IO) {
+            try {
+                // Ler bitmap original
+                val bitmap = BitmapFactory.decodeFile(imagePath)
+                    ?: return@withContext Result.failure(Exception("Erro ao decodificar imagem"))
+                
+                // Ajustar orientação (EXIF)
+                val bitmapOrientado = corrigirOrientacao(bitmap, imagePath)
+                
+                // Redimensionar se necessário
+                val bitmapRedimensionado = redimensionar(bitmapOrientado, maxWidth, maxHeight)
+                
+                // Comprimir até atingir o tamanho alvo
+                val targetSizeBytes = targetSizeKB * 1024L
+                val imagemComprimida = comprimir(bitmapRedimensionado, targetSizeBytes)
+                
+                Timber.d("✅ Imagem comprimida (customizado): ${imagemComprimida.size} bytes (${imagemComprimida.size / 1024}KB) - alvo: ${targetSizeKB}KB")
+                
+                Result.success(imagemComprimida)
+                
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Erro ao comprimir imagem com tamanho customizado")
+                Result.failure(e)
+            }
+        }
+    }
+    
+    /**
      * Comprime imagem para arquivo temporário
      * 
      * @param imagePath Caminho da imagem original
      * @param targetSizeKB Tamanho alvo em KB (padrão 250KB para perfil)
      * @param paraPerfil Se true, usa compressão otimizada para fotos de perfil (250KB, 1200x1200)
-     * @param paraAlbum Se true, usa compressão otimizada para fotos do álbum (500KB, 1600x1600)
+     * @param paraAlbum Se true, usa compressão otimizada para fotos do álbum (respeita targetSizeKB se fornecido)
      * @return File temporário com imagem comprimida ou null em caso de erro
      */
     suspend fun compressToFile(
@@ -338,16 +380,24 @@ object ImageCompressor {
     ): File? {
         return try {
             val resultado = when {
+                paraAlbum && targetSizeKB != 500 -> {
+                    // Usar compressão customizada para álbum com tamanho específico
+                    Timber.d("🗜️ Comprimindo para álbum com tamanho customizado: ${targetSizeKB}KB")
+                    comprimirComTamanhoCustomizado(imagePath, targetSizeKB, MAX_WIDTH_ALBUM, MAX_HEIGHT_ALBUM)
+                }
                 paraAlbum -> {
-                    // Usar compressão otimizada para álbum (500KB, 1600x1600)
+                    // Usar compressão otimizada padrão para álbum (500KB, 1600x1600)
+                    Timber.d("🗜️ Comprimindo para álbum com tamanho padrão: 500KB")
                     comprimirParaAlbum(imagePath)
                 }
                 paraPerfil && targetSizeKB >= 100 -> {
                     // Usar compressão otimizada para perfil (250KB, 1200x1200)
+                    Timber.d("🗜️ Comprimindo para perfil: ${targetSizeKB}KB")
                     comprimirParaPerfil(imagePath)
                 }
                 else -> {
                     // Usar compressão pequena (compatibilidade)
+                    Timber.d("🗜️ Comprimindo com tamanho pequeno (legado): 10KB")
                     comprimirPara10KB(imagePath)
                 }
             }

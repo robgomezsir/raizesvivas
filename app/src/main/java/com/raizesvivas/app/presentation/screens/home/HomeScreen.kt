@@ -95,6 +95,7 @@ fun HomeScreen(
     onNavigateToResolverDuplicatas: () -> Unit = {},
     onNavigateToGerenciarUsuarios: () -> Unit = {},
     onNavigateToConfiguracoes: () -> Unit = {},
+    onNavigateToModeracao: () -> Unit = {},
     onNavigateToPoliticaPrivacidade: () -> Unit = {},
 
     onNavigateToChat: (String, String) -> Unit = { _, _ -> }, // destinatarioId, destinatarioNome
@@ -465,6 +466,12 @@ fun HomeScreen(
                     scope.launch {
                         drawerState.close()
                         onNavigateToConfiguracoes()
+                    }
+                },
+                onModeracao = {
+                    scope.launch {
+                        drawerState.close()
+                        onNavigateToModeracao()
                     }
                 },
                 onNavigateToPoliticaPrivacidade = {
@@ -2444,6 +2451,7 @@ fun HomeDrawerContent(
     onResolverDuplicatas: () -> Unit,
     onGerenciarUsuarios: () -> Unit,
     onConfiguracoes: () -> Unit,
+    onModeracao: () -> Unit = {},
     onNavigateToPoliticaPrivacidade: () -> Unit,
     onSair: () -> Unit,
     themeMode: ThemeMode,
@@ -2546,6 +2554,14 @@ fun HomeDrawerContent(
                     selected = false,
                     onClick = onConfiguracoes,
                     icon = { Icon(Icons.Default.Settings, contentDescription = null) },
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                )
+                
+                NavigationDrawerItem(
+                    label = { Text("Moderação") },
+                    selected = false,
+                    onClick = onModeracao,
+                    icon = { Icon(Icons.Default.Shield, contentDescription = null) },
                     modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                 )
             }

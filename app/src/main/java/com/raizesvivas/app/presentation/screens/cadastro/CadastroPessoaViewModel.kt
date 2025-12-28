@@ -40,7 +40,8 @@ class CadastroPessoaViewModel @Inject constructor(
     private val detectarDuplicatasUseCase: DetectarDuplicatasUseCase,
     private val validarDuplicataUseCase: ValidarDuplicataUseCase,
     private val storageService: StorageService,
-    private val verificarConquistasUseCase: VerificarConquistasUseCase
+    private val verificarConquistasUseCase: VerificarConquistasUseCase,
+    private val auditLogRepository: com.raizesvivas.app.data.repository.AuditLogRepository
 ) : ViewModel() {
     
     private val tituloLocale = Locale("pt", "BR")
@@ -394,6 +395,44 @@ class CadastroPessoaViewModel @Inject constructor(
         resultado.onSuccess {
             Timber.d("✅ Pessoa ${if (isEditing) "atualizada" else "salva"}: ${pessoa.nome}")
             
+            // Registrar log de auditoria
+            viewModelScope.launch {
+                try {
+                    val acao = if (isEditing) com.raizesvivas.app.domain.model.TipoAcaoAudit.EDITAR 
+                              else com.raizesvivas.app.domain.model.TipoAcaoAudit.CRIAR
+                    
+                    val detalhes = if (isEditing) {
+                        // Detectar campos alterados
+                        val camposAlterados = mutableListOf<String>()
+                        pessoaOriginal?.let { original ->
+                            if (original.nome != pessoa.nome) camposAlterados.add("nome")
+                            if (original.dataNascimento != pessoa.dataNascimento) camposAlterados.add("data de nascimento")
+                            if (original.telefone != pessoa.telefone) camposAlterados.add("telefone")
+                            if (original.localResidencia != pessoa.localResidencia) camposAlterados.add("local de residência")
+                            if (original.profissao != pessoa.profissao) camposAlterados.add("profissão")
+                            if (original.fotoUrl != pessoa.fotoUrl) camposAlterados.add("foto")
+                        }
+                        if (camposAlterados.isNotEmpty()) {
+                            "Editou ${camposAlterados.joinToString(", ")}"
+                        } else {
+                            "Editou pessoa: ${pessoa.nome}"
+                        }
+                    } else {
+                        "Criou nova pessoa: ${pessoa.nome}"
+                    }
+                    
+                    auditLogRepository.registrarAcao(
+                        acao = acao,
+                        entidade = "Pessoa",
+                        entidadeId = pessoa.id,
+                        entidadeNome = pessoa.nome,
+                        detalhes = detalhes
+                    )
+                } catch (e: Exception) {
+                    Timber.e(e, "Erro ao registrar log de auditoria, mas operação continua")
+                }
+            }
+            
             // Atualizar relacionamentos bidirecionais após salvar com sucesso
             atualizarRelacionamentosBidirecionais(pessoaId, pessoaOriginal, pessoa, ehAdmin)
             ParentescoCalculator.limparCache()
@@ -705,6 +744,22 @@ class CadastroPessoaViewModel @Inject constructor(
             
             pessoaRepository.removerFoto(pessoaId).fold(
                 onSuccess = {
+                    // Registrar log de auditoria
+                    viewModelScope.launch {
+                        try {
+                            val pessoa = pessoaRepository.buscarPorId(pessoaId)
+                            auditLogRepository.registrarAcao(
+                                acao = com.raizesvivas.app.domain.model.TipoAcaoAudit.EDITAR,
+                                entidade = "Pessoa",
+                                entidadeId = pessoaId,
+                                entidadeNome = pessoa?.nome ?: "Pessoa",
+                                detalhes = "Removeu foto de perfil"
+                            )
+                        } catch (e: Exception) {
+                            Timber.e(e, "Erro ao registrar log de auditoria, mas operação continua")
+                        }
+                    }
+                    
                     _state.update { state ->
                         state.copy(
                             fotoPath = null,
