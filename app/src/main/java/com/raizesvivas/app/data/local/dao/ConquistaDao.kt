@@ -78,7 +78,7 @@ interface ConquistaDao {
         progresso: Int,
         concluida: Boolean,
         desbloqueadaEm: Long?
-    )
+    ): Int
     
     /**
      * Marca conquista como concluída para o usuário
@@ -92,7 +92,7 @@ interface ConquistaDao {
             precisaSincronizar = 1
         WHERE conquistaId = :conquistaId AND usuarioId = :usuarioId
     """)
-    suspend fun marcarComoDesbloqueada(conquistaId: String, usuarioId: String, timestamp: Long)
+    suspend fun marcarComoDesbloqueada(conquistaId: String, usuarioId: String, timestamp: Long): Int
     
     /**
      * Busca conquistas que precisam ser sincronizadas

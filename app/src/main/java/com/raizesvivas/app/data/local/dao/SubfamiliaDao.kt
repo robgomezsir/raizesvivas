@@ -86,13 +86,13 @@ interface SubfamiliaDao {
      * Marca subfamília como precisando sincronizar
      */
     @Query("UPDATE subfamilias SET precisaSincronizar = 1 WHERE id = :subfamiliaId")
-    suspend fun marcarParaSincronizar(subfamiliaId: String)
+    suspend fun marcarParaSincronizar(subfamiliaId: String): Int
     
     /**
      * Marca subfamília como sincronizada
      */
     @Query("UPDATE subfamilias SET precisaSincronizar = 0, sincronizadoEm = :timestamp WHERE id = :subfamiliaId")
-    suspend fun marcarComoSincronizada(subfamiliaId: String, timestamp: Long = System.currentTimeMillis())
+    suspend fun marcarComoSincronizada(subfamiliaId: String, timestamp: Long): Int
     
     // ============================================
     // DELEÇÃO
@@ -108,11 +108,11 @@ interface SubfamiliaDao {
      * Deleta subfamília por ID
      */
     @Query("DELETE FROM subfamilias WHERE id = :subfamiliaId")
-    suspend fun deletarPorId(subfamiliaId: String)
+    suspend fun deletarPorId(subfamiliaId: String): Int
     
     /**
      * Arquiva subfamília (não deleta, apenas marca como inativa)
      */
     @Query("UPDATE subfamilias SET ativa = 0 WHERE id = :subfamiliaId")
-    suspend fun arquivar(subfamiliaId: String)
+    suspend fun arquivar(subfamiliaId: String): Int
 }

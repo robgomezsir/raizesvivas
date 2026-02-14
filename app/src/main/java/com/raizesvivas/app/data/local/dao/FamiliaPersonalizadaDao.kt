@@ -24,10 +24,10 @@ interface FamiliaPersonalizadaDao {
     suspend fun inserirTodas(entities: List<FamiliaPersonalizadaEntity>)
 
     @Query("DELETE FROM familias_personalizadas")
-    suspend fun deletarTodas()
+    suspend fun deletarTodas(): Int
     
     @Query("DELETE FROM familias_personalizadas WHERE familiaId = :familiaId")
-    suspend fun deletarPorId(familiaId: String)
+    suspend fun deletarPorId(familiaId: String): Int
 
     @Update
     suspend fun atualizar(entity: FamiliaPersonalizadaEntity)

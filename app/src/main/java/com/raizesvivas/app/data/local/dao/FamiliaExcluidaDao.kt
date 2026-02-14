@@ -41,13 +41,13 @@ interface FamiliaExcluidaDao {
      * Remove uma família excluída por ID (para restaurar)
      */
     @Query("DELETE FROM familias_excluidas WHERE familiaId = :familiaId")
-    suspend fun deletarPorId(familiaId: String)
+    suspend fun deletarPorId(familiaId: String): Int
     
     /**
      * Remove todas as famílias excluídas
      */
     @Query("DELETE FROM familias_excluidas")
-    suspend fun deletarTodas()
+    suspend fun deletarTodas(): Int
     
     /**
      * Busca famílias que precisam ser sincronizadas

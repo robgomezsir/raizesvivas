@@ -57,6 +57,6 @@ interface AmigoDao {
      * Deleta amigo por ID
      */
     @Query("DELETE FROM amigos WHERE id = :amigoId")
-    suspend fun deletarPorId(amigoId: String)
+    suspend fun deletarPorId(amigoId: String): Int
 }
 

@@ -473,4 +473,3 @@ fun LoginScreen(
         }
     }
 }
-

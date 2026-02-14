@@ -79,8 +79,8 @@ interface SugestaoSubfamiliaDao {
     suspend fun atualizarStatus(
         sugestaoId: String,
         status: StatusSugestao,
-        processadoEm: Long = System.currentTimeMillis()
-    )
+        processadoEm: Long
+    ): Int
     
     // ============================================
     // DELEÇÃO
@@ -96,11 +96,11 @@ interface SugestaoSubfamiliaDao {
      * Deleta sugestão por ID
      */
     @Query("DELETE FROM sugestoes_subfamilias WHERE id = :sugestaoId")
-    suspend fun deletarPorId(sugestaoId: String)
+    suspend fun deletarPorId(sugestaoId: String): Int
     
     /**
      * Limpa sugestões antigas (rejeitadas ou expiradas)
      */
     @Query("DELETE FROM sugestoes_subfamilias WHERE status IN ('REJEITADA', 'EXPIRADA') AND processadoEm < :timestamp")
-    suspend fun limparAntigas(timestamp: Long)
+    suspend fun limparAntigas(timestamp: Long): Int
 }

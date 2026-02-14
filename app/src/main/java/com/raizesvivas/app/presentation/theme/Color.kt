@@ -127,4 +127,3 @@ val ConnectionDark = Color(0xFF3D1CA3) // Versão escura
 val RaizesSuccess = Growth
 val RaizesWarning = Legacy
 val RaizesInfo = Connection
-

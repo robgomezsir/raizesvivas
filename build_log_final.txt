@@ -1,0 +1,220 @@
+Starting a Gradle Daemon, 10 stopped Daemons could not be reused, use --status for details
+Calculating task graph as no cached configuration is available for tasks: clean :app:assembleDebug
+
+> Configure project :app
+WARNING: The option setting 'android.usesSdkInManifest.disallowed=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+WARNING: The option setting 'android.sdk.defaultTargetSdkToCompileSdkIfUnset=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+WARNING: The option setting 'android.enableAppCompileTimeRClass=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+WARNING: The option setting 'android.builtInKotlin=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+WARNING: The option setting 'android.newDsl=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+WARNING: The option setting 'android.r8.optimizedResourceShrinking=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+WARNING: The option setting 'android.defaults.buildfeatures.resvalues=true' is deprecated.
+The current default is 'false'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+w: file:///C:/Users/robgo/raizesvivas/app/build.gradle.kts:12:1: 'fun Project.android(configure: Action<BaseAppModuleExtension>): Unit' is deprecated. Replaced by com.android.build.api.dsl.ApplicationExtension.
+This class is not used for the public extensions in AGP when android.newDsl=true, which is the default in AGP 9.0, and will be removed in AGP 10.0.
+w: file:///C:/Users/robgo/raizesvivas/app/build.gradle.kts:49:5: 'fun BaseAppModuleExtension.kotlinOptions(configure: Action<DeprecatedKotlinJvmOptions>): Unit' is deprecated. Please migrate to the compilerOptions DSL. More details are here: https://kotl.in/u1r8ln.
+w: file:///C:/Users/robgo/raizesvivas/app/build.gradle.kts:50:9: 'var jvmTarget: String' is deprecated. Please migrate to the compilerOptions DSL. More details are here: https://kotl.in/u1r8ln.
+w: file:///C:/Users/robgo/raizesvivas/app/build.gradle.kts:52:9: 'var freeCompilerArgs: List<String>' is deprecated. Please migrate to the compilerOptions DSL. More details are here: https://kotl.in/u1r8ln.
+w: file:///C:/Users/robgo/raizesvivas/app/build.gradle.kts:52:9: 'var freeCompilerArgs: List<String>' is deprecated. Please migrate to the compilerOptions DSL. More details are here: https://kotl.in/u1r8ln.
+w: file:///C:/Users/robgo/raizesvivas/app/build.gradle.kts:52:9: 'var freeCompilerArgs: List<String>' is deprecated. Please migrate to the compilerOptions DSL. More details are here: https://kotl.in/u1r8ln.
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+
+> Configure project :core:database
+w: file:///C:/Users/robgo/raizesvivas/core/database/build.gradle.kts:8:1: 'fun Project.android(configure: Action<LibraryExtension>): Unit' is deprecated. Replaced by com.android.build.api.dsl.LibraryExtension.
+This class is not used for the public extensions in AGP when android.newDsl=true, which is the default in AGP 9.0, and will be removed in AGP 10.0.
+w: file:///C:/Users/robgo/raizesvivas/core/database/build.gradle.kts:34:5: 'fun LibraryExtension.kotlinOptions(configure: Action<DeprecatedKotlinJvmOptions>): Unit' is deprecated. Please migrate to the compilerOptions DSL. More details are here: https://kotl.in/u1r8ln.
+w: file:///C:/Users/robgo/raizesvivas/core/database/build.gradle.kts:35:9: 'var jvmTarget: String' is deprecated. Please migrate to the compilerOptions DSL. More details are here: https://kotl.in/u1r8ln.
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+
+> Configure project :core:ui
+w: file:///C:/Users/robgo/raizesvivas/core/ui/build.gradle.kts:9:1: 'fun Project.android(configure: Action<LibraryExtension>): Unit' is deprecated. Replaced by com.android.build.api.dsl.LibraryExtension.
+This class is not used for the public extensions in AGP when android.newDsl=true, which is the default in AGP 9.0, and will be removed in AGP 10.0.
+w: file:///C:/Users/robgo/raizesvivas/core/ui/build.gradle.kts:35:5: 'fun LibraryExtension.kotlinOptions(configure: Action<DeprecatedKotlinJvmOptions>): Unit' is deprecated. Please migrate to the compilerOptions DSL. More details are here: https://kotl.in/u1r8ln.
+w: file:///C:/Users/robgo/raizesvivas/core/ui/build.gradle.kts:36:9: 'var jvmTarget: String' is deprecated. Please migrate to the compilerOptions DSL. More details are here: https://kotl.in/u1r8ln.
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :core:database:clean UP-TO-DATE
+> Task :core:ui:clean UP-TO-DATE
+> Task :app:clean
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:generateDebugResValues FROM-CACHE
+> Task :app:injectCrashlyticsMappingFileIdDebug
+> Task :app:processDebugGoogleServices FROM-CACHE
+> Task :app:javaPreCompileDebug FROM-CACHE
+> Task :app:desugarDebugFileDependencies FROM-CACHE
+> Task :app:injectCrashlyticsVersionControlInfoDebug FROM-CACHE
+> Task :app:generateDebugBuildConfig FROM-CACHE
+> Task :app:generateDebugResources FROM-CACHE
+> Task :app:extractDeepLinksDebug FROM-CACHE
+> Task :app:writeDebugAppMetadata
+> Task :app:createDebugCompatibleScreenManifests
+> Task :app:writeDebugSigningConfigVersions
+> Task :app:validateSigningDebug
+> Task :app:mergeDebugJniLibFolders
+> Task :app:mergeDebugAssets
+> Task :app:mapDebugSourceSetPaths
+> Task :app:compressDebugAssets FROM-CACHE
+> Task :app:processDebugNavigationResources FROM-CACHE
+> Task :app:compileDebugNavigationResources FROM-CACHE
+> Task :app:mergeDebugNativeLibs
+> Task :app:checkDebugAarMetadata
+
+> Task :app:stripDebugDebugSymbols
+Unable to strip the following libraries, packaging them as they are: libandroidx.graphics.path.so. Run with --info option to learn more.
+
+> Task :app:checkDebugDuplicateClasses
+> Task :app:mergeLibDexDebug FROM-CACHE
+> Task :app:packageDebugResources FROM-CACHE
+> Task :app:mergeDebugResources FROM-CACHE
+> Task :app:processDebugMainManifest
+> Task :app:parseDebugLocalResources
+> Task :app:processDebugManifest
+> Task :app:processDebugManifestForPackage
+> Task :app:mergeExtDexDebug
+> Task :app:processDebugResources
+> Task :app:kspDebugKotlin
+> Task :app:compileDebugKotlin
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/MainActivity.kt:137:40 'var statusBarColor: Int' is deprecated. Deprecated in Java.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/MainActivity.kt:138:40 'var navigationBarColor: Int' is deprecated. Deprecated in Java.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/data/worker/WorkManagerInitializer.kt:20:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/components/FamilyTreeConnector.kt:89:14 'fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/components/FamilyTreeConnector.kt:94:14 'fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/components/RadialTreeView.kt:92:25 'fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/components/TreeNode.kt:92:37 Condition is always 'true'.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/navigation/MainNavigation.kt:246:56 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/navigation/MainNavigation.kt:330:56 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/navigation/MainNavigation.kt:406:56 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/navigation/MainNavigation.kt:566:56 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/navigation/NavGraph.kt:537:52 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/admin/SincronizacaoRelacoesScreen.kt:22:49 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/album/AlbumFamiliaScreen.kt:109:40 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/album/AlbumFamiliaScreen.kt:150:54 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/amigo/AdicionarAmigoScreen.kt:28:42 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/arvore/ArvoreHierarquicaScreen.kt:72:35 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/arvore/FamilyTreeConnectors.kt:75:14 'fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/arvore/FamilyTreeConnectors.kt:80:14 'fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/auth/CadastroScreen.kt:61:36 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/auth/LoginScreen.kt:65:33 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/auth/RecuperarSenhaScreen.kt:51:42 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/auth/RedefinirSenhaScreen.kt:42:42 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/cadastro/CadastroPessoaScreen.kt:43:42 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/chat/ChatContactsScreen.kt:37:32 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/chat/ChatConversationScreen.kt:47:32 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/configuracoes/ConfiguracoesScreen.kt:30:41 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/conquistas/ConquistasScreen.kt:40:39 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/convites/AceitarConvitesScreen.kt:30:43 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/convites/GerenciarConvitesScreen.kt:45:45 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/convites/PedirConviteScreen.kt:21:40 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/detalhes/DetalhesPessoaScreen.kt:38:42 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/duplicatas/ResolverDuplicatasScreen.kt:23:46 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/edicoes/GerenciarEdicoesScreen.kt:27:44 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/familia/FamiliaScreen.kt:177:35 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/familia/FamiliaScreen.kt:209:54 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/familia/FamiliaViewModel.kt:54:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/familia/ReordenarFamiliasScreen.kt:34:35 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/home/HomeScreen.kt:85:32 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/home/HomeScreen.kt:109:54 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/home/HomeScreen.kt:114:40 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/home/HomeScreen.kt:118:46 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/home/HomeScreen.kt:122:54 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/home/HomeScreen.kt:1770:25 'fun LinearProgressIndicator(progress: Float, modifier: Modifier = ..., color: Color = ..., trackColor: Color = ..., strokeCap: StrokeCap = ...): Unit' is deprecated. Use the overload that takes `progress` as a lambda.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/home/HomeViewModel.kt:62:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/moderacao/ModeracaoScreen.kt:28:37 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/moderacao/ModeracaoScreen.kt:518:46 'val Icons.Filled.Login: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Login.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/moderacao/ModeracaoScreen.kt:519:47 'val Icons.Filled.Logout: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Logout.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/mural/MuralScreen.kt:87:33 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/mural/MuralScreen.kt:105:54 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/onboarding/FamiliaZeroScreen.kt:33:39 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/perfil/PerfilScreen.kt:61:34 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/perfil/PerfilScreen.kt:62:50 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/perfil/PerfilScreen.kt:135:54 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/search/SearchScreen.kt:27:34 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/presentation/screens/usuarios/GerenciarUsuariosScreen.kt:34:45 'fun <reified VM : ViewModel> hiltViewModel(viewModelStoreOwner: ViewModelStoreOwner = ..., key: String? = ...): VM' is deprecated. Moved to package: androidx.hilt.lifecycle.viewmodel.compose.
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/utils/ImageCacheManager.kt:28:40 This declaration needs opt-in. Its usage should be marked with '@coil.annotation.ExperimentalCoilApi' or '@OptIn(coil.annotation.ExperimentalCoilApi::class)'
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/utils/ImageCacheManager.kt:50:40 This declaration needs opt-in. Its usage should be marked with '@coil.annotation.ExperimentalCoilApi' or '@OptIn(coil.annotation.ExperimentalCoilApi::class)'
+w: file:///C:/Users/robgo/raizesvivas/app/src/main/java/com/raizesvivas/app/utils/RateLimiter.kt:41:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+
+> Task :app:processDebugJavaRes
+> Task :app:mergeDebugJavaResource
+> Task :app:compileDebugJavaWithJavac
+> Task :app:hiltSyncDebug
+> Task :app:hiltAggregateDepsDebug
+> Task :app:hiltJavaCompileDebug
+> Task :app:transformDebugClassesWithAsm
+> Task :app:dexBuilderDebug
+> Task :app:mergeDebugGlobalSynthetics
+> Task :app:mergeProjectDexDebug
+> Task :app:packageDebug
+> Task :app:assembleDebug
+> Task :app:createDebugApkListingFileRedirect
+ASM Instrumentation process wasn't able to resolve some classes, this means that
+the instrumented classes might contain corrupt stack frames. Make sure the
+dependencies that contain these classes are on the runtime or the provided
+classpath. Otherwise, the jvm might fail to load the corrupt classes at runtime
+when running in a jvm environment like unit tests.
+
+Classes that weren't resolved:
+> com.google.common.util.concurrent.ListenableFuture
+> androidx.compose.animation.tooling.ComposeAnimatedProperty
+> sun.misc.Unsafe
+> javax.naming.NamingException
+> javax.naming.directory.Attributes
+
+
+BUILD SUCCESSFUL in 6m 11s
+49 actionable tasks: 33 executed, 14 from cache, 2 up-to-date
+Configuration cache entry stored.

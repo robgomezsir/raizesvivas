@@ -6,16 +6,17 @@ plugins {
     id("com.google.firebase.crashlytics")
     id("com.google.firebase.firebase-perf")
     id("com.google.devtools.ksp")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 android {
     namespace = "com.raizesvivas.app"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.raizesvivas.app"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0.0"
 
@@ -59,10 +60,6 @@ android {
         buildConfig = true
     }
 
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.4"
-    }
-
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -93,17 +90,18 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.7.6")
     
     // Hilt (Injeção de Dependência)
-    implementation("com.google.dagger:hilt-android:2.51")
-    ksp("com.google.dagger:hilt-android-compiler:2.51")
+    implementation("com.google.dagger:hilt-android:2.59.1")
+    ksp("com.google.dagger:hilt-android-compiler:2.59.1")
     
     // Hilt Work (para Workers com Hilt)
-    implementation("androidx.hilt:hilt-work:1.1.0")
-    ksp("androidx.hilt:hilt-compiler:1.1.0")
+    implementation("androidx.hilt:hilt-work:1.3.0")
+    ksp("androidx.hilt:hilt-compiler:1.3.0")
     
     // WorkManager
     implementation("androidx.work:work-runtime-ktx:2.9.0")
-    ksp("com.google.dagger:hilt-compiler:2.51")
-    implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
+    ksp("com.google.dagger:hilt-compiler:2.59.1")
+    implementation("androidx.hilt:hilt-navigation-compose:1.3.0")
+    implementation("androidx.hilt:hilt-lifecycle-viewmodel-compose:1.3.0")
     
     // Firebase
     implementation(platform("com.google.firebase:firebase-bom:32.7.0"))

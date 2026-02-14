@@ -96,4 +96,3 @@ fun RaizesVivasTheme(
         content = content
     )
 }
-

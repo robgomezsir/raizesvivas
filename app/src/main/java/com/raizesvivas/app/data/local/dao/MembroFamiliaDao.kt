@@ -87,17 +87,17 @@ interface MembroFamiliaDao {
      * Remove membro de uma família específica
      */
     @Query("DELETE FROM membros_familias WHERE membroId = :membroId AND familiaId = :familiaId")
-    suspend fun removerMembroDeFamilia(membroId: String, familiaId: String)
+    suspend fun removerMembroDeFamilia(membroId: String, familiaId: String): Int
     
     /**
      * Remove todos os membros de uma família
      */
     @Query("DELETE FROM membros_familias WHERE familiaId = :familiaId")
-    suspend fun removerTodosMembros(familiaId: String)
+    suspend fun removerTodosMembros(familiaId: String): Int
     
     /**
      * Remove membro de todas as famílias
      */
     @Query("DELETE FROM membros_familias WHERE membroId = :membroId")
-    suspend fun removerMembroDeTodasFamilias(membroId: String)
+    suspend fun removerMembroDeTodasFamilias(membroId: String): Int
 }

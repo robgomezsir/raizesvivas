@@ -161,13 +161,13 @@ interface PessoaDao {
      * Marca pessoa como precisando sincronizar
      */
     @Query("UPDATE pessoas SET precisaSincronizar = 1 WHERE id = :pessoaId")
-    suspend fun marcarParaSincronizar(pessoaId: String)
+    suspend fun marcarParaSincronizar(pessoaId: String): Int
     
     /**
      * Marca pessoa como sincronizada
      */
     @Query("UPDATE pessoas SET precisaSincronizar = 0, sincronizadoEm = :timestamp WHERE id = :pessoaId")
-    suspend fun marcarComoSincronizada(pessoaId: String, timestamp: Long = System.currentTimeMillis())
+    suspend fun marcarComoSincronizada(pessoaId: String, timestamp: Long): Int
     
     // ============================================
     // DELEÇÃO
@@ -183,18 +183,17 @@ interface PessoaDao {
      * Deleta pessoa por ID
      */
     @Query("DELETE FROM pessoas WHERE id = :pessoaId")
-    suspend fun deletarPorId(pessoaId: String)
+    suspend fun deletarPorId(pessoaId: String): Int
     
     /**
      * Deleta todas as pessoas (use com cuidado!)
      */
     @Query("DELETE FROM pessoas")
-    suspend fun deletarTodas()
+    suspend fun deletarTodas(): Int
     
     /**
      * Deleta pessoas não sincronizadas (limpeza de cache)
      */
     @Query("DELETE FROM pessoas WHERE precisaSincronizar = 0 AND sincronizadoEm < :timestamp")
-    suspend fun limparCacheAntigo(timestamp: Long)
+    suspend fun limparCacheAntigo(timestamp: Long): Int
 }
-

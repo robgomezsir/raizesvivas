@@ -50,13 +50,13 @@ interface NotificacaoDao {
      * Marca notificação como lida
      */
     @Query("UPDATE notificacoes SET lida = 1 WHERE id = :id")
-    suspend fun marcarComoLida(id: String)
+    suspend fun marcarComoLida(id: String): Int
     
     /**
      * Marca todas as notificações como lidas
      */
     @Query("UPDATE notificacoes SET lida = 1")
-    suspend fun marcarTodasComoLidas()
+    suspend fun marcarTodasComoLidas(): Int
     
     /**
      * Deleta notificação
@@ -68,7 +68,7 @@ interface NotificacaoDao {
      * Deleta notificações antigas (mais de X dias)
      */
     @Query("DELETE FROM notificacoes WHERE criadaEm < :timestampLimite")
-    suspend fun deletarAntigas(timestampLimite: Long)
+    suspend fun deletarAntigas(timestampLimite: Long): Int
     
     /**
      * Busca notificações de aniversário não lidas de hoje

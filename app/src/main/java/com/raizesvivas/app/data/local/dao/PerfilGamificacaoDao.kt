@@ -38,7 +38,7 @@ interface PerfilGamificacaoDao {
             precisaSincronizar = 1
         WHERE usuarioId = :usuarioId
     """)
-    suspend fun adicionarXP(usuarioId: String, xp: Int, novoNivel: Int)
+    suspend fun adicionarXP(usuarioId: String, xp: Int, novoNivel: Int): Int
     
     /**
      * Atualiza contador de conquistas desbloqueadas
@@ -49,7 +49,7 @@ interface PerfilGamificacaoDao {
             precisaSincronizar = 1
         WHERE usuarioId = :usuarioId
     """)
-    suspend fun atualizarContadorConquistas(usuarioId: String, quantidade: Int)
+    suspend fun atualizarContadorConquistas(usuarioId: String, quantidade: Int): Int
     
     /**
      * Inicializa perfil de gamificação para novo usuário
@@ -59,6 +59,6 @@ interface PerfilGamificacaoDao {
         (usuarioId, nivel, xpTotal, conquistasDesbloqueadas, totalConquistas, sincronizadoEm, precisaSincronizar)
         VALUES (:usuarioId, 1, 0, 0, :totalConquistas, :timestamp, 0)
     """)
-    suspend fun inicializarPerfil(usuarioId: String, totalConquistas: Int, timestamp: Long)
+    suspend fun inicializarPerfil(usuarioId: String, totalConquistas: Int, timestamp: Long): Long
 }
 

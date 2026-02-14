@@ -50,19 +50,19 @@ interface UsuarioDao {
      * Atualiza flag de primeiro acesso
      */
     @Query("UPDATE usuarios SET primeiroAcesso = :valor WHERE id = :userId")
-    suspend fun atualizarPrimeiroAcesso(userId: String, valor: Boolean)
+    suspend fun atualizarPrimeiroAcesso(userId: String, valor: Boolean): Int
     
     /**
      * Atualiza pessoa vinculada
      */
     @Query("UPDATE usuarios SET pessoaVinculada = :pessoaId WHERE id = :userId")
-    suspend fun vincularPessoa(userId: String, pessoaId: String)
+    suspend fun vincularPessoa(userId: String, pessoaId: String): Int
     
     /**
      * Atualiza Família Zero
      */
     @Query("UPDATE usuarios SET familiaZeroPai = :paiId, familiaZeroMae = :maeId WHERE id = :userId")
-    suspend fun atualizarFamiliaZero(userId: String, paiId: String, maeId: String)
+    suspend fun atualizarFamiliaZero(userId: String, paiId: String, maeId: String): Int
     
     /**
      * Deleta usuário
@@ -74,12 +74,12 @@ interface UsuarioDao {
      * Deleta usuário por ID
      */
     @Query("DELETE FROM usuarios WHERE id = :userId")
-    suspend fun deletarPorId(userId: String)
+    suspend fun deletarPorId(userId: String): Int
     
     /**
      * Deleta todos os usuários (logout completo)
      */
     @Query("DELETE FROM usuarios")
-    suspend fun deletarTodos()
+    suspend fun deletarTodos(): Int
 }
 
