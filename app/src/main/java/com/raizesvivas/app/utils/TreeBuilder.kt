@@ -22,28 +22,40 @@ object TreeBuilder {
         val pessoasMap = pessoas.associateBy { it.id }
         val pessoaRaiz = casalFamiliaZero.first ?: return null
         
+        // OTIMIZAÇÃO: Pré-calcular mapa de filhos para busca O(1) durante a recursão
+        val childrenMap = mutableMapOf<String, MutableSet<String>>()
+        pessoas.forEach { p ->
+            if (p.id.isNotBlank()) {
+                p.pai?.takeIf { it.isNotBlank() }?.let { paiId ->
+                    childrenMap.getOrPut(paiId) { mutableSetOf() }.add(p.id)
+                }
+                p.mae?.takeIf { it.isNotBlank() }?.let { maeId ->
+                    childrenMap.getOrPut(maeId) { mutableSetOf() }.add(p.id)
+                }
+            }
+        }
+        
         return buildTreeNode(
             pessoa = pessoaRaiz,
             conjuge = casalFamiliaZero.second,
             pessoasMap = pessoasMap,
+            childrenMap = childrenMap,
             nivel = 0,
             nosExpandidos = nosExpandidos,
-            visitados = mutableSetOf(),
             caminhoAtual = mutableListOf()
         )
     }
     
     /**
      * Constrói recursivamente um nó da árvore com TODOS os seus relacionamentos
-     * Busca dinamicamente todos os familiares seguindo regras de famílias
      */
     private fun buildTreeNode(
         pessoa: Pessoa,
         conjuge: Pessoa?,
         pessoasMap: Map<String, Pessoa>,
+        childrenMap: Map<String, Set<String>>,
         nivel: Int,
         nosExpandidos: Set<String>,
-        visitados: MutableSet<String>,
         caminhoAtual: MutableList<String>
     ): TreeNodeData {
         // Detectar ciclos no caminho
@@ -52,95 +64,61 @@ object TreeBuilder {
             return TreeNodeData(pessoa = pessoa, nivel = nivel)
         }
         
-        // Evitar processar a mesma pessoa múltiplas vezes no mesmo ramo
-        // Mas permitir que apareça em ramos diferentes (ex: avô que aparece em múltiplas famílias)
-        val visitadosNesteRamo = visitados.toMutableSet()
-        visitadosNesteRamo.add(pessoa.id)
-        val novoCaminho = caminhoAtual.toMutableList()
-        novoCaminho.add(pessoa.id)
+        // Adicionar ao caminho atual (usando lista para preservar ordem e detectar ciclos)
+        caminhoAtual.add(pessoa.id)
         
-        // Coletar TODOS os filhos diretos e indiretos
+        // Coletar IDs de filhos usando o mapa pré-calculado O(1)
         val filhosIds = mutableSetOf<String>()
         
-        // Filhos diretos da pessoa (filtrar apenas IDs que existem no mapa)
+        // 1. Filhos declarados no objeto Pessoa (mantendo compatibilidade)
         pessoa.filhos.filter { it.isNotBlank() && it in pessoasMap }.forEach { filhosIds.add(it) }
-        
-        // Se há cônjuge, incluir filhos do cônjuge também (filtrar apenas IDs que existem)
         conjuge?.let { c ->
             c.filhos.filter { it.isNotBlank() && it in pessoasMap }.forEach { filhosIds.add(it) }
         }
         
-        // Buscar filhos por referência da PESSOA PRINCIPAL (mesmo sem cônjuge)
-        // Isso garante que famílias monoparentais funcionem corretamente
-        pessoasMap.values.forEach { pessoaCadastrada ->
-            if ((pessoaCadastrada.pai == pessoa.id || pessoaCadastrada.mae == pessoa.id) && 
-                pessoaCadastrada.id.isNotBlank() && 
-                pessoaCadastrada.id in pessoasMap) {
-                filhosIds.add(pessoaCadastrada.id)
-            }
+        // 2. Filhos que apontam para esta pessoa/conjuge (via mapa pré-calculado)
+        childrenMap[pessoa.id]?.let { filhosIds.addAll(it) }
+        conjuge?.id?.let { conjugeId ->
+            childrenMap[conjugeId]?.let { filhosIds.addAll(it) }
         }
         
-        // Buscar filhos adicionais através do cônjuge (se houver)
-        // Casos onde o cônjuge tem filhos de relacionamento anterior
-        conjuge?.let { c ->
-            pessoasMap.values.forEach { pessoaCadastrada ->
-                if ((pessoaCadastrada.pai == c.id || pessoaCadastrada.mae == c.id) && 
-                    pessoaCadastrada.id.isNotBlank() && 
-                    pessoaCadastrada.id in pessoasMap) {
-                    filhosIds.add(pessoaCadastrada.id)
-                }
-            }
-        }
-        
-        // Construir nós filhos recursivamente (agora todos os IDs já foram validados)
-        val children = filhosIds.mapNotNull { filhoId ->
-            val filho = pessoasMap[filhoId]
-            if (filho != null) {
-                // Encontrar cônjuge do filho se existir
+        // Construir nós filhos recursivamente
+        val children = if (filhosIds.isEmpty()) {
+            emptyList()
+        } else {
+            filhosIds.mapNotNull { filhoId ->
+                val filho = pessoasMap[filhoId] ?: return@mapNotNull null
+                
                 val conjugeFilho = filho.conjugeAtual?.takeIf { 
                     it.isNotBlank() && it in pessoasMap 
                 }?.let { pessoasMap[it] }
-                
-                // Verificar se já foi visitado neste ramo específico
-                val visitadosFilhos = if (filho.id in visitadosNesteRamo) {
-                    // Se já foi visitado, criar novo set para permitir aparecer em outro ramo
-                    mutableSetOf<String>()
-                } else {
-                    visitadosNesteRamo.toMutableSet()
-                }
                 
                 buildTreeNode(
                     pessoa = filho,
                     conjuge = conjugeFilho,
                     pessoasMap = pessoasMap,
+                    childrenMap = childrenMap,
                     nivel = nivel + 1,
                     nosExpandidos = nosExpandidos,
-                    visitados = visitadosFilhos,
-                    caminhoAtual = novoCaminho.toMutableList()
+                    caminhoAtual = caminhoAtual
                 )
-            } else {
-                // Este caso não deveria acontecer mais, mas mantemos como fallback
-                Timber.w("⚠️ Filho não encontrado após validação: $filhoId")
-                null
             }
         }
         
-        // Determinar se está expandido
+        // Remover do caminho após processar filhos (backtracking)
+        caminhoAtual.removeAt(caminhoAtual.size - 1)
+        
         val isExpanded = nosExpandidos.isEmpty() || nosExpandidos.contains(pessoa.id) || nivel == 0
         
-        // Mostrar casal em TODOS os níveis quando houver relacionamento válido
-        // Verificar se há cônjuge e se é um relacionamento válido (bidirecional)
         val temRelacionamentoValido = conjuge != null && (
-            nivel == 0 || // Sempre mostrar na raiz
-            conjuge.conjugeAtual == pessoa.id || // Cônjuge aponta para pessoa
-            pessoa.conjugeAtual == conjuge.id    // Pessoa aponta para cônjuge
+            nivel == 0 || 
+            conjuge.conjugeAtual == pessoa.id || 
+            pessoa.conjugeAtual == conjuge.id
         )
-        
-        val mostrarConjuge = temRelacionamentoValido
         
         return TreeNodeData(
             pessoa = pessoa,
-            conjuge = if (mostrarConjuge) conjuge else null,
+            conjuge = if (temRelacionamentoValido) conjuge else null,
             children = children,
             isExpanded = isExpanded,
             nivel = nivel

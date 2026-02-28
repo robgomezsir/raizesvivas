@@ -2228,23 +2228,34 @@ private fun ConteudoAbaHierarquica(
         if (imagensBackground.isNotEmpty() && imagemAtualIndex >= 0 && imagemAtualIndex < imagensBackground.size) {
             val context = LocalContext.current
             val imageBitmap = remember(imagemAtualIndex, screenWidth, screenHeight) {
-                // Carregar bitmap original
-                val originalBitmap = BitmapFactory.decodeResource(context.resources, imagensBackground[imagemAtualIndex])
+                val res = context.resources
+                val resId = imagensBackground[imagemAtualIndex]
                 
-                // Redimensionar o bitmap para preencher a tela
-                val scaledBitmap = Bitmap.createScaledBitmap(
-                    originalBitmap,
-                    screenWidth,
-                    screenHeight,
-                    true // filter = true para melhor qualidade
-                )
+                // 1. Obter dimensões sem carregar na memória
+                val options = BitmapFactory.Options().apply {
+                    inJustDecodeBounds = true
+                }
+                BitmapFactory.decodeResource(res, resId, options)
                 
-                // Reciclar o bitmap original para liberar memória
-                if (originalBitmap != scaledBitmap) {
-                    originalBitmap.recycle()
+                // 2. Calcular inSampleSize (potência de 2)
+                options.inSampleSize = calcularInSampleSize(options, screenWidth, screenHeight)
+                options.inJustDecodeBounds = false
+                
+                // 3. Carregar o bitmap amostrado
+                val sampledBitmap = BitmapFactory.decodeResource(res, resId, options)
+                
+                // 4. Redimensionar para o tamanho exato da tela se necessário
+                val finalBitmap = if (sampledBitmap != null && (sampledBitmap.width != screenWidth || sampledBitmap.height != screenHeight)) {
+                    val scaled = Bitmap.createScaledBitmap(sampledBitmap, screenWidth, screenHeight, true)
+                    if (scaled != sampledBitmap) {
+                        sampledBitmap.recycle()
+                    }
+                    scaled
+                } else {
+                    sampledBitmap
                 }
                 
-                scaledBitmap.asImageBitmap()
+                finalBitmap?.asImageBitmap() ?: ImageBitmap(1, 1)
             }
             
             Canvas(
@@ -3647,28 +3658,51 @@ fun construirArvoreRecursiva(pessoas: List<Pessoa>): NoArvore? {
     val familiaZeroList = pessoas.filter { it.ehFamiliaZero }
     if (familiaZeroList.isEmpty()) return null
     
+    // OTIMIZAÇÃO: Pré-calcular mapa de filhos para evitar Filtro O(N) dentro da recursão
+    val childrenMap = mutableMapOf<String, MutableSet<String>>()
+    pessoas.forEach { p ->
+        p.pai?.let { childrenMap.getOrPut(it) { mutableSetOf() }.add(p.id) }
+        p.mae?.let { childrenMap.getOrPut(it) { mutableSetOf() }.add(p.id) }
+        p.filhos.forEach { filhoId ->
+            childrenMap.getOrPut(p.id) { mutableSetOf() }.add(filhoId)
+        }
+    }
+    
     val raizPrincipal = familiaZeroList.first()
     val raizConjuge = if (familiaZeroList.size > 1) {
         val otherZero = familiaZeroList.first { it.id != raizPrincipal.id }
         if (raizPrincipal.conjugeAtual == otherZero.id || otherZero.conjugeAtual == raizPrincipal.id) otherZero else null
     } else null
     
-    fun construirNo(pessoa: Pessoa, conjuge: Pessoa?, nivel: Int, isMaternal: Boolean): NoArvore {
-        val filhosIds = mutableSetOf<String>()
-        pessoa.filhos.forEach { filhosIds.add(it) }
-        conjuge?.filhos?.forEach { filhosIds.add(it) }
-        
-        val filhosPorRef = pessoas.filter { p ->
-            (p.pai == pessoa.id || p.mae == pessoa.id) || (conjuge != null && (p.pai == conjuge.id || p.mae == conjuge.id))
+    // Rastreamento de caminho para evitar ciclos (StackOverflow)
+    fun construirNo(
+        pessoa: Pessoa, 
+        conjuge: Pessoa?, 
+        nivel: Int, 
+        isMaternal: Boolean,
+        path: Set<String> = emptySet()
+    ): NoArvore {
+        // Se já visitamos esta pessoa neste ramo, paramos para evitar ciclo infinito
+        if (path.contains(pessoa.id)) {
+            return NoArvore(pessoa, conjuge, emptyList(), nivel, isMaternal)
         }
-        filhosPorRef.forEach { filhosIds.add(it.id) }
+        
+        val novoPath = path + pessoa.id
+        val filhosIds = mutableSetOf<String>()
+        
+        // Buscar filhos usando o mapa otimizado O(1)
+        childrenMap[pessoa.id]?.let { filhosIds.addAll(it) }
+        conjuge?.id?.let { cId ->
+            childrenMap[cId]?.let { filhosIds.addAll(it) }
+        }
         
         val filhosNos = filhosIds.mapNotNull { id -> pessoasMap[id] }
             .distinctBy { it.id }
+            .filter { it.id !in novoPath } // Filtro extra de segurança contra ciclos imediatos
             .map { filho ->
                 val conjugeFilhoId = filho.conjugeAtual
                 val conjugeFilho = if (conjugeFilhoId != null) pessoasMap[conjugeFilhoId] else null
-                construirNo(filho, conjugeFilho, nivel + 1, isMaternal)
+                construirNo(filho, conjugeFilho, nivel + 1, isMaternal, novoPath)
             }
             .sortedBy { it.pessoa.dataNascimento }
             
@@ -4050,5 +4084,20 @@ private fun FamiliaCardReorder(
             )
         }
     }
+}
+
+private fun calcularInSampleSize(options: BitmapFactory.Options, reqWidth: Int, reqHeight: Int): Int {
+    val (height: Int, width: Int) = options.outHeight to options.outWidth
+    var inSampleSize = 1
+
+    if (height > reqHeight || width > reqWidth) {
+        val halfHeight: Int = height / 2
+        val halfWidth: Int = width / 2
+
+        while (halfHeight / inSampleSize >= reqHeight && halfWidth / inSampleSize >= reqWidth) {
+            inSampleSize *= 2
+        }
+    }
+    return inSampleSize
 }
 

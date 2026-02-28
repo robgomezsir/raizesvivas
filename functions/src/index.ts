@@ -367,7 +367,7 @@ async function getUserName(userId: string): Promise<string> {
  */
 async function getPersonName(personId: string): Promise<string> {
   try {
-    const personDoc = await db.collection("pessoas").doc(personId).get();
+    const personDoc = await db.collection("people").doc(personId).get();
 
     return personDoc.data()?.nome || "Uma pessoa";
   } catch (error) {
@@ -507,68 +507,97 @@ export const onAniversarioAgendado = onSchedule(
     timeZone: "America/Sao_Paulo",
   },
   async (event) => {
-    const hoje = new Date();
-    const dia = hoje.getDate();
-    const mes = hoje.getMonth() + 1; // JavaScript months are 0-indexed
-
-    logger.info(`🎂 Verificando aniversários para ${dia}/${mes}`);
-
     try {
-      // Buscar todas as pessoas
-      const pessoasSnapshot = await db.collection("pessoas").get();
-
-      const aniversariantes: any[] = [];
-
-      // Filtrar pessoas com aniversário hoje
-      pessoasSnapshot.docs.forEach((doc) => {
-        const pessoa = doc.data();
-        if (pessoa.dataNascimento) {
-          const dataNasc = pessoa.dataNascimento.toDate();
-          if (dataNasc.getDate() === dia && dataNasc.getMonth() + 1 === mes) {
-            aniversariantes.push({ id: doc.id, ...pessoa });
-          }
-        }
-      });
-
-      if (aniversariantes.length === 0) {
-        logger.info("Nenhum aniversariante hoje");
-        return;
-      }
-
-      logger.info(`🎉 ${aniversariantes.length} aniversariante(s) encontrado(s)`);
-
-      // Buscar todos os usuários
-      const usuariosSnapshot = await db.collection("usuarios").get();
-
-      // Filtrar apenas usuários com token FCM
-      const usuariosComToken = usuariosSnapshot.docs.filter(doc => {
-        const data = doc.data();
-        return data.fcmToken != null;
-      });
-
-      logger.info(`📊 ${usuariosComToken.length}/${usuariosSnapshot.size} usuários com token FCM`);
-
-      // Enviar notificação para cada aniversariante
-      for (const pessoa of aniversariantes) {
-        const promises = usuariosComToken.map((userDoc) =>
-          sendPushNotification(
-            userDoc.id,
-            `🎂 Aniversário de ${pessoa.nome}!`,
-            `Hoje é aniversário de ${pessoa.nome}. Envie seus parabéns!`,
-            "aniversario",
-            pessoa.id
-          )
-        );
-
-        await Promise.all(promises);
-      }
-
-      logger.info("✅ Notificações de aniversário enviadas");
+      const resultado = await processarAniversarios();
+      logger.info(`✅ Notificações de aniversário enviadas: ${resultado.totalNotificacoes} para ${resultado.totalPessoas} aniversariantes`);
     } catch (error) {
-      logger.error("❌ Erro ao processar aniversários:", error);
+      logger.error("❌ Erro ao processar aniversários agendados:", error);
     }
   }
 );
+
+/**
+ * ROTA HTTPS: Disparar aniversários manualmente
+ * Útil para testes ou gatilhos forçados
+ */
+export const dispararAniversarios = onDocumentCreated("admin_tasks/trigger_birthdays", async (event) => {
+  // Note: Usando onDocumentCreated como um "hook" ou poderia ser onRequest v2
+  // Mas para manter o padrão do projeto, vou criar uma versão Https
+});
+
+// Decidi usar onRequest para a rota HTTPS conforme solicitado "rotas"
+import { onRequest } from "firebase-functions/v2/https";
+
+export const apiDispararAniversarios = onRequest({
+  cors: true,
+  region: "us-central1" // Ajuste conforme sua região
+}, async (req, res) => {
+  try {
+    const { dia, mes } = req.query;
+    const d = dia ? parseInt(dia as string) : undefined;
+    const m = mes ? parseInt(mes as string) : undefined;
+
+    const resultado = await processarAniversarios(d, m);
+    res.status(200).send({
+      success: true,
+      message: `Processado com sucesso para ${d || 'hoje'}/${m || 'hoje'}`,
+      data: resultado
+    });
+  } catch (error: any) {
+    logger.error("❌ Erro na rota apiDispararAniversarios:", error);
+    res.status(500).send({ success: false, error: error.message });
+  }
+});
+
+/**
+ * Lógica centralizada para aniversários
+ */
+async function processarAniversarios(dia?: number, mes?: number) {
+  const hoje = new Date();
+  const d = dia || hoje.getDate();
+  const m = mes || (hoje.getMonth() + 1);
+
+  logger.info(`🎂 Buscando aniversariantes para ${d}/${m}`);
+
+  // Buscar todas as pessoas (em "people" conforme FirestoreService.kt)
+  const pessoasSnapshot = await db.collection("people").get();
+  const aniversariantes: any[] = [];
+
+  pessoasSnapshot.docs.forEach((doc) => {
+    const pessoa = doc.data();
+    if (pessoa.dataNascimento) {
+      const dataNasc = (pessoa.dataNascimento as any).toDate();
+      if (dataNasc.getDate() === d && dataNasc.getMonth() + 1 === m) {
+        aniversariantes.push({ id: doc.id, ...pessoa });
+      }
+    }
+  });
+
+  if (aniversariantes.length === 0) {
+    return { totalPessoas: 0, totalNotificacoes: 0 };
+  }
+
+  // Buscar todos os usuários sincronizados com o app (coleção "usuarios")
+  const usuariosSnapshot = await db.collection("usuarios").get();
+  const usuariosComToken = usuariosSnapshot.docs.filter(doc => doc.data().fcmToken != null);
+
+  let count = 0;
+  for (const pessoa of aniversariantes) {
+    const promises = usuariosComToken.map((userDoc) =>
+      sendPushNotification(
+        userDoc.id,
+        `🎂 Aniversário de ${pessoa.nome}!`,
+        `Hoje é aniversário de ${pessoa.nome}. Envie seus parabéns!`,
+        "aniversario",
+        pessoa.id
+      )
+    );
+    await Promise.all(promises);
+    count += usuariosComToken.length;
+  }
+
+  return { totalPessoas: aniversariantes.length, totalNotificacoes: count };
+}
 
 /**
  * TRIGGER: Conquista Desbloqueada
@@ -630,7 +659,7 @@ export const onNovoMembroCadastrado = onDocumentCreated(
     logger.info(`👋 Novo membro cadastrado: ${novoUsuario.nome} (${userId})`);
 
     try {
-      // Buscar todos os admins
+      // Buscar todos os admins na coleção "users" (conforme FirestoreService)
       const adminsSnapshot = await db
         .collection("users")
         .where("ehAdministrador", "==", true)
@@ -641,11 +670,15 @@ export const onNovoMembroCadastrado = onDocumentCreated(
         return;
       }
 
-      // Filtrar apenas admins com token FCM
-      const adminsComToken = adminsSnapshot.docs.filter(doc => {
-        const data = doc.data();
-        return data.fcmToken != null;
-      });
+      // IMPORTANTE: O token FCM está em "usuarios", não em "users"
+      // Precisamos buscar os IDs dos admins e depois seus tokens em "usuarios"
+      const adminIds = adminsSnapshot.docs.map(doc => doc.id);
+
+      const adminProfilesSnapshot = await db.collection("usuarios")
+        .where("__name__", "in", adminIds)
+        .get();
+
+      const adminsComToken = adminProfilesSnapshot.docs.filter(doc => doc.data().fcmToken != null);
 
       logger.info(`📊 ${adminsComToken.length}/${adminsSnapshot.size} admins com token FCM`);
 
@@ -879,8 +912,8 @@ export const onEventosFuturosAgendado = onSchedule(
     logger.info(`📅 Verificando eventos para amanhã: ${diaAmanha}/${mesAmanha}`);
 
     try {
-      // Buscar todas as pessoas
-      const pessoasSnapshot = await db.collection("pessoas").get();
+      // Buscar todas as pessoas em "people"
+      const pessoasSnapshot = await db.collection("people").get();
 
       const eventosCasamento: any[] = [];
       const eventosNascimento: any[] = [];
@@ -891,7 +924,7 @@ export const onEventosFuturosAgendado = onSchedule(
 
         // Verificar casamentos
         if (pessoa.dataCasamento) {
-          const dataCasamento = pessoa.dataCasamento.toDate();
+          const dataCasamento = (pessoa.dataCasamento as any).toDate();
           if (dataCasamento.getDate() === diaAmanha && dataCasamento.getMonth() + 1 === mesAmanha) {
             eventosCasamento.push({ id: doc.id, ...pessoa });
           }
@@ -899,7 +932,7 @@ export const onEventosFuturosAgendado = onSchedule(
 
         // Verificar nascimentos futuros
         if (pessoa.dataNascimento) {
-          const dataNasc = pessoa.dataNascimento.toDate();
+          const dataNasc = (pessoa.dataNascimento as any).toDate();
           // Se a data é no futuro e é amanhã
           if (dataNasc > hoje && dataNasc.getDate() === diaAmanha && dataNasc.getMonth() + 1 === mesAmanha) {
             eventosNascimento.push({ id: doc.id, ...pessoa });
@@ -912,17 +945,12 @@ export const onEventosFuturosAgendado = onSchedule(
         return;
       }
 
-      logger.info(`💒 ${eventosCasamento.length} casamento(s) amanhã`);
-      logger.info(`👶 ${eventosNascimento.length} nascimento(s) amanhã`);
-
-      // Buscar todos os usuários com token FCM
+      // Buscar todos os usuários com token FCM em "usuarios"
       const usuariosSnapshot = await db.collection("usuarios").get();
       const usuariosComToken = usuariosSnapshot.docs.filter((doc) => {
         const data = doc.data();
         return data.fcmToken != null;
       });
-
-      logger.info(`📊 ${usuariosComToken.length}/${usuariosSnapshot.size} usuários com token FCM`);
 
       // Notificar casamentos
       for (const pessoa of eventosCasamento) {

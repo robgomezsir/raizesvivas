@@ -26,15 +26,18 @@ import com.raizesvivas.app.utils.TreeBuilder
 import com.raizesvivas.app.utils.ParentescoCalculator
 import com.raizesvivas.app.utils.FamiliaMonoparentalPreferences
 import com.raizesvivas.app.utils.FamiliaOrdemPreferences
+import android.content.Context
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import android.content.Context
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.util.Locale
@@ -160,10 +163,12 @@ class FamiliaViewModel @Inject constructor(
 
     private fun observarDados() {
         viewModelScope.launch {
-            // Combinar flows em três etapas (combine suporta até 5 flows)
-            // Primeira etapa: combinar 5 flows
+            // Fluxos base com debounce para evitar processamento excessivo durante sync
+            val pessoasFlow = pessoaRepository.observarTodasPessoas().debounce(100)
+            val amigosFlow = amigoRepository.observarTodosAmigos().debounce(100)
+            
             val dadosParciais1Flow = combine(
-                pessoaRepository.observarTodasPessoas(),
+                pessoasFlow,
                 familiaZeroRepository.observar(),
                 familiaPersonalizadaRepository.observarTodas(),
                 observarUsuarioAtual(),
@@ -172,7 +177,6 @@ class FamiliaViewModel @Inject constructor(
                 DadosParciais1(pessoas, familiaZero, personalizadas, usuario, rejeitados)
             }
             
-            // Segunda etapa: adicionar confirmações
             val dadosParciais1ComConfirmacoesFlow = combine(
                 dadosParciais1Flow,
                 familiasMonoparentaisConfirmadas
@@ -187,28 +191,29 @@ class FamiliaViewModel @Inject constructor(
                 )
             }
             
-            // Terceira etapa: combinar resultado anterior com famílias excluídas
             val dadosParciais2Flow = combine(
                 dadosParciais1ComConfirmacoesFlow,
                 familiaExcluidaRepository.observarTodas()
-            ) { parcial1, excluidas ->
+            ) { parcial1ComConfirm, excluidas ->
                 val familiasExcluidasIds = excluidas.map { it.familiaId }.toSet()
                 DadosParciais2(
-                    pessoas = parcial1.pessoas,
-                    familiaZero = parcial1.familiaZero,
-                    personalizadas = parcial1.personalizadas,
-                    usuario = parcial1.usuario,
-                    rejeitados = parcial1.rejeitados,
-                    confirmados = parcial1.confirmados,
+                    pessoas = parcial1ComConfirm.pessoas,
+                    familiaZero = parcial1ComConfirm.familiaZero,
+                    personalizadas = parcial1ComConfirm.personalizadas,
+                    usuario = parcial1ComConfirm.usuario,
+                    rejeitados = parcial1ComConfirm.rejeitados,
+                    confirmados = parcial1ComConfirm.confirmados,
                     familiasExcluidasIds = familiasExcluidasIds
                 )
             }
             
-            // Quarta etapa: combinar com amigos
-            val dadosFamiliaFlow = combine(
+            // Combinar tudo e processar em Dispatchers.Default
+            combine(
                 dadosParciais2Flow,
-                amigoRepository.observarTodosAmigos()
-            ) { parcial2, amigos ->
+                amigosFlow,
+                expandedFamilias,
+                ordemFamilias
+            ) { parcial2, amigos, expandidas, ordem ->
                 val montagem = montarFamilias(
                     pessoas = parcial2.pessoas,
                     familiaZero = parcial2.familiaZero,
@@ -219,47 +224,54 @@ class FamiliaViewModel @Inject constructor(
 
                 val outrosFamiliares = parcial2.pessoas.filter { pessoa ->
                     pessoa.id.isNotBlank() && pessoa.id !in montagem.membrosAssociados
-                }.distinctBy { pessoa -> pessoa.id }
+                }.distinctBy { it.id }
 
-                // Montar famílias rejeitadas com informações completas
                 val familiasRejeitadas = montarFamiliasRejeitadas(parcial2.pessoas, parcial2.rejeitados)
+                val familiasOrdenadas = aplicarOrdemFamilias(montagem.familias, ordem)
 
-                DadosFamilia(
-                    familias = montagem.familias,
+                FamiliaStateUpdate(
+                    familias = familiasOrdenadas,
                     outrosFamiliares = outrosFamiliares,
                     usuarioEhAdmin = parcial2.usuario?.ehAdministrador == true,
                     usuarioEhAdminSr = parcial2.usuario?.ehAdministradorSenior == true,
                     familiasPendentes = montagem.familiasPendentes,
                     familiasRejeitadas = familiasRejeitadas,
-                    amigos = amigos
+                    amigos = amigos,
+                    expandedFamilias = expandidas
                 )
             }
-
-            combine(dadosFamiliaFlow, expandedFamilias, ordemFamilias) { dados, expandidas, ordem ->
-                Triple(dados, expandidas, ordem)
-            }.collect { (dados, expandidas, ordem) ->
-                // Aplicar ordem personalizada às famílias
-                val familiasOrdenadas = aplicarOrdemFamilias(dados.familias, ordem)
-                
+            .flowOn(Dispatchers.Default)
+            .collect { update ->
                 _state.update { atual ->
-                    val primeiraPendente = dados.familiasPendentes.firstOrNull()
+                    val primeiraPendente = update.familiasPendentes.firstOrNull()
                     atual.copy(
-                        familias = familiasOrdenadas,
-                        outrosFamiliares = dados.outrosFamiliares,
-                        usuarioEhAdmin = dados.usuarioEhAdmin,
-                        usuarioEhAdminSr = dados.usuarioEhAdminSr,
-                        expandedFamilias = expandidas,
+                        familias = update.familias,
+                        outrosFamiliares = update.outrosFamiliares,
+                        usuarioEhAdmin = update.usuarioEhAdmin,
+                        usuarioEhAdminSr = update.usuarioEhAdminSr,
+                        expandedFamilias = update.expandedFamilias,
                         isLoading = false,
-                        familiasMonoparentaisPendentes = dados.familiasPendentes,
+                        familiasMonoparentaisPendentes = update.familiasPendentes,
                         mostrarDialogFamiliaPendente = primeiraPendente != null && !atual.mostrarDialogFamiliaPendente,
                         familiaPendenteAtual = primeiraPendente,
-                        familiasRejeitadas = dados.familiasRejeitadas,
-                        amigos = dados.amigos
+                        familiasRejeitadas = update.familiasRejeitadas,
+                        amigos = update.amigos
                     )
                 }
             }
         }
     }
+
+    private data class FamiliaStateUpdate(
+        val familias: List<FamiliaUiModel>,
+        val outrosFamiliares: List<Pessoa>,
+        val usuarioEhAdmin: Boolean,
+        val usuarioEhAdminSr: Boolean,
+        val familiasPendentes: List<FamiliaMonoparentalPendente>,
+        val familiasRejeitadas: List<FamiliaMonoparentalPendente>,
+        val amigos: List<Amigo>,
+        val expandedFamilias: Set<String>
+    )
 
     private fun observarUsuarioAtual() =
         authService.currentUser?.uid?.let { userId ->

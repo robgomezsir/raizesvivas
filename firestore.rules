@@ -817,6 +817,47 @@ service cloud.firestore {
     }
 
     // ==============================
+    // 📅 Coleção: eventos (ECONOMIA DE EVENTOS FAMILIARES)
+    // ==============================
+    match /eventos/{eventoId} {
+      allow read, list: if isAuthenticated();
+      allow create: if isAuthenticated() && 
+                     request.resource.data.criadoPor == request.auth.uid;
+      allow update: if isAuthenticated() && 
+                     (resource.data.criadoPor == request.auth.uid || isAdminSenior());
+      allow delete: if isAuthenticated() && 
+                     (resource.data.criadoPor == request.auth.uid || isAdminSenior());
+    }
+
+    // ==============================
+    // 📰 Coleção: noticias_familia (FEED DE ATIVIDADES)
+    // ==============================
+    match /noticias_familia/{noticiaId} {
+      allow read, list: if isAuthenticated();
+      allow create: if isAuthenticated() && 
+                     request.resource.data.autorId == request.auth.uid;
+      allow update: if isAuthenticated() && 
+                     (resource.data.autorId == request.auth.uid || 
+                      (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lida'])));
+      allow delete: if isAuthenticated() && 
+                     (resource.data.autorId == request.auth.uid || isAdminSenior());
+    }
+
+    // ==============================
+    // 📧 Coleção: access_requests (PEDIDOS DE CONVITE)
+    // ==============================
+    match /access_requests/{requestId} {
+      // Público pode criar pedidos (onboarding)
+      allow create: if true; 
+      
+      // Apenas admins podem ler/listar
+      allow read, list: if isAdmin() && isEfficientQuery();
+      
+      // Apenas admins podem atualizar/deletar
+      allow update, delete: if isAdmin();
+    }
+
+    // ==============================
     // 🚫 Coleção: familias_excluidas (BLACKLIST DE FAMÍLIAS DELETADAS)
     // ==============================
     // LEITURA: Todos os usuários autenticados (necessário para filtragem no app)

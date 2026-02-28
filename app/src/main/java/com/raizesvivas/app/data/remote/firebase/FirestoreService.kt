@@ -3709,6 +3709,8 @@ class FirestoreService @Inject constructor(
             try {
                 val count = firestore.collection("access_requests")
                     .whereEqualTo("status", "pending")
+                    .orderBy("criadoEm", Query.Direction.DESCENDING)
+                    .limit(100)
                     .get()
                     .await()
                     .size()

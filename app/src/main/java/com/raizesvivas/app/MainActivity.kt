@@ -32,7 +32,6 @@ import com.raizesvivas.app.utils.ThemePreferenceManager
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
 import javax.inject.Inject
-import com.raizesvivas.app.presentation.components.MascotOverlay
 import com.raizesvivas.app.presentation.splash.VideoSplashScreen
 import kotlinx.coroutines.launch
 
@@ -152,9 +151,6 @@ class MainActivity : FragmentActivity() {
                                 authService = authService
                             )
                         }
-                        
-                        // Mascote Global Overlay
-                        MascotOverlay()
                     }
                 }
             }
